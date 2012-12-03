@@ -1,0 +1,38 @@
+################ Build options #######################################
+
+NAME		:= @PKG_NAME@
+MAJOR		:= @PKG_MAJOR@
+MINOR		:= @PKG_MINOR@
+
+#DEBUG		:= 1
+
+################ Programs ############################################
+
+CXX		:= @CXX@
+LD		:= @CXX@
+INSTALL		:= @INSTALL@
+
+INSTALLEXE	:= ${INSTALL} -D -p -m 755 -s
+INSTALLDATA	:= ${INSTALL} -D -p -m 644
+
+################ Destination #########################################
+
+prefix		:= @prefix@
+BINDIR		:= @bindir@
+
+################ Compiler options ####################################
+
+WARNOPTS	:= -Wall -Wextra -Woverloaded-virtual -Wpointer-arith\
+		-Wshadow -Wredundant-decls -Wcast-qual @SYSWARNS@
+CXXFLAGS	:= ${WARNOPTS} -std=c++11 @CUSTOMINCDIR@
+LDFLAGS		:= @CUSTOMLIBDIR@
+LIBS		:= @libGL@ @libX11@ @libpng@ @libz@
+ifdef DEBUG
+    CXXFLAGS	+= -O0 -g
+else
+    CXXFLAGS	+= -Os -g0 -DNDEBUG=1 -fno-rtti -march=native \
+		   -fno-enforce-eh-specs -fno-threadsafe-statics \
+		   -ffunction-sections -fdata-sections
+    LDFLAGS	+= -s -Wl,-gc-sections
+endif
+O		:= .o/

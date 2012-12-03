@@ -1,0 +1,11 @@
+config.status
+config.h
+Config.mk
+*.o
+gleri
+gleris
+data/data.cc
+data/data.h
+data/resource.pak
+bvt/??????
+bvt/??????.out

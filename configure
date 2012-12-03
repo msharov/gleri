@@ -1,0 +1,330 @@
+#! /bin/sh
+#
+# This file is free software, distributed under the MIT License.
+######################################################################
+# Project Configuration						     #
+######################################################################
+
+PKG_NAME="gleri"
+PKG_VERSTR="v0.1"
+
+MNT_NAME="Mike Sharov"
+MNT_MAIL="zfunebi@hfref.fbheprsbetr.arg"
+
+# Files that get created by this script
+FILES="Config.mk config.h"
+
+# Package options
+COMPONENTS='
+{
+name=[with-debug]
+desc=[	Compile for debugging]
+seds=[s/^#\(DEBUG\)/\1/]
+}';
+
+# Header files
+HEADERS="ustl.h zlib.h png.h GL/gl.h"
+
+# Libraries
+LIBS="GL X11 png z ustl"
+
+# First pair is used if nothing matches
+PROGS="CXX=g++ CXX=c++ INSTALL=install"
+
+# Automatic vars
+[ -d .git ] && PKG_VERSTR=`git describe`
+PKG_MAJOR=`expr "$PKG_VERSTR" : 'v\([0-9]*\)\.[0-9]*'`
+PKG_MINOR=`expr "$PKG_VERSTR" : 'v[0-9]*\.\([0-9]*\)'`
+PKG_STRING="$PKG_NAME $PKG_VERSTR"
+MNT_MAIL=`echo $MNT_MAIL|tr a-z n-za-m`
+PKG_BUGREPORT="$MNT_NAME <$MNT_MAIL>"
+
+# Miscellaneous substitutions
+CUSTSUBS="s/@PKG_NAME@/$PKG_NAME/g
+s/@PKG_VERSION@/"0x$PKG_MAJOR${PKG_MINOR}0"/g
+s/@PKG_VERSTR@/$PKG_VERSTR/g
+s/@PKG_TARNAME@/$PKG_NAME/g
+s/@PKG_STRING@/$PKG_STRING/g
+s/@PKG_UNAME@/`echo $PKG_NAME|tr a-z A-Z`/g
+s/@PKG_BUGREPORT@/$PKG_BUGREPORT/g
+s/@PKG_MAJOR@/$PKG_MAJOR/g
+s/@PKG_MINOR@/$PKG_MINOR/g"
+
+######################################################################
+# The rest of the file is configuration code. Leave it alone.	     #
+######################################################################
+
+die() { rm -f config.sed config.cpu config.cpu.c; exit; }
+
+#### Compile the configurator and generate initial config.sed ########
+
+if [ -z "$CC" ]; then
+    for i in gcc g++ cc c++ c89 c99; do
+	CC=`which $i 2>/dev/null` && break
+    done
+fi
+[ -z "$CC" ] && "No C compiler found" && die
+
+# Determine gcc private directory
+PSTDDEF=`echo "#include <stddef.h>"|$CC -E -|grep stddef.h|head -n1|cut -d' ' -f3|cut -d'"' -f2`
+PINCDIR=`dirname $PSTDDEF`
+PLIBDIR=`dirname $PINCDIR`
+if [ -d $PLIBDIR/lib ]; then PLIBDIR=$PLIBDIR/lib; fi
+
+# Create and build the C configurator
+cat>config.cpu.c<<\SRC
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/param.h>
+
+#define SET(c,v) "s/#undef \\(" #c "\\)/#define \\1 " #v "/g\n"
+
+int main (void)
+{
+    static const short bov=1;
+    static const char boNames[2][8]={"BIG","LITTLE"};
+    printf ("s/ \\?@INLINE_OPTS@/"
+#if __GNUC__ >= 4
+    " -fvisibility-inlines-hidden -fno-threadsafe-statics -fno-enforce-eh-specs"
+#endif
+    "/g\n");
+#if __GNUC__ || defined(__GLIBC_HAVE_LONG_LONG)
+    printf (SET(HAVE_LONG_LONG,1) SET(SIZE_OF_LONG_LONG,%zd), sizeof(long long));
+#endif
+#if __GNUC__ || __WORDSIZE == 64
+#ifndef BSD
+    printf (SET(HAVE_INT64_T,1));
+#endif
+#endif
+#ifndef __APPLE__
+    if (sizeof(size_t) == sizeof(unsigned long) && sizeof(size_t) != sizeof(uint))
+#endif
+	printf (SET(SIZE_T_IS_LONG,1));
+    printf ("s/@BYTE_ORDER@/%s_ENDIAN/g\n"
+	SET(SIZE_OF_CHAR,%zd)
+	SET(SIZE_OF_SHORT,%zd)
+	SET(SIZE_OF_INT,%zd)
+	SET(SIZE_OF_LONG,%zd)
+	SET(SIZE_OF_POINTER,%zd)
+	SET(SIZE_OF_SIZE_T,%zd),
+	boNames [(uint)(*((const char*)&bov))],
+	sizeof(char), sizeof(short), sizeof(int),
+	sizeof(long), sizeof(void*), sizeof(size_t));
+    return (0);
+}
+SRC
+$CC -o config.cpu config.cpu.c
+[ ! -x config.cpu ] && echo "Configurator build failed" && die
+./config.cpu > config.sed
+
+#### Set host-dependent options ######################################
+
+SYSNAME=`uname|tr A-Z a-z`
+case "$SYSNAME" in
+    *solaris*| *sun*)	SYSNAME="sun";;
+    *darwin*| *osx*)	SYSNAME="mac";;
+    *bsd*)		SYSNAME="bsd";;
+    *)			SYSNAME="linux";;
+esac
+
+if [ "$SYSNAME" = "sun" ]; then
+    echo "s/-Wredundant-decls/-Wno-redundant-decls/g
+	s/@SHBLDFL@/-G/g" >>config.sed
+else
+    echo 's/#undef \(HAVE_THREE_CHAR_TYPES\)/#define \1 1/g' >>config.sed
+fi
+if [ "$SYSNAME" = "bsd" ]; then
+    echo 's/-Wredundant-decls/-Wno-redundant-decls/g
+	s/-Winline/-Wno-inline/g
+	s/#define HAVE_VA_COPY 1/#undef HAVE_VA_COPY/g' >>config.sed
+fi
+if [ "$SYSNAME" = "linux" -o "$SYSNAME" = "bsd" ]; then
+    echo 's/@SHBLDFL@/-shared -Wl,-soname=$1/g' >>config.sed
+fi
+if [ "$SYSNAME" = "mac" ]; then
+    echo 's/@SYSWARNS@/-Wno-long-double/g
+	s/lib$1.so/lib$1.dylib/g
+	s/lib$1.so.${MAJOR}.${MINOR}.${BUILD}/lib$1.${MAJOR}.${MINOR}.${BUILD}.dylib/g
+	s/lib$1.so.${MAJOR}.${MINOR}/lib$1.${MAJOR}.${MINOR}.dylib/g
+	s/lib$1.so.${MAJOR}/lib$1.${MAJOR}.dylib/g
+	s/@SHBLDFL@/-Wl,-single_module -compatibility_version 1 -current_version 1 -install_name $1 -Wl,-Y,1455 -dynamiclib -mmacosx-version-min=10.4/g' >>config.sed
+else
+    echo 's/ \?@SYSWARNS@//g' >>config.sed
+fi
+if [ "$SYSNAME" = "mac" ]; then
+    echo 's/#undef \(SIZE_OF_BOOL\)/#define \1 SIZE_OF_LONG/g' >>config.sed
+else
+    echo 's/#undef \(SIZE_OF_BOOL\)/#define \1 SIZE_OF_CHAR/g' >>config.sed
+fi
+
+#### Printing helper functions #######################################
+
+PrintComponents() {
+    local cc name desc
+    cc=$COMPONENTS
+    echo "Options:"
+    while [ ! -z "$cc" ]; do
+	name=`expr "$cc" : '[^}]*name=\[\([^]]*\)\]'`
+	desc=`expr "$cc" : '[^}]*desc=\[\([^]]*\)\]'`
+	echo "  --$name	$desc"
+	cc=`expr "$cc" : '[^}]*}\(.*\)'`
+    done
+    echo
+}
+
+PrintHelp() {
+    echo "This program configures $PKG_STRING
+
+Usage: configure [OPTION]...
+
+Configuration:
+  -h, --help		display this help
+  -V, --version		display version
+
+Installation directories:
+  --prefix=PREFIX	installation root [/usr/local]
+  --bindir=DIR		programs [PREFIX/bin]
+  --sbindir=DIR		admin programs [PREFIX/sbin]
+  --datadir=DIR		data [PREFIX/share]
+  --sysconfdir=DIR	configuration [PREFIX/etc]
+  --localstatedir=DIR	modifiable data [PREFIX/var]
+  --includedir=DIR	header files [PREFIX/include]
+  --libdir=DIR		libraries [PREFIX/lib]
+  --infodir=DIR		info docs [PREFIX/info]
+  --mandir=DIR		man pages [PREFIX/man]
+
+System types:
+  --build=BUILD		compiling on BUILD [guessed]
+  --host=HOST		compiling for HOST [BUILD]
+"
+    PrintComponents
+    echo "Report bugs to $PKG_BUGREPORT."
+}
+
+PrintVersion() {
+    echo "$PKG_NAME configure $PKG_VERSTR"
+}
+
+SubVar() {
+    local esc2
+    esc2=`echo $2 | sed 's/\//\\\&/g'`
+    eval ac_var_$1='$esc2';
+    echo "s/@$1@/$esc2/g" >>config.sed
+}
+
+SubComp() {
+    local cc name seds
+    cc=$COMPONENTS
+    while [ ! -z "$cc" ]; do
+	name=`expr "$cc" : '[^}]*name=\[\([^]]*\)\]'`
+	seds=`expr "$cc" : '[^}]*seds=\[\([^]]*\)\]'`
+	[ "$name" = "$1" ] && echo $seds >>config.sed
+	cc=`expr "$cc" : '[^}]*}\(.*\)'`
+    done
+}
+
+for i in $*; do
+    case $i in
+	--)		break;;
+	--version |-V)	PrintVersion && die;;
+	--help |-h |-?)	PrintHelp && die;;
+	--*=*)		SubVar `expr "$i" : '--\([^=]*\)='` `expr "$i" : '[^=]*=\(.*\)'`;;
+	--*)		SubComp `expr "$i" : '--\(.*\)'`;;
+	*)		echo "Error: unrecognized option \"$i\"" && die;;
+    esac
+done
+
+#### Set directory prefixes ##########################################
+
+echo "s/@prefix@/${ac_var_prefix:=\/usr\/local}/g
+s/@bindir@/$ac_var_prefix\/bin/g
+s/@sbindir@/$ac_var_prefix\/sbin/g
+s/@datarootdir@/${ac_var_datarootdir:=$ac_var_prefix\/share}/g
+s/@datadir@/$ac_var_datarootdir/g
+s/@sysconfdir@/$ac_var_prefix\/etc/g
+s/@localstatedir@/$ac_var_prefix\/var/g
+s/@includedir@/${ac_var_includedir:=$ac_var_prefix\/include}/g
+s/@docdir@/${ac_var_docdir:=$ac_var_datarootdir\/doc\/$PKG_NAME}/g
+s/@infodir@/$ac_var_datarootdir\/info/g
+s/@libdir@/${ac_var_libdir:=$ac_var_prefix\/lib}/g
+s/@mandir@/$ac_var_datarootdir\/man/g
+s/@gccincludedir@/${ac_var_gccincludedir:=`echo $PINCDIR | sed 's/\//\\\&/g'`}/g
+s/@gcclibdir@/${ac_var_gcclibdir:=`echo $PLIBDIR | sed 's/\//\\\&/g'`}/g
+s/@customincdir@/${ac_var_customincdir:=$ac_var_prefix\/include}/g
+s/@customlibdir@/${ac_var_customlibdir:=$ac_var_prefix\/lib}/g" >>config.sed
+
+if [ "$ac_var_prefix" != "\/usr\/local" -a "$ac_var_prefix" != "\/usr" ]; then
+    echo "s/ \?@CUSTOMINCDIR@/ -I$ac_var_customincdir/g
+s/ \?@CUSTOMLIBDIR@/ -L$ac_var_customlibdir/g" >>config.sed
+else
+    echo "s/ \?@CUSTOMINCDIR@//g
+s/ \?@CUSTOMLIBDIR@//g" >>config.sed
+fi
+
+#### Find headers, libs, programs, and subs ##########################
+
+SubHeadLibsProgs() {
+local INCPATH LIBPATH LIBSUFFIX found pname pcall esciv
+INCPATH="$ac_var_includedir $ac_var_gccincludedir $ac_var_customincdir /usr/include"
+INCPATH=`echo $INCPATH | sed 's/\\\\//g'`
+for i in $HEADERS; do
+    for p in $INCPATH; do
+	if [ -r "$p/$i" ]; then
+	    echo 's/#undef \(HAVE_'`echo $i|tr a-z/.- A-Z___`'\)/#define \1 1/' >>config.sed
+	    break
+	fi
+    done
+done
+
+LIBPATH="`echo $LD_LIBRARY_PATH | tr ':' ' '` $ac_var_libdir $ac_var_gcclibdir $ac_var_customlibdir /usr/lib /usr/local/lib /lib"
+LIBPATH=`echo $LIBPATH | sed 's/\\\\//g'`
+LIBSUFFIX="so a la dylib"
+for i in $LIBS; do
+    found=
+    for p in $LIBPATH; do
+	for s in $LIBSUFFIX; do
+	    if [ -r "$p/lib$i.$s" ]; then
+		found=" -l$i"
+		break
+	    fi
+	done
+	[ -z "$found" ] || break
+    done
+    echo "s/ \?@lib$i@/$found/g" >>config.sed
+done
+
+for i in $PROGS; do
+    pname=`expr "$i" : '\([^=]*\)=[^=]*'`
+    pcall=`expr "$i" : '[^=]*=\([^=]*\)'`
+    [ -x `which $pcall 2>/dev/null` ] && echo "s/@$pname@/$pcall/g" >>config.sed
+done
+# If nothing found in first loop, set the first pair anyway.
+for i in $PROGS; do
+    pname=`expr "$i" : '\([^=]*\)=[^=]*'`
+    pcall=`expr "$i" : '[^=]*=\([^=]*\)'`
+    echo "s/@$pname@/$pcall/g" >>config.sed
+done
+# And, finally, the environment variables
+for i in $ENVIRONS; do
+    esciv="`eval echo '"'\$\{$i\}'"'|sed 's/\//\\\&/g'`"
+    [ ! -z "$esciv" ] && esciv=" $esciv"
+    echo "s/ \?@$i@/$esciv/g" >>config.sed
+done
+echo "$CUSTSUBS" >>config.sed
+}
+SubHeadLibsProgs
+
+#### Apply substitutions to all files ################################
+
+for i in $FILES; do
+    sed -f config.sed $i.in > $i
+done
+
+touch config.status
+echo "#! /bin/sh
+$0 $*
+`tail -n+3 config.status`" > config.status.new
+chmod u+x config.status.new
+mv config.status.new config.status
+
+die
