@@ -8,31 +8,15 @@
 #include ".o/data/data.h"
 
 //----------------------------------------------------------------------
-//{{{ Error handling ---------------------------------------------------
-namespace {
-
-static char* _xlib_error = nullptr;
-static int XlibErrorHandler (Display* dpy, XErrorEvent* ee)
-{
-    if (_xlib_error)	// Report only the first error
-	return (0);
-    char errortext [256];
-    XGetErrorText (dpy, ee->error_code, errortext, sizeof(errortext));
-    asprintf (&_xlib_error, "%lu.%hhu.%hhu: %s", ee->serial, ee->request_code, ee->minor_code, errortext);
-    return (0);
-}
-
-static int XlibIOErrorHandler (Display*)
-{
-    printf ("Error: connection to X server abnormally terminated\n");
-    exit (EXIT_FAILURE);
-    return (0);
-}
-
-} // namespace
-
-//}}}-------------------------------------------------------------------
 //{{{ CGleris::CClient
+
+void CGleris::CClient::Resize (uint16_t w, uint16_t h) noexcept
+{
+    if (_w == w && _h == h)
+	return;
+    _w = w; _h = h;
+    PRGLR::Resize (w, h);
+}
 
 void CGleris::CClient::MapId (uint32_t cid, GLuint sid) noexcept
 {
@@ -69,7 +53,7 @@ inline void CGleris::CClient::RemoveIdsFrom (vector<T>& v)
 }
 
 //}}}-------------------------------------------------------------------
-//{{{ App core
+// App core
 
 CGleris::CGleris (void) noexcept
 : CApp()
@@ -80,12 +64,13 @@ CGleris::CGleris (void) noexcept
 ,_curTexture (CGObject::NoObject)
 ,_curContext (nullptr)
 ,_curFont (nullptr)
+,_curCli (nullptr)
 ,_texture()
 ,_font()
 ,_shader()
 ,_pak()
 ,_cli()
-,_icbuf()
+,_icbuf (STDIN_FILENO, 0)
 ,_dpy (nullptr)
 ,_visinfo (nullptr)
 ,_colormap (None)
@@ -117,14 +102,28 @@ inline void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
 //----------------------------------------------------------------------
 // X and OpenGL interface
 
+/*static*/ char* CGleris::_xlib_error = nullptr;
+
+/*static*/ int CGleris::XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept
+{
+    char errortext [256];
+    XGetErrorText (dpy, ee->error_code, ArrayBlock(errortext));
+    if (!_xlib_error)	// Report only the first error
+	asprintf (&_xlib_error, "%lu.%hhu.%hhu: %s", ee->serial, ee->request_code, ee->minor_code, errortext);
+    return (0);
+}
+
+/*static*/ int CGleris::XlibIOErrorHandler (Display*) noexcept
+{
+    printf ("Error: connection to X server abnormally terminated\n");
+    exit (EXIT_FAILURE);
+}
+
 void CGleris::CheckForXlibErrors (void) const
 {
     XSync (_dpy, False);
-    if (_xlib_error) {
-	throw XError (_xlib_error);
-	free (_xlib_error);
-	_xlib_error = nullptr;
-    }
+    if (_xlib_error)
+	throw XError (true, _xlib_error);
 }
 
 Window CGleris::CreateWindow (unsigned w, unsigned h) const
@@ -143,38 +142,11 @@ Window CGleris::CreateWindow (unsigned w, unsigned h) const
     return (win);
 }
 
-GLXContext CGleris::CreateContext (unsigned version) const
+inline void CGleris::ActivateClient (const CClient& rcli) noexcept
 {
-    int major = version>>4, minor = version&0xf;
-    int context_attribs[] = {
-	GLX_CONTEXT_MAJOR_VERSION_ARB,	major,
-	GLX_CONTEXT_MINOR_VERSION_ARB,	minor,
-	GLX_CONTEXT_FLAGS_ARB,		GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
-	GLX_CONTEXT_PROFILE_MASK_ARB,	GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
-	None
-    };
-    GLXContext ctx = glXCreateContextAttribsARB (_dpy, _fbconfig, _cli.empty() ? nullptr : _cli[0].ContextId(), True, context_attribs);
-    if (!ctx)
-	throw XError ("X server does not support OpenGL %d.%d", major, minor);
-    if (!glXIsDirect (_dpy, ctx)) {
-	glXDestroyContext (_dpy, ctx);
-	throw XError ("direct rendering is not enabled");
-    }
-    return (ctx);
-}
-
-inline void CGleris::ActivateContext (const CContext& rctx) noexcept
-{
-    if (rctx.Context() != _curContext)
-	glXMakeCurrent (_dpy, rctx.Drawable(), _curContext = rctx.Context());
-}
-
-void CGleris::DestroyContext (const CContext& rctx) noexcept
-{
-    if (rctx.Context() == _curContext)
-	glXMakeCurrent (_dpy, None, _curContext = nullptr);
-    glXDestroyContext (_dpy, rctx.Context());
-    XDestroyWindow (_dpy, rctx.Drawable());
+    if (_curCli == &rcli)
+	return;
+    glXMakeCurrent (_dpy, rcli.Drawable(), _curContext = rcli.ContextId());
 }
 
 void CGleris::Init (argc_t argc, argv_t argv)
@@ -245,11 +217,12 @@ void CGleris::Init (argc_t argc, argv_t argv)
     // Now delete it and recreate with core profile for highest version
     glXMakeCurrent (_dpy, None, nullptr);
     glXDestroyContext (_dpy, ctx);
-    _cli.emplace_back (0, rctxw, CreateContext(_glversion));
+    XDestroyWindow (_dpy, rctxw);
 
-    // Activate the root context and load shared resources into it
-    ActivateContext (_cli[0].Context());
-    GLuint pak = LoadDatapak (File_resource, sizeof(File_resource));
+    CreateClient (-1, 0, 1, 1, _glversion, true);
+
+    // Load shared resources into the root context
+    GLuint pak = LoadDatapak (ArrayBlock (File_resource));
     LoadFont (pak, "ter-d18b.psf");
     LoadShader (pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
     LoadShader (pak, "sh/image_v.glsl", "sh/image_f.glsl");
@@ -265,22 +238,19 @@ void CGleris::OnXEvent (void)
     for (XEvent xev; XPending(_dpy);) {
 	XNextEvent(_dpy,&xev);
 
-	auto icli = _cli.begin();
-	for (; icli < _cli.end(); ++icli)
-	    if (icli->Drawable() == xev.xany.window)
-		break;
-	if (icli >= _cli.end())
-	    break;
+	CClient* icli = ClientRecordForWindow (xev.xany.window);
+	if (!icli) break;
 
 	if (xev.type == Expose)
 	    icli->Draw();
 	else if (xev.type == ConfigureNotify) {
-	    ActivateContext (icli->Context());
+	    ActivateClient (*icli);
+	    glViewport (0, 0, xev.xconfigure.width, xev.xconfigure.height);
 	    OnResize (xev.xconfigure.width, xev.xconfigure.height);
 	    icli->Resize (xev.xconfigure.width, xev.xconfigure.height);
 	} else if (xev.type == KeyPress)
 	    icli->Event (xev.xkey.keycode);
-	icli->WriteToFd (STDIN_FILENO);
+	icli->WriteCmds();
     }
 }
 
@@ -289,8 +259,8 @@ void CGleris::OnFd (int fd)
     CApp::OnFd(fd);
     if (fd == ConnectionNumber(_dpy))
 	OnXEvent();
-    else if (fd == STDIN_FILENO) {
-	_icbuf.ReadFromFd (STDIN_FILENO);
+    else if (fd == _icbuf.Fd()) {
+	_icbuf.ReadCmds();
 	PRGL::Parse (*this, _icbuf);
     }
 }
@@ -306,17 +276,36 @@ void CGleris::OnFdError (int fd)
     }
 }
 
-void CGleris::CreateClient (CClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion)
+void CGleris::CreateClient (int fd, CClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion, bool hidden)
 {
+    // Create the window
     Window wid = CreateWindow (w, h);
-    XMapWindow (_dpy, wid);
+    if (!hidden)
+	XMapWindow (_dpy, wid);
     CheckForXlibErrors();
 
-    GLXContext ctx = CreateContext(glversion);
-    _cli.emplace_back (iid, wid, ctx);
+    // Create the OpenGL context
+    int major = glversion>>4, minor = glversion&0xf;
+    int context_attribs[] = {
+	GLX_CONTEXT_MAJOR_VERSION_ARB,	major,
+	GLX_CONTEXT_MINOR_VERSION_ARB,	minor,
+	GLX_CONTEXT_FLAGS_ARB,		GLX_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+	GLX_CONTEXT_PROFILE_MASK_ARB,	GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
+	None
+    };
+    GLXContext ctx = glXCreateContextAttribsARB (_dpy, _fbconfig, _cli.empty() ? nullptr : _cli[0].ContextId(), True, context_attribs);
+    if (!ctx)
+	throw XError ("X server does not support OpenGL %d.%d", major, minor);
+    if (!glXIsDirect (_dpy, ctx)) {
+	glXDestroyContext (_dpy, ctx);
+	throw XError ("direct rendering is not enabled");
+    }
+
+    // Create client record
+    _cli.emplace_back (fd, iid, wid, ctx);
 
     // Activate the new context and set default parameters
-    glXMakeCurrent (_dpy, wid, _curContext = ctx);
+    ActivateClient (_cli.back());
 
     glEnable (GL_BLEND);
     glEnable (GL_CULL_FACE);
@@ -325,27 +314,39 @@ void CGleris::CreateClient (CClient::iid_t iid, uint16_t w, uint16_t h, uint16_t
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glXSwapIntervalSGI (1);
 
+    // Process events generated by above
     OnXEvent();
 }
 
 void CGleris::DestroyClient (CClient& rc) noexcept
 {
-    ActivateContext (rc.Context());
+    ActivateClient (rc);
     rc.RemoveIdsFrom (_texture);
     rc.RemoveIdsFrom (_font);
     rc.RemoveIdsFrom (_shader);
     rc.RemoveIdsFrom (_pak);
-    DestroyContext (rc.Context());
+    _curCli = nullptr;
+    glXMakeCurrent (_dpy, None, _curContext = nullptr);
+    glXDestroyContext (_dpy, rc.ContextId());
+    XDestroyWindow (_dpy, rc.Drawable());
 }
 
-CGleris::CClient* CGleris::ClientRecord (CClient::iid_t iid) noexcept
+CGleris::CClient* CGleris::ClientRecord (int fd, CClient::iid_t iid) noexcept
 {
-    for (auto i = _cli.begin(); i < _cli.end(); ++i) {
-	if (i->IId() == iid) {
-	    ActivateContext (i->Context());
-	    return (&*i);
+    for (auto& icli : _cli) {
+	if (icli.Fd() == fd && icli.IId() == iid) {
+	    ActivateClient (icli);
+	    return (&icli);
 	}
     }
+    return (nullptr);
+}
+
+CGleris::CClient* CGleris::ClientRecordForWindow (Window w) noexcept
+{
+    for (auto& icli : _cli)
+	if (icli.Drawable() == w)
+	    return (&icli);
     return (nullptr);
 }
 
@@ -357,7 +358,6 @@ void CGleris::ClientDraw (CClient& cli, bstri& cmdis)
 
 void CGleris::OnResize (unsigned w, unsigned h)
 {
-    glViewport (0, 0, w, h);
     memset (_proj, 0, sizeof(_proj));
     _proj[0][0] = 2.f/w;
     _proj[1][1] = -2.f/h;
@@ -366,7 +366,7 @@ void CGleris::OnResize (unsigned w, unsigned h)
     _proj[3][1] = float(h-1)/h;
 }
 
-//}}}-------------------------------------------------------------------
+//----------------------------------------------------------------------
 //{{{ Shader interface
 
 GLuint CGleris::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept
@@ -539,9 +539,9 @@ void CGleris::FreeDatapak (GLuint id)
 
 const CDatapak* CGleris::Datapak (GLuint id) const
 {
-    for (auto i = _pak.begin(); i < _pak.end(); ++i)
-	if (i->Id() == id)
-	    return (&*i);
+    for (auto& i : _pak)
+	if (i.Id() == id)
+	    return (&i);
     return (nullptr);
 }
 
@@ -564,9 +564,9 @@ void CGleris::FreeTexture (GLuint id)
 
 const CTexture* CGleris::Texture (GLuint id) const
 {
-    for (auto i = _texture.begin(); i < _texture.end(); ++i)
-	if (i->Id() == id)
-	    return (&*i);
+    for (auto& i : _texture)
+	if (i.Id() == id)
+	    return (&i);
     return (nullptr);
 }
 
@@ -630,9 +630,9 @@ void CGleris::FreeFont (GLuint id)
 
 void CGleris::SetFont (GLuint id)
 {
-    for (auto i = _font.begin(); i < _font.end(); ++i)
-	if (i->Id() == id)
-	    _curFont = &*i;
+    for (auto& i : _font)
+	if (i.Id() == id)
+	    _curFont = &i;
 }
 
 void CGleris::Text (int16_t x, int16_t y, const char* s)
@@ -645,9 +645,9 @@ void CGleris::Text (int16_t x, int16_t y, const char* s)
 	int16_t	s;
 	int16_t	t;
     };
-    SVertex* v = (SVertex*) alloca (nChars*4*sizeof(SVertex));
-    GLint* first = (GLint*) alloca (nChars*sizeof(GLint));
-    GLsizei* count = (GLsizei*) alloca (nChars*sizeof(GLsizei));
+    SVertex v [nChars*4];
+    GLint first [nChars];
+    GLsizei count [nChars];
     const unsigned fw = _curFont->Width(), fh = _curFont->Height();
     for (unsigned i = 0; i < nChars; ++i, x+=fw) {
 	unsigned fy = _curFont->LetterY(s[i]);
@@ -677,7 +677,7 @@ void CGleris::Text (int16_t x, int16_t y, const char* s)
     }
 
     GLuint buf = CreateBuffer();
-    BufferData (buf, v, nChars*4*sizeof(SVertex), GL_STATIC_DRAW);
+    BufferData (buf, v, sizeof(v), GL_STATIC_DRAW);
 
     Shader (_shader[2].Id());
     UniformTexture ("Texture", _curFont->Id());

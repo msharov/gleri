@@ -16,7 +16,7 @@ bvt/all:	${bvt/BVTS}
 # When the bvt runs, its output is compared to .std
 #
 check:		bvt/check
-bvt/check:	${bvt/BVTS}
+bvt/check:	${bvt/BVTS} ${EXE}
 	@for i in ${bvt/BVTS}; do \
 	    echo "Running $$i"; \
 	    ./$$i &> $$i.out; \
@@ -34,6 +34,6 @@ bvt/clean:
 	@rm -f ${bvt/BVTS} ${bvt/OBJS} ${bvt/DEPS}
 	@rmdir $O/bvt &> /dev/null || true
 
-${bvt/OBJS}: Makefile bvt/Module.mk Config.mk config.h configure
+${bvt/OBJS}: Makefile bvt/Module.mk ${CONFS}
 
 -include ${bvt/DEPS}

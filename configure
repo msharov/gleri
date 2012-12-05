@@ -12,7 +12,7 @@ MNT_NAME="Mike Sharov"
 MNT_MAIL="zfunebi@hfref.fbheprsbetr.arg"
 
 # Files that get created by this script
-FILES="Config.mk config.h"
+FILES="Config.mk config.h gleri/config.h"
 
 # Package options
 COMPONENTS='

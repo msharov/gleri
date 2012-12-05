@@ -2,22 +2,17 @@
 
 ######################################################################
 
-EXE	:= ${NAME}s
+EXE	:= gleris
 CXXFLAGS+= -I.
+CONFS	:= Config.mk config.h gleri/config.h config.status
 
-DSRC	:= $(filter-out data/mkdata.cc,$(shell find data/ -type f))
-MKDCC	:= .o/data/mkdata
-PAK	:= .o/data/resource.pak
-DCC	:= .o/data/data.cc
-DHH	:= .o/data/data.h
+include data/Module.mk
+include gleri/Module.mk
+include bvt/Module.mk
 
 INC	:= $(wildcard *.h)
 SRC	:= $(wildcard *.cc) ${DCC}
 OBJ	:= $(addprefix .o/,$(SRC:.cc=.o))
-
-LIBA	:= .o/lib${NAME}.a
-LIBSRC	:= app.cc rglp.cc
-LIBOBJ	:= $(addprefix .o/,$(LIBSRC:.cc=.o))
 
 ######################################################################
 
@@ -28,40 +23,18 @@ all:	${EXE}
 run:	${EXE}
 	@./${EXE}
 
-${EXE}:	${OBJ}
+${EXE}:	${OBJ} ${LIBA}
 	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ ${OBJ} ${LIBS}
-
-${LIBA}: ${LIBOBJ}
-	@echo "Linking $@ ..."
-	@rm -f ${LIBA}
-	@${AR} qc $@ ${LIBOBJ}
+	@${LD} ${LDFLAGS} -o $@ ${OBJ} ${LIBA} ${LIBS}
 
 .o/%.o:	%.cc
 	@echo "    Compiling $< ..."
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@${CXX} ${CXXFLAGS} -MMD -MT "$(<:.cc=.s) $@" -o $@ -c $<
 
-${MKDCC}:	${MKDCC}.o
-	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ $^
-
-${PAK}:	${DSRC} ${MKDCC}.o
-	@echo "    Collecting data files ..."
-	@echo $(subst data/,,${DSRC})|xargs -n1 echo|(cd data; cpio -o 2>/dev/null)|gzip -9 > $@
-
-${DCC}:	${PAK} ${MKDCC}
-	@echo "    Compiling $< ..."
-	@${MKDCC} $<
-
-${DHH}:		${DCC}
-gleris.cc:	${DHH}
-
 %.s:	%.cc
 	@echo "    Assembling $< ..."
 	@${CXX} ${CXXFLAGS} -S -o $@ -c $<
-
-include bvt/Module.mk
 
 ################ Installation ##########################################
 
@@ -81,23 +54,18 @@ endif
 ################ Maintenance ###########################################
 
 clean:
-	@rm -rf .o ${EXE}
+	@rm -f ${EXE}
+	@rm -rf .o
 
 distclean:	clean
-	@rm -f Config.mk config.h config.status ${NAME}
+	@rm -f ${CONFS}
 
 maintainer-clean: distclean
 
-Config.mk:		Config.mk.in
-config.h:		config.h.in
-Config.mk config.h:	configure
+${CONFS}:	configure Config.mk.in config.h.in gleri/config.h.in
 	@if [ -x config.status ]; then echo "Reconfiguring ..."; ./config.status; \
 	else echo "Running configure ..."; ./configure; fi
-${EXE}:		${NAME}/config.h
-${NAME}/config.h:	config.h
-	@echo "    Linking inplace header location ..."
-	@rm -f ${NAME}; ln -s . ${NAME}
 
-${OBJ} ${PAK} ${DCC} ${DHH}: Makefile Config.mk config.h
+${OBJ}: Makefile ${CONFS}
 
 -include ${OBJ:.o=.d}

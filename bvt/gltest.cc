@@ -1,6 +1,7 @@
 #include <gleri.h>
 #include <gleri/app.h>
 #include <gleri/rglp.h>
+#include <gleri/rglrp.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
@@ -8,13 +9,13 @@ class CWindow {
 public:
     typedef CCmd::iid_t	wid_t;
 public:
-    inline explicit	CWindow (wid_t wid)	: _prgl(wid) { _prgl.Open (640,480,0x33); OnInit(); }
+    inline explicit	CWindow (int fd, wid_t wid)	: _prgl(fd,wid) { _prgl.Open (640,480,0x33); OnInit(); }
     void		OnExpose (void);
     void		OnInit (void);
     inline void		OnResize (uint16_t w, uint16_t h);
     inline void		OnEvent (uint32_t key);
     ONDRAWDECL		OnDraw (Drw& drw) const;
-    inline void		WriteCmds (int fd)	{ _prgl.WriteToFd (fd); }
+    inline void		WriteCmds (void)	{ _prgl.WriteCmds(); }
 private:
     PRGL		_prgl;
     uint32_t		_vbuf;
@@ -51,12 +52,12 @@ enum {
 void CWindow::OnInit (void)
 {
     _prgl.BufferData (_vbuf = _prgl.CreateBuffer(), _vdata1, sizeof(_vdata1));
-    _prgl.LoadTexture (_walk = _prgl.CreateTexture(), "walk.png");
+    _prgl.LoadTexture (_walk = _prgl.CreateTexture(), "bvt/walk.png");
 }
 
 ONDRAWIMPL CWindow::OnDraw (Drw& drw) const
 {
-    drw.Clear (G::RGB(0,0,64));
+    drw.Clear (RGB(0,0,64));
 
     drw.DefaultShader();
     drw.VertexPointer (_vbuf);
@@ -73,7 +74,7 @@ ONDRAWIMPL CWindow::OnDraw (Drw& drw) const
     drw.DefaultShader();
     drw.VertexPointer (_vbuf);
 
-    drw.Color (G::ARGB(0xc0804040));
+    drw.Color (ARGB(0xc0804040));
     drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);
     drw.Color (128,170,170);
     drw.TriangleStrip (vb_SkewQuadOffset, vb_SkewQuadSize);
@@ -138,7 +139,7 @@ inline void CWindow::OnEvent (uint32_t key)
 inline CGLTest::CGLTest (void)
 : CApp()
 ,_wins()
-,_srvbuf()
+,_srvbuf(-1,0)
 ,_srvsock(-1)
 ,_srvpid(0)
 {
@@ -149,8 +150,9 @@ void CGLTest::Init (argc_t argc, argv_t argv)
     CApp::Init (argc, argv);
     _srvpid = LaunchServer();
     WatchFd (_srvsock);
-    _wins.emplace_back (44);
-    _wins.back().WriteCmds (_srvsock);
+    _srvbuf.SetFd (_srvsock);
+    _wins.emplace_back (_srvsock, 44);
+    _wins.back().WriteCmds();
 }
 
 int CGLTest::LaunchServer (void) noexcept
@@ -182,9 +184,10 @@ int CGLTest::LaunchServer (void) noexcept
 
 void CGLTest::OnFd (int fd)
 {
-    _srvbuf.ReadFromFd (fd);
+    if (fd != _srvbuf.Fd()) return;
+    _srvbuf.ReadCmds();
     PRGLR::Parse (_wins[0], _srvbuf);
-    _wins[0].WriteCmds (fd);
+    _wins[0].WriteCmds();
 }
 
 void CGLTest::OnFdError (int fd)

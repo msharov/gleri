@@ -1,5 +1,6 @@
 #pragma once
-#include "config.h"
+#include "rglp.h"
+#include "rglrp.h"
 #include <sys/poll.h>
 #include <signal.h>
 #include <assert.h>
@@ -56,25 +57,6 @@ inline CApp::CApp (void)
 	    signal (i, SignalHandler);
     gs_pApp = this;
 }
-
-//}}}-------------------------------------------------------------------
-//{{{ XError
-
-class XError {
-public:
-    template <typename... T>
-    inline explicit	XError (const char* fmt, T... args) noexcept __attribute__((__format__(__printf__,1,2)));
-    inline		~XError (void) noexcept		{ free (_msg); }
-    inline const char*	what (void) const noexcept	{ return (_msg); }
-private:
-    char*		_msg;
-};
-
-template <typename... T>
-inline XError::XError (const char* fmt, T... args) noexcept
-    { asprintf (&_msg, fmt, args...); }
-
-void hexdump (const void* pv, size_t n);
 
 //}}}-------------------------------------------------------------------
 //{{{ main

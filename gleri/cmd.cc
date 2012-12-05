@@ -2,7 +2,6 @@
 #include <unistd.h>
 
 //----------------------------------------------------------------------
-//{{{ Command name lookup
 
 /*static*/ inline const char* CCmdBuf::nextname (const char* n, size_type& sz) noexcept
 {
@@ -28,7 +27,7 @@
 #endif
 }
 
-/*static*/ inline const char* CCmdBuf::LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept
+/*static*/ const char* CCmdBuf::LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept
 {
     unsigned ci = InvalidCmd+1;
     for (const char *ns, *s = cmdnames; cleft; ++ci, s = ns) {
@@ -53,8 +52,6 @@
     }
     return (InvalidCmd);
 }
-
-//}}}-------------------------------------------------------------------
 
 inline CCmdBuf::size_type CCmdBuf::nextcapacity (size_type v) const noexcept
 {
@@ -97,10 +94,11 @@ void CCmdBuf::EndRead (bstri::const_pointer p) noexcept
     memcpy (_buf, p, _used-=br);
 }
 
-void CCmdBuf::ReadFromFd (int fd) noexcept
+void CCmdBuf::ReadCmds (void) noexcept
 {
+    if (_fd < 0) return;
     pointer pip = addspace (256);
-    ssize_t br = read (fd, pip, remaining());
+    ssize_t br = read (_fd, pip, remaining());
     if (br <= 0) {
 	if (errno != EINTR && errno != EAGAIN)
 	    perror ("srv read cmd");
@@ -109,11 +107,12 @@ void CCmdBuf::ReadFromFd (int fd) noexcept
     _used += br;
 }
 
-void CCmdBuf::WriteToFd (int fd) noexcept
+void CCmdBuf::WriteCmds (void) noexcept
 {
+    if (_fd < 0) return;
     bstri is (BeginRead());
     while (is.remaining()) {
-	ssize_t bw = write (fd, is.ipos(), is.remaining());
+	ssize_t bw = write (_fd, is.ipos(), is.remaining());
 	if (bw <= 0) {
 	    if (errno != EINTR && errno != EAGAIN) {
 		perror ("cmd write");
@@ -123,63 +122,4 @@ void CCmdBuf::WriteToFd (int fd) noexcept
 	is.skip (bw);
     }
     EndRead (is);
-}
-
-//----------------------------------------------------------------------
-
-#define N(n,s)	#n "\0" #s "\0"
-/*static*/ const char PRGL::_cmdNames[] =
-     N(Open,hhu)
-     N(Draw,ay)
-     N(BufferData,uay)
-     N(BufferSubData,uuay)
-     N(FreeBuffer,u)
-     N(LoadTexture,us)
-     N(FreeTexture,u)
-;
-#undef N
-
-/*static*/ inline const char* PRGL::LookupCmdName (ECmd cmd, size_type& sz) noexcept
-{
-    return (CCmdBuf::LookupCmdName((unsigned)cmd,sz,_cmdNames,sizeof(_cmdNames)-1));
-}
-
-/*static*/ PRGL::ECmd PRGL::LookupCmd (const char* name, size_type bleft) noexcept
-{
-    return (ECmd(CCmdBuf::LookupCmd(name,bleft,_cmdNames,sizeof(_cmdNames)-1)));
-}
-
-bstro PRGL::CreateCmd (ECmd cmd, size_type sz) noexcept
-{
-    size_type msz;
-    const char* m = LookupCmdName (cmd, msz);
-    return (CCmdBuf::CreateCmd (m, msz, sz));
-}
-
-//----------------------------------------------------------------------
-
-#define N(n,s)	#n "\0" #s "\0"
-/*static*/ const char PRGLR::_cmdNames[] =
-     N(Init,)
-     N(Resize,qq)
-     N(Draw,)
-     N(Event,)
-;
-#undef N
-
-/*static*/ inline const char* PRGLR::LookupCmdName (ECmd cmd, size_type& sz) noexcept
-{
-    return (CCmdBuf::LookupCmdName((unsigned)cmd,sz,_cmdNames,sizeof(_cmdNames)-1));
-}
-
-/*static*/ PRGLR::ECmd PRGLR::LookupCmd (const char* name, size_type bleft) noexcept
-{
-    return (ECmd(CCmdBuf::LookupCmd(name,bleft,_cmdNames,sizeof(_cmdNames)-1)));
-}
-
-bstro PRGLR::CreateCmd (ECmd cmd, size_type sz) noexcept
-{
-    size_type msz;
-    const char* m = LookupCmdName (cmd, msz);
-    return (CCmdBuf::CreateCmd (m, msz, sz));
 }

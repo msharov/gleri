@@ -1,3 +1,4 @@
+#include "../gleri/config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,7 +13,7 @@ int main (int argc, const char* const* argv)
     fprintf (dsrc, "#include \"data.h\"\n\n");
     for (int i = 1; i < argc; ++i) {
 	char aname[64];
-	snprintf (aname, sizeof(aname), "File_%s", argv[i]+strlen(OUTDIR));
+	snprintf (ArrayBlock(aname), "File_%s", argv[i]+strlen(OUTDIR));
 	*strchr(aname, '.') = 0;
 
 	FILE* f = fopen (argv[i], "rb");

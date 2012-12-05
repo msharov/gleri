@@ -1,7 +1,6 @@
 #pragma once
-#include "app.h"
+#include "gleri.h"
 #include "gob.h"
-#include "rglp.h"
 
 //----------------------------------------------------------------------
 
@@ -34,10 +33,11 @@ public:
 	    inline bool	operator== (const SIdMap& v) const	{ return (_key == v._key); }
 	};
     public:
-	inline explicit		CClient (iid_t iid, Window win, GLXContext ctx) : PRGLR(iid),_ctx(ctx,win),_cidmap() {}
+	inline explicit		CClient (int fd, iid_t iid, Window win, GLXContext ctx) : PRGLR(fd,iid),_ctx(ctx,win),_cidmap(),_w(0),_h(0) {}
 	inline const CContext&	Context (void) const				{ return (_ctx); }
 	inline GLXContext	ContextId (void) const				{ return (_ctx.Context()); }
 	inline Window		Drawable (void) const				{ return (_ctx.Drawable()); }
+	void			Resize (uint16_t w, uint16_t h) noexcept;
 	void			MapId (uint32_t cid, GLuint sid) noexcept;
 	GLuint			LookupId (uint32_t cid) const noexcept;
 	uint32_t		LookupSid (GLuint sid) const noexcept;
@@ -47,13 +47,16 @@ public:
     private:
 	CContext	_ctx;
 	set<SIdMap>	_cidmap;
+	uint16_t	_w;
+	uint16_t	_h;
     };
 public:
     inline bool		Option (EOption o) const	{ return (_options & (1<<o)); }
     void		OnResize (unsigned w, unsigned h);
 			// Client id translation
-    CClient*		ClientRecord (CClient::iid_t iid) noexcept;
-    void		CreateClient (CClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion);
+    CClient*		ClientRecord (int fd, CClient::iid_t iid) noexcept;
+    CClient*		ClientRecordForWindow (Window w) noexcept;
+    void		CreateClient (int fd, CClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion, bool hidden = false);
     void		ClientDraw (CClient& cli, bstri& cmdis);
 			// Output interface
     inline void		Primitive (GLenum mode, GLuint first, GLuint count) const noexcept	{ glDrawArrays(mode,first,count); }
@@ -71,7 +74,7 @@ public:
     void		UniformMatrix (const char* varname, const GLfloat* mat) const noexcept;
     void		UniformTexture (const char* varname, GLuint img, GLuint itex = 0) noexcept;
     void		Color (GLuint c) noexcept;
-    inline void		Color (GLubyte r, GLubyte g, GLubyte b, GLubyte a =255)	{ Color (G::RGBA(r,g,b,a)); }
+    inline void		Color (GLubyte r, GLubyte g, GLubyte b, GLubyte a =255)	{ Color (RGBA(r,g,b,a)); }
     void		Clear (GLuint c) noexcept;
 			// Buffer
     GLuint		CreateBuffer (void) noexcept;
@@ -100,14 +103,14 @@ private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     void		CheckForXlibErrors (void) const;
     Window		CreateWindow (unsigned w, unsigned h) const;
-    inline void		ActivateContext (const CContext& rctx) noexcept;
-    GLXContext		CreateContext (unsigned version) const;
-    void		DestroyContext (const CContext& rcli) noexcept;
-    void		DestroyClient (CClient& rc) noexcept;
+    inline void		ActivateClient (const CClient& rcli) noexcept;
+    void		DestroyClient (CClient& rcli) noexcept;
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
     void		OnXEvent (void);
     virtual void	OnFd (int fd);
     virtual void	OnFdError (int fd);
+    static int		XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept;
+    static int		XlibIOErrorHandler (Display*) noexcept NORETURN;
 private:
     GLXFBConfig		_fbconfig;
     matrix4f_t		_proj;
@@ -117,6 +120,7 @@ private:
     GLuint		_curTexture;
     GLXContext		_curContext;
     const CFont*	_curFont;
+    CClient*		_curCli;
     vector<CTexture>	_texture;
     vector<CFont>	_font;
     vector<CShader>	_shader;
@@ -130,4 +134,5 @@ private:
     Window		_rootWindow;
     unsigned short	_glversion;
     uint8_t		_options;
+    static char*	_xlib_error;
 };

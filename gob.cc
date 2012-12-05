@@ -1,4 +1,4 @@
-#include "app.h"
+#include "gleri.h"
 #include "gob.h"
 #include <sys/mman.h>
 #include <unistd.h>
@@ -175,7 +175,7 @@ void CShader::Load (const Sources& src)
 	glGetShaderiv (stages[i], GL_COMPILE_STATUS, &result);
 	if (!result) {
 	    glGetShaderiv (stages[i], GL_INFO_LOG_LENGTH, &infoLogLength);
-	    char* infoLog = (char*) alloca (infoLogLength);
+	    char infoLog [infoLogLength];
 	    glGetShaderInfoLog (stages[i], infoLogLength, nullptr, infoLog);
 	    throw XError ("shader error:\n%s", infoLog);
 	}
@@ -189,7 +189,7 @@ void CShader::Load (const Sources& src)
     glGetProgramiv (Id(), GL_LINK_STATUS, &result);
     if (!result) {
 	glGetProgramiv (Id(), GL_INFO_LOG_LENGTH, &infoLogLength);
-	char* infoLog = (char*) alloca (infoLogLength);
+	char infoLog [infoLogLength];
 	glGetProgramInfoLog (Id(), infoLogLength, nullptr, infoLog);
 	throw XError ("shader error:\n%s", infoLog);
     }
@@ -332,7 +332,7 @@ inline GLubyte* CTexture::LoadPNG (const GLubyte* p, GLuint) noexcept
 
     GLubyte* idata = (GLubyte*) malloc (4*_width*_height);
     if (!idata) return (idata);
-    GLubyte** rows = (GLubyte**) alloca (sizeof(GLubyte*)*_height);
+    GLubyte* rows [_height];
     for (GLuint i=0, rbw=4*_width; i < _height; ++i)
 	rows[i] = idata+i*rbw;
     png_read_image (rs, &rows[0]);

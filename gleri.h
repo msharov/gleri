@@ -1,2 +1,2 @@
 #pragma once
-#include "gleri/config.h"
+#include "gleri/app.h"

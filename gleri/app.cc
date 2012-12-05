@@ -45,7 +45,7 @@ void hexdump (const void* pv, size_t n)
 	    line[h*3+2] = ' ';
 	    line[h+3*16] = _printable(b) ? b : '.';
 	}
-	write (STDOUT_FILENO, line, sizeof(line));
+	write (STDOUT_FILENO, ArrayBlock(line));
     }
 }
 
