@@ -1,5 +1,4 @@
 #include "app.h"
-#include <unistd.h>
 #include <sys/wait.h>
 
 //{{{ Utility functions ------------------------------------------------

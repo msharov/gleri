@@ -1,9 +1,5 @@
 #pragma once
 #include "config.h"
-#include <stdint.h>
-#include <limits.h>
-#include <assert.h>
-#include <string.h>
 
 //----------------------------------------------------------------------
 

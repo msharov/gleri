@@ -3,7 +3,6 @@
 #include "rglrp.h"
 #include <sys/poll.h>
 #include <signal.h>
-#include <assert.h>
 
 class CApp {
 public:

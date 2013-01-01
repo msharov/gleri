@@ -77,6 +77,14 @@ inline XError::XError (const char* fmt, T... args) noexcept
 
 void hexdump (const void* pv, size_t n);
 
+template <typename Ctr, typename Condition>
+inline void erase_if (Ctr& v, Condition f)
+{
+    for (typename Ctr::iterator i = v.begin(); i != v.end(); ++i)
+	if (f(*i))
+	    --(i = v.erase(i));
+}
+
 namespace {
 
 /// Creates uint32_t color value from components

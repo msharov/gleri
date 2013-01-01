@@ -1,12 +1,16 @@
 #version 330 core
 
 uniform mat4 Transform;
-layout(location=0) in vec2 Vertex;
-layout(location=1) in vec2 TexCoord;
-invariant out vec4 gl_Position;
-invariant out vec2 f_tex;
+uniform vec4 FontSize;
+layout(location=0) in vec4 Vertex;
+invariant out Sg { vec4 pos; vec4 tex; } g;
 
 void main() {
-    gl_Position = Transform*vec4(Vertex,1,1);
-    f_tex = TexCoord/(1<<14);
+    vec4 glyphtl = Transform*vec4(Vertex.xy,1,1);
+    vec4 glyphbr = Transform*vec4(Vertex.xy+FontSize.xy,1,1);
+    g.pos = vec4(glyphtl.xy,glyphbr.xy);
+
+    vec2 textl = Vertex.zw+vec2(.5,.5);
+    vec2 texbr = textl+FontSize.xy;
+    g.tex = vec4(textl,texbr)/FontSize.zwzw;
 }

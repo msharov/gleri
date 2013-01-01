@@ -15,11 +15,10 @@ ${PAK}:	${DSRC} ${MKDCC}.o
 	@echo "    Collecting data files ..."
 	@echo ${DSRCB}|xargs -n1 echo|(cd data; cpio -o 2>/dev/null)|gzip -9 > $@
 
-${DCC}:	${PAK} ${MKDCC}
+${DHH}:	${PAK} ${MKDCC}
 	@echo "    Compiling $< ..."
 	@${MKDCC} $<
 
-${DHH}:		${DCC}
-gleris.cc:	${DHH}
+${DCC} gleris.cc:	${DHH}
 
 ${PAK} ${DCC} ${DHH}: Makefile Config.mk config.h ${NAME}/config.h

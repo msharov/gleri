@@ -102,23 +102,23 @@ template <typename F>
 		if (cmdis.remaining() < dsz) Error();
 		uint32_t sid = clir->LookupId (id);
 		if (sid == UINT32_MAX) {
-		    sid = f.CreateBuffer();
+		    sid = clir->CreateBuffer();
 		    clir->MapId (id, sid);
 		}
-		f.BufferData (sid, cmdis.ipos(), dsz, hint, btype);
+		clir->BufferData (sid, cmdis.ipos(), dsz, hint, btype);
 		} break;
 	    case ECmd::BufferSubData: {
 		uint32_t id, dsz; uint16_t offset, btype;
 		if (cmdis.remaining() < 12) Error();
 		cmdis >> id >> btype >> offset >> dsz;
 		if (cmdis.remaining() < dsz) Error();
-		f.BufferSubData (clir->LookupId(id), cmdis.ipos(), dsz, offset, btype);
+		clir->BufferSubData (clir->LookupId(id), cmdis.ipos(), dsz, offset, btype);
 		} break;
 	    case ECmd::FreeBuffer: {
 		uint32_t id;
 		if (cmdis.remaining() < 4) Error();
 		cmdis >> id;
-		f.FreeBuffer(clir->LookupId(id));
+		clir->FreeBuffer(clir->LookupId(id));
 		clir->UnmapId(id);
 		} break;
 	    case ECmd::LoadTexture: {
@@ -127,13 +127,13 @@ template <typename F>
 		if (cmdis.remaining() < 8) Error();
 		cmdis >> id >> tfn;
 		if (!tfn) Error();
-		clir->MapId(id,f.LoadTexture(tfn));
+		clir->MapId(id,clir->LoadTexture(tfn));
 		} break;
 	    case ECmd::FreeTexture: {
 		uint32_t id;
 		if (cmdis.remaining() < 4) Error();
 		cmdis >> id;
-		f.FreeTexture(clir->LookupId(id));
+		clir->FreeTexture(clir->LookupId(id));
 		clir->UnmapId(id);
 		} break;
 	    default:

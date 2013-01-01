@@ -1,9 +1,5 @@
 #include <gleri.h>
-#include <gleri/app.h>
-#include <gleri/rglp.h>
-#include <gleri/rglrp.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 class CWindow {
 public:
@@ -52,7 +48,7 @@ enum {
 void CWindow::OnInit (void)
 {
     _prgl.BufferData (_vbuf = _prgl.CreateBuffer(), _vdata1, sizeof(_vdata1));
-    _prgl.LoadTexture (_walk = _prgl.CreateTexture(), "bvt/walk.png");
+    _prgl.LoadTexture (_walk = _prgl.CreateTexture(), "bvt/princess.png");
 }
 
 ONDRAWIMPL CWindow::OnDraw (Drw& drw) const
@@ -72,7 +68,6 @@ ONDRAWIMPL CWindow::OnDraw (Drw& drw) const
     drw.Sprite (200, 75, _walk);
 
     drw.DefaultShader();
-    drw.VertexPointer (_vbuf);
 
     drw.Color (ARGB(0xc0804040));
     drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);

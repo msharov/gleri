@@ -1,74 +1,13 @@
 #include "gleris.h"
-#include <GL/glext.h>
-#include <GL/glxext.h>
-#include <string.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <errno.h>
+#include "mmfile.h"
 #include ".o/data/data.h"
 
 //----------------------------------------------------------------------
-//{{{ CGleris::CClient
-
-void CGleris::CClient::Resize (uint16_t w, uint16_t h) noexcept
-{
-    if (_w == w && _h == h)
-	return;
-    _w = w; _h = h;
-    PRGLR::Resize (w, h);
-}
-
-void CGleris::CClient::MapId (uint32_t cid, GLuint sid) noexcept
-{
-    _cidmap.insert (SIdMap(cid,sid));
-}
-
-GLuint CGleris::CClient::LookupId (uint32_t cid) const noexcept
-{
-    auto fi = _cidmap.lower_bound (SIdMap(cid,0));
-    return (fi == _cidmap.end() ? UINT32_MAX : fi->_sid);
-}
-
-uint32_t CGleris::CClient::LookupSid (GLuint sid) const noexcept
-{
-    for (const auto& i : _cidmap)
-	if (i._sid == sid)
-	    return (i._cid);
-    return (UINT32_MAX);
-}
-
-void CGleris::CClient::UnmapId (uint32_t cid) noexcept
-{
-    for (auto i = _cidmap.begin(); i != _cidmap.end(); ++i)
-	if (i->_cid == cid)
-	    --(i = _cidmap.erase(i));
-}
-
-template <typename T>
-inline void CGleris::CClient::RemoveIdsFrom (vector<T>& v)
-{
-    for (auto i = v.begin(); i < v.end(); ++i)
-	if (LookupSid(i->Id()) != UINT32_MAX)
-	    --(i = v.erase(i));
-}
-
-//}}}-------------------------------------------------------------------
-// App core
 
 CGleris::CGleris (void) noexcept
 : CApp()
 ,_fbconfig (nullptr)
-,_color (0xffffffff)
-,_curShader (CGObject::NoObject)
-,_curBuffer (CGObject::NoObject)
-,_curTexture (CGObject::NoObject)
-,_curContext (nullptr)
-,_curFont (nullptr)
 ,_curCli (nullptr)
-,_texture()
-,_font()
-,_shader()
-,_pak()
 ,_cli()
 ,_icbuf (STDIN_FILENO, 0)
 ,_dpy (nullptr)
@@ -142,11 +81,12 @@ Window CGleris::CreateWindow (unsigned w, unsigned h) const
     return (win);
 }
 
-inline void CGleris::ActivateClient (const CClient& rcli) noexcept
+inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
 {
     if (_curCli == &rcli)
 	return;
-    glXMakeCurrent (_dpy, rcli.Drawable(), _curContext = rcli.ContextId());
+    _curCli = &rcli;
+    glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
 }
 
 void CGleris::Init (argc_t argc, argv_t argv)
@@ -222,12 +162,12 @@ void CGleris::Init (argc_t argc, argv_t argv)
     CreateClient (-1, 0, 1, 1, _glversion, true);
 
     // Load shared resources into the root context
-    GLuint pak = LoadDatapak (ArrayBlock (File_resource));
-    LoadFont (pak, "ter-d18b.psf");
-    LoadShader (pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
-    LoadShader (pak, "sh/image_v.glsl", "sh/image_f.glsl");
-    LoadShader (pak, "sh/font_v.glsl", "sh/font_f.glsl");
-    FreeDatapak (pak);
+    GLuint pak = _curCli->LoadDatapak (ArrayBlock (File_resource));
+    _curCli->LoadFont (pak, "ter-d18b.psf");
+    _curCli->LoadShader (pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
+    _curCli->LoadShader (pak, "sh/image_v.glsl", "sh/image_g.glsl", "sh/image_f.glsl");
+    _curCli->LoadShader (pak, "sh/font_v.glsl", "sh/image_g.glsl", "sh/font_f.glsl");
+    _curCli->FreeDatapak (pak);
 
     // Process X events queued so far
     OnXEvent();
@@ -238,15 +178,13 @@ void CGleris::OnXEvent (void)
     for (XEvent xev; XPending(_dpy);) {
 	XNextEvent(_dpy,&xev);
 
-	CClient* icli = ClientRecordForWindow (xev.xany.window);
+	CGLClient* icli = ClientRecordForWindow (xev.xany.window);
 	if (!icli) break;
 
 	if (xev.type == Expose)
 	    icli->Draw();
 	else if (xev.type == ConfigureNotify) {
 	    ActivateClient (*icli);
-	    glViewport (0, 0, xev.xconfigure.width, xev.xconfigure.height);
-	    OnResize (xev.xconfigure.width, xev.xconfigure.height);
 	    icli->Resize (xev.xconfigure.width, xev.xconfigure.height);
 	} else if (xev.type == KeyPress)
 	    icli->Event (xev.xkey.keycode);
@@ -276,7 +214,7 @@ void CGleris::OnFdError (int fd)
     }
 }
 
-void CGleris::CreateClient (int fd, CClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion, bool hidden)
+void CGleris::CreateClient (int fd, CGLClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion, bool hidden)
 {
     // Create the window
     Window wid = CreateWindow (w, h);
@@ -293,7 +231,7 @@ void CGleris::CreateClient (int fd, CClient::iid_t iid, uint16_t w, uint16_t h, 
 	GLX_CONTEXT_PROFILE_MASK_ARB,	GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 	None
     };
-    GLXContext ctx = glXCreateContextAttribsARB (_dpy, _fbconfig, _cli.empty() ? nullptr : _cli[0].ContextId(), True, context_attribs);
+    GLXContext ctx = glXCreateContextAttribsARB (_dpy, _fbconfig, _cli.empty() ? nullptr : _cli[0]->ContextId(), True, context_attribs);
     if (!ctx)
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
     if (!glXIsDirect (_dpy, ctx)) {
@@ -302,10 +240,10 @@ void CGleris::CreateClient (int fd, CClient::iid_t iid, uint16_t w, uint16_t h, 
     }
 
     // Create client record
-    _cli.emplace_back (fd, iid, wid, ctx);
+    _cli.push_back (new CGLClient (fd, iid, wid, ctx));
 
     // Activate the new context and set default parameters
-    ActivateClient (_cli.back());
+    ActivateClient (*_cli.back());
 
     glEnable (GL_BLEND);
     glEnable (GL_CULL_FACE);
@@ -318,377 +256,42 @@ void CGleris::CreateClient (int fd, CClient::iid_t iid, uint16_t w, uint16_t h, 
     OnXEvent();
 }
 
-void CGleris::DestroyClient (CClient& rc) noexcept
+void CGleris::DestroyClient (CGLClient*& pc) noexcept
 {
-    ActivateClient (rc);
-    rc.RemoveIdsFrom (_texture);
-    rc.RemoveIdsFrom (_font);
-    rc.RemoveIdsFrom (_shader);
-    rc.RemoveIdsFrom (_pak);
+    ActivateClient (*pc);
     _curCli = nullptr;
-    glXMakeCurrent (_dpy, None, _curContext = nullptr);
-    glXDestroyContext (_dpy, rc.ContextId());
-    XDestroyWindow (_dpy, rc.Drawable());
+    GLXContext ctx = pc->ContextId();
+    Window w = pc->Drawable();
+    delete pc;
+    pc = nullptr;
+    glXMakeCurrent (_dpy, None, nullptr);
+    glXDestroyContext (_dpy, ctx);
+    XDestroyWindow (_dpy, w);
 }
 
-CGleris::CClient* CGleris::ClientRecord (int fd, CClient::iid_t iid) noexcept
+CGLClient* CGleris::ClientRecord (int fd, CGLClient::iid_t iid) noexcept
 {
     for (auto& icli : _cli) {
-	if (icli.Fd() == fd && icli.IId() == iid) {
-	    ActivateClient (icli);
-	    return (&icli);
+	if (icli->Fd() == fd && icli->IId() == iid) {
+	    ActivateClient (*icli);
+	    return (icli);
 	}
     }
     return (nullptr);
 }
 
-CGleris::CClient* CGleris::ClientRecordForWindow (Window w) noexcept
+CGLClient* CGleris::ClientRecordForWindow (Window w) noexcept
 {
     for (auto& icli : _cli)
-	if (icli.Drawable() == w)
-	    return (&icli);
+	if (icli->Drawable() == w)
+	    return (icli);
     return (nullptr);
 }
 
-void CGleris::ClientDraw (CClient& cli, bstri& cmdis)
+void CGleris::ClientDraw (CGLClient& cli, bstri& cmdis)
 {
-    PDraw<bstri>::Parse (*this, cli, cmdis);
+    PDraw<bstri>::Parse (cli, cmdis);
     glXSwapBuffers (_dpy, cli.Drawable());
 }
-
-void CGleris::OnResize (unsigned w, unsigned h)
-{
-    memset (_proj, 0, sizeof(_proj));
-    _proj[0][0] = 2.f/w;
-    _proj[1][1] = -2.f/h;
-    _proj[3][3] = 1.f;
-    _proj[3][0] = -float(w-1)/w;
-    _proj[3][1] = float(h-1)/h;
-}
-
-//----------------------------------------------------------------------
-//{{{ Shader interface
-
-GLuint CGleris::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept
-{
-    const CDatapak* ppak = Datapak(pak);
-    if (!ppak) return (CGObject::NoObject);
-    _shader.emplace_back (_curContext, CShader::Sources(*ppak,v,tc,te,g,f));
-    return (_shader.back().Id());
-}
-
-void CGleris::FreeShader (GLuint sh) noexcept
-{
-    for (auto i = _shader.begin(); i < _shader.end(); ++i)
-	if (i->Id() == sh)
-	    --(i = _shader.erase(i));
-}
-
-void CGleris::Shader (GLuint id) noexcept
-{
-    if (_curShader == id)
-	return;
-    if (id == UINT_MAX)
-	return;
-    _curShader = id;
-    glUseProgram (id);
-    UniformMatrix ("Transform", &_proj[0][0]);
-    Color (_color);
-}
-
-void CGleris::Parameter (const char* varname, GLuint buf, GLenum type, GLuint size, GLuint offset, GLuint stride) noexcept
-{
-    Parameter (glGetAttribLocation (_curShader, varname), buf, type, size, offset, stride);
-}
-
-void CGleris::Parameter (GLuint slot, GLuint buf, GLenum type, GLuint size, GLuint offset, GLuint stride) noexcept
-{
-    BindBuffer (buf);
-    if (slot >= 16) return;
-    glEnableVertexAttribArray (slot);
-    glVertexAttribPointer (slot, size, type, GL_FALSE, stride, (const void*)(long) offset);
-}
-
-void CGleris::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept
-{
-    GLint slot = glGetUniformLocation (_curShader, varname);
-    if (slot < 0) return;
-    glUniform4f (slot, x, y, z, w);
-}
-
-void CGleris::UniformMatrix (const char* varname, const GLfloat* mat) const noexcept
-{
-    GLint slot = glGetUniformLocation (_curShader, varname);
-    if (slot < 0) return;
-    glUniformMatrix4fv (slot, 1, GL_FALSE, mat);
-}
-
-void CGleris::UniformTexture (const char* varname, GLuint img, GLuint itex) noexcept
-{
-    if (_curTexture == img) return;
-    GLint slot = glGetUniformLocation (_curShader, varname);
-    if (slot < 0) return;
-    glActiveTexture (GL_TEXTURE0+itex);
-    glBindTexture (GL_TEXTURE_2D, img);
-    _curTexture = img;
-    glUniform1i (slot, itex);
-}
-
-namespace {
-inline void UnpackColor (GLuint c, float& r, float& g, float& b, float& a)
-{
-    static const float convf = 1.f/255;
-#if __x86_64__
-    asm("movd	%4, %0\n\t"	// r(c000)
-	"xorps	%1, %1\n\t"	// g(0000)
-	"punpcklbw %1, %0\n\t"	// c 1->2 expand
-	"shufps	$0, %5, %5\n\t"	// a(ffff)
-	"punpcklwd %1, %0\n\t"	// c 2->4 expand
-	"cvtdq2ps %0, %0\n\t"	// c to float r(rgba)
-	"mulps	%5, %0\n\t"	// normalize to 0..1
-	"movaps	%0, %1\n\t"	// r(rgba) g(rgba)
-	"movaps	%0, %3\n\t"	// a(rgba)
-	"movhlps %0, %2\n\t"	// b(ba..)
-	"shufps	$1, %1, %1\n\t"	// g(g...)
-	"shufps	$3, %3, %3"	// a(a...)
-	:"=x"(r),"=x"(g),"=x"(b),"=x"(a):"r"(c),"3"(convf));
-#else
-    GLubyte rb = c, gb = c>>8, bb = c>>16, ab = c>>24;
-    r = rb*convf; g = gb*convf; b = bb*convf; a = ab*convf;
-#endif
-}
-} // namespace
-
-void CGleris::Color (GLuint c) noexcept
-{
-    _color = c;
-    float r,g,b,a;
-    UnpackColor (c,r,g,b,a);
-    Uniform4f ("Color", r, g, b, a);
-}
-
-void CGleris::Clear (GLuint c) noexcept
-{
-    float r,g,b,a;
-    UnpackColor (c,r,g,b,a);
-    glClearColor (r,g,b,a);
-    glClear (GL_COLOR_BUFFER_BIT);
-}
-
-//}}}-------------------------------------------------------------------
-//{{{ Buffer
-
-GLuint CGleris::CreateBuffer (void) noexcept
-{
-    GLuint id;
-    glGenBuffers (1, &id);
-    return (id);
-}
-
-void CGleris::FreeBuffer (GLuint buf) noexcept
-{
-    if (_curBuffer == buf)
-	_curBuffer = CGObject::NoObject;
-    glDeleteBuffers (1, &buf);
-}
-
-void CGleris::BindBuffer (GLuint id) noexcept
-{
-    if (_curBuffer == id)
-	return;
-    _curBuffer = id;
-    glBindBuffer (GL_ARRAY_BUFFER, id);
-}
-
-void CGleris::BufferData (GLuint buf, const void* data, GLuint size, GLushort mode, GLushort btype)
-{
-    BindBuffer (buf);
-    glBufferData (btype, size, data, mode);
-}
-
-void CGleris::BufferSubData (GLuint buf, const void* data, GLuint size, GLuint offset, GLushort btype)
-{
-    BindBuffer (buf);
-    glBufferSubData (btype, offset, size, data);
-}
-
-//}}}-------------------------------------------------------------------
-//{{{ Datapak
-
-GLuint CGleris::LoadDatapak (const GLubyte* pi, GLuint isz)
-{
-    GLuint osz = 0;
-    GLubyte* po = DecompressBlock (pi, isz, osz);
-    if (!po) return (-1);
-    _pak.emplace_back (_curContext, po, osz);
-    return (_pak.back().Id());
-}
-
-GLuint CGleris::LoadDatapak (const char* filename)
-{
-    CMMFile f (filename);
-    return (LoadDatapak (f.Data(), f.Size()));
-}
-
-void CGleris::FreeDatapak (GLuint id)
-{
-    for (auto i = _pak.begin(); i < _pak.end(); ++i)
-	if (i->Id() == id)
-	    --(i = _pak.erase(i));
-}
-
-const CDatapak* CGleris::Datapak (GLuint id) const
-{
-    for (auto& i : _pak)
-	if (i.Id() == id)
-	    return (&i);
-    return (nullptr);
-}
-
-//}}}-------------------------------------------------------------------
-//{{{ Texture
-
-GLuint CGleris::LoadTexture (const char* filename)
-{
-    CMMFile f (filename);
-    _texture.emplace_back (_curContext, f.Data(), f.Size());
-    return (_texture.back().Id());
-}
-
-void CGleris::FreeTexture (GLuint id)
-{
-    for (auto i = _texture.begin(); i < _texture.end(); ++i)
-	if (i->Id() == id)
-	    --(i = _texture.erase(i));
-}
-
-const CTexture* CGleris::Texture (GLuint id) const
-{
-    for (auto& i : _texture)
-	if (i.Id() == id)
-	    return (&i);
-    return (nullptr);
-}
-
-void CGleris::Sprite (short x, short y, GLuint id)
-{
-    const CTexture* pimg = Texture(id);
-    if (!pimg) return;
-    const GLshort w = pimg->Width(), h = pimg->Height(), xw = x+w, yh = y+h;
-    const GLshort v[16] = { x,y, x,yh, xw,y, xw,yh,  0,0, 0,TEXCOORD_ONE, TEXCOORD_ONE,0, TEXCOORD_ONE,TEXCOORD_ONE };
-
-    GLuint buf = CreateBuffer();
-    BufferData (buf, v, sizeof(v), GL_STATIC_DRAW);
-
-    Shader (_shader[1].Id());
-    Parameter (G::VERTEX, buf, GL_SHORT, 2, 0);
-    Parameter (G::TEXTURE_COORD, buf, GL_SHORT, 2, sizeof(v)/2);
-    UniformTexture ("Texture", pimg->Id());
-
-    glDrawArrays (GL_TRIANGLE_STRIP, 0, 4);
-
-    FreeBuffer (buf);
-}
-
-//}}}-------------------------------------------------------------------
-//{{{ Font
-
-GLuint CGleris::LoadFont (const GLubyte* p, GLuint psz)
-{
-    _font.emplace_back (_curContext, p, psz);
-    _curFont = &_font.back();
-    return (_curFont->Id());
-}
-
-GLuint CGleris::LoadFont (const char* filename)
-{
-    CMMFile f (filename);
-    GLuint sz = 0;
-    GLubyte* p = DecompressBlock (f.Data(), f.Size(), sz);
-    if (!p) return (-1);
-    GLuint id = LoadFont (p, sz);
-    free (p);
-    return (id);
-}
-
-GLuint CGleris::LoadFont (GLuint pak, const char* filename)
-{
-    const CDatapak* p = Datapak (pak);
-    if (!p) return (-1);
-    GLuint fsz;
-    const GLubyte* pf = p->File (filename, fsz);
-    if (!pf) return (-1);
-    return (LoadFont (pf, fsz));
-}
-
-void CGleris::FreeFont (GLuint id)
-{
-    for (auto i = _font.begin(); i < _font.end(); ++i)
-	if (i->Id() == id)
-	    --(i = _font.erase(i));
-}
-
-void CGleris::SetFont (GLuint id)
-{
-    for (auto& i : _font)
-	if (i.Id() == id)
-	    _curFont = &i;
-}
-
-void CGleris::Text (int16_t x, int16_t y, const char* s)
-{
-    if (!_curFont) return;
-    const unsigned nChars = strlen(s);
-    struct SVertex {
-	int16_t	x;
-	int16_t	y;
-	int16_t	s;
-	int16_t	t;
-    };
-    SVertex v [nChars*4];
-    GLint first [nChars];
-    GLsizei count [nChars];
-    const unsigned fw = _curFont->Width(), fh = _curFont->Height();
-    for (unsigned i = 0; i < nChars; ++i, x+=fw) {
-	unsigned fy = _curFont->LetterY(s[i]);
-	unsigned fx = _curFont->LetterX(s[i]);
-	const unsigned fscale = TEXCOORD_ONE/256;
-
-	v[4*i+0].x = x;
-	v[4*i+0].y = y;
-	v[4*i+1].x = x;
-	v[4*i+1].y = y+fh;
-	v[4*i+2].x = x+fw;
-	v[4*i+2].y = y;
-	v[4*i+3].x = x+fw;
-	v[4*i+3].y = y+fh;
-
-	v[4*i+0].s = fx*fscale;
-	v[4*i+0].t = fy*fscale;
-	v[4*i+1].s = fx*fscale;
-	v[4*i+1].t = (fy+fh)*fscale;
-	v[4*i+2].s = (fx+fw)*fscale;
-	v[4*i+2].t = fy*fscale;
-	v[4*i+3].s = (fx+fw)*fscale;
-	v[4*i+3].t = (fy+fh)*fscale;
-
-	first[i] = i*4;
-	count[i] = 4;
-    }
-
-    GLuint buf = CreateBuffer();
-    BufferData (buf, v, sizeof(v), GL_STATIC_DRAW);
-
-    Shader (_shader[2].Id());
-    UniformTexture ("Texture", _curFont->Id());
-    Parameter (G::VERTEX, buf, GL_SHORT, 2, 0, sizeof(SVertex));
-    Parameter (G::TEXTURE_COORD, buf, GL_SHORT, 2, sizeof(SVertex)/2, sizeof(SVertex));
-
-    glMultiDrawArrays (GL_TRIANGLE_STRIP, first, count, nChars);
-
-    FreeBuffer (buf);
-}
-
-//}}}-------------------------------------------------------------------
 
 GLERI_APP (CGleris)

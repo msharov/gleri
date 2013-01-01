@@ -40,8 +40,8 @@ public:
     inline void		VertexPointer (uint32_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::VERTEX, buf, type, sz, offset, stride); }
     inline void		TexCoordPointer (uint32_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::TEXTURE_COORD, buf, type, sz, offset, stride); }
 			// Reading interface
-    template <typename F, typename CLIR>
-    static inline void	Parse (F& f, const CLIR& clir, Stm& is);
+    template <typename F>
+    static inline void	Parse (F& f, Stm& is);
 private:
     template <typename... Arg>
     inline void		Cmd (ECmd cmd, const Arg&... args);
@@ -79,23 +79,23 @@ template <typename... Arg>
 }
 
 template <typename Stm>
-template <typename F, typename CLIR>
-/*static*/ inline void PDraw<Stm>::Parse (F& f, const CLIR& clir, Stm& is)
+template <typename F>
+/*static*/ inline void PDraw<Stm>::Parse (F& f, Stm& is)
 {
     while (is.remaining() >= 8) {
 	ECmd cmd; is >> cmd;
 	switch (cmd) {
-	    case ECmd::DefaultShader: f.DefaultShader(); break;
+	    case ECmd::DefaultShader: f.SetDefaultShader(); break;
 	    case ECmd::Color: { uint32_t c; Args(is,c); f.Color(c); } break;
 	    case ECmd::Clear: { uint32_t c; Args(is,c); f.Clear(c); } break;
-	    case ECmd::Shader: { uint32_t id; Args(is,id); f.Shader(clir.LookupId(id)); } break;
+	    case ECmd::Shader: { uint32_t id; Args(is,id); f.Shader(f.LookupId(id)); } break;
 	    case ECmd::Text: { uint16_t x,y; const char* s = nullptr; Args(is,x,y,s); if (s) f.Text(x,y,s); } break;
-	    case ECmd::Sprite: { uint16_t x,y; uint32_t s; Args(is,x,y,s); f.Sprite(x,y,clir.LookupId(s)); } break;
+	    case ECmd::Sprite: { uint16_t x,y; uint32_t s; Args(is,x,y,s); f.Sprite(x,y,f.LookupId(s)); } break;
 	    case ECmd::Primitive: { uint32_t t,s,z; Args(is,t,s,z); f.Primitive(t,s,z); } break;
 	    case ECmd::Parameter: {
 		uint32_t buf, offset, stride; uint16_t type; uint8_t slot, size;
 		Args(is,buf,type,slot,size,offset,stride);
-		f.Parameter (slot, clir.LookupId(buf), type, size, offset, stride);
+		f.Parameter (slot, f.LookupId(buf), type, size, offset, stride);
 	    } break;
 	    default: Error();
 	}
