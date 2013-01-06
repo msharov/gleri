@@ -3,7 +3,6 @@ config.h
 gleri/config.h
 Config.mk
 *.o
-gleri
 gleris
 data/data.cc
 data/data.h

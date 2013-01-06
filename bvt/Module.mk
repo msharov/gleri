@@ -1,7 +1,7 @@
 ################ Source files ##########################################
 
+bvt/EXE		:= bvt/gltest
 bvt/SRCS	:= $(wildcard bvt/*.cc)
-bvt/BVTS	:= $(bvt/SRCS:.cc=)
 bvt/OBJS	:= $(addprefix $O,$(bvt/SRCS:.cc=.o))
 bvt/DEPS	:= $(bvt/OBJS:.o=.d)
 bvt/LIBS	:= ${LIBA}
@@ -10,20 +10,18 @@ bvt/LIBS	:= ${LIBA}
 
 .PHONY:	bvt/all bvt/run bvt/clean bvt/check
 
-bvt/all:	${bvt/BVTS}
+bvt/all:	${bvt/EXE}
 
 # The correct output of a bvt is stored in bvtXX.std
 # When the bvt runs, its output is compared to .std
 #
 check:		bvt/check
-bvt/check:	${bvt/BVTS} ${EXE}
-	@for i in ${bvt/BVTS}; do \
-	    echo "Running $$i"; \
-	    ./$$i &> $$i.out; \
-	    diff $$i.std $$i.out && rm -f $$i.out; \
-	done
+bvt/check:	${bvt/EXE} ${EXE}
+	@echo "Running $<"; \
+	./${bvt/EXE} &> ${bvt/EXE}.out; \
+	diff ${bvt/EXE}.std ${bvt/EXE}.out && rm -f ${bvt/EXE}.out
 
-${bvt/BVTS}: bvt/%: ${bvt/OBJS} ${EXE} ${LIBA}
+${bvt/EXE}: bvt/%: ${bvt/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."
 	@${LD} ${LDFLAGS} -o $@ ${bvt/OBJS} ${bvt/LIBS}
 
@@ -31,7 +29,7 @@ ${bvt/BVTS}: bvt/%: ${bvt/OBJS} ${EXE} ${LIBA}
 
 clean:	bvt/clean
 bvt/clean:
-	@rm -f ${bvt/BVTS} ${bvt/OBJS} ${bvt/DEPS}
+	@rm -f ${bvt/EXE} ${bvt/OBJS} ${bvt/DEPS}
 	@rmdir $O/bvt &> /dev/null || true
 
 ${bvt/OBJS}: Makefile bvt/Module.mk ${CONFS}

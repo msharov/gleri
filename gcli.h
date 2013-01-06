@@ -24,6 +24,7 @@ private:
     typedef float	matrix4f_t[4][4];
 public:
 				CGLClient (int fd, iid_t iid, Window win, GLXContext ctx);
+    void			Init (void);
     inline const CContext&	Context (void) const		{ return (_ctx); }
     inline GLXContext		ContextId (void) const		{ return (_ctx.Context()); }
     inline Window		Drawable (void) const		{ return (_ctx.Drawable()); }
@@ -73,7 +74,7 @@ public:
     void			Color (GLuint c) noexcept;
     inline void			Color (GLubyte r, GLubyte g, GLubyte b, GLubyte a =255)	{ Color (RGBA(r,g,b,a)); }
     void			Clear (GLuint c) noexcept;
-    inline void			Primitive (GLenum mode, GLuint first, GLuint count) const noexcept	{ glDrawArrays(mode,first,count); }
+    void			Primitive (GLenum mode, GLuint first, GLuint count) noexcept;
 				// Texture
     GLuint			LoadTexture (const char* filename);
     void			FreeTexture (GLuint id);

@@ -25,6 +25,19 @@ CGLClient::CGLClient (int fd, iid_t iid, Window win, GLXContext ctx)
 	s_RootClient = this;
 }
 
+void CGLClient::Init (void)
+{
+    glEnable (GL_BLEND);
+    glEnable (GL_CULL_FACE);
+    glDisable (GL_DEPTH_TEST);
+    glDepthMask (GL_FALSE);
+    glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glXSwapIntervalSGI (1);
+    if (s_RootClient == this)
+	return;
+    SetDefaultShader();
+}
+
 void CGLClient::Resize (uint16_t w, uint16_t h) noexcept
 {
     if (_w == w && _h == h)
@@ -38,6 +51,7 @@ void CGLClient::Resize (uint16_t w, uint16_t h) noexcept
     _proj[3][3] = 1.f;
     _proj[3][0] = -float(w-1)/w;
     _proj[3][1] = float(h-1)/h;
+    UniformMatrix ("Transform", Proj());
 
     PRGLR::Resize (w, h);
 }
@@ -238,6 +252,13 @@ void CGLClient::Clear (GLuint c) noexcept
     glClear (GL_COLOR_BUFFER_BIT);
 }
 
+void CGLClient::Primitive (GLenum mode, GLuint first, GLuint count) noexcept
+{
+    if (_curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader())
+	SetDefaultShader();
+    glDrawArrays (mode,first,count);
+}
+
 //----------------------------------------------------------------------
 // Texture
 
@@ -332,7 +353,7 @@ void CGLClient::Text (int16_t x, int16_t y, const char* s)
     SetFontShader();
     UniformTexture ("Texture", pfont->Id());
     Uniform4f ("FontSize", fw,fh, 256,256);
-    Parameter (G::VERTEX, buf, GL_SHORT, 4);
+    Parameter (G::TEXT_DATA, buf, GL_SHORT, 4);
 
     glDrawArrays (GL_POINTS, 0, nChars);
 

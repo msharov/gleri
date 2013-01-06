@@ -9,6 +9,7 @@ public:
     typedef unsigned int	size_type;
     typedef value_type*		pointer;
     typedef const value_type*	const_pointer;
+    enum { is_sizing = false, is_reading = false, is_writing = false };
 protected:
     inline constexpr size_type	align_size (size_type sz, size_type g) const	{ return ((g-1)-((sz+(g-1))%g)); }
     inline constexpr size_type	align_size (const_pointer p, size_type g) const	{ return (align_size(uintptr_t(p),g)); }
@@ -17,6 +18,8 @@ protected:
 //----------------------------------------------------------------------
 
 class bstrs : public bstrb {
+public:
+    enum { is_sizing = true };
 private:
     template <typename T>
     inline T*		iptr (void)		{ return (nullptr); }
@@ -39,6 +42,8 @@ private:
 //----------------------------------------------------------------------
 
 class bstro : public bstrb {
+public:
+    enum { is_writing = true };
 private:
     template <typename T>
     inline T*		iptr (void)		{ return (reinterpret_cast<T*>(_p)); }
@@ -63,6 +68,8 @@ private:
 //----------------------------------------------------------------------
 
 class bstri : public bstrb {
+public:
+    enum { is_reading = true };
 private:
     template <typename T>
     inline const T*	iptr (void)		{ return (reinterpret_cast<const T*>(_p)); }

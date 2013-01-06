@@ -2,7 +2,7 @@
 
 uniform mat4 Transform;
 uniform vec4 FontSize;
-layout(location=0) in vec4 Vertex;
+layout(location=2) in vec4 Vertex;
 invariant out Sg { vec4 pos; vec4 tex; } g;
 
 void main() {

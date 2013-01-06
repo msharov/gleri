@@ -49,7 +49,8 @@ enum EBufferHint : uint16_t {
 
 enum EStdParameter : uint8_t {
     VERTEX,
-    TEXTURE_COORD
+    TEXTURE_COORD,
+    TEXT_DATA
 };
 
 } // namespace G

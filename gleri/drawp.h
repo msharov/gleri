@@ -3,6 +3,12 @@
 
 template <typename Stm>
 class PDraw : public CCmd {
+public:
+    enum {
+	is_sizing = Stm::is_sizing,
+	is_reading = Stm::is_reading,
+	is_writing = Stm::is_writing
+    };
 private:
     enum class ECmd : uint16_t {
 	DefaultShader,
@@ -101,16 +107,5 @@ template <typename F>
 	}
     }
 }
-
-//----------------------------------------------------------------------
-
-#define ONDRAWDECL			\
-    void		Draw (void);	\
-    template <typename Drw>		\
-    inline void
-
-#define ONDRAWIMPL			\
-    template <typename Drw>		\
-    inline void
 
 //----------------------------------------------------------------------
