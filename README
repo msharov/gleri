@@ -1,0 +1,90 @@
+=============================================================================
+
+                       XXXX  X     XXXX  XXXX  XXXX
+                       X     X     X     X  X   XX
+                       X     X     XX    XXXX   XX
+                       X  X  X     X     X X    XX
+                       XXXX  XXXX  XXXX  X  X  XXXX
+
+=============================================================================
+
+1. Why OpenGL needs another API
+-------------------------------
+
+Modern graphical linux applications typically wish to use OpenGL to make
+use of graphics acceleration hardware, the drivers for which are available
+only as an OpenGL shared library. Unfortunately, the direction OpenGL
+development has taken recently is making it impossible to use a remote
+X11 session with an OpenGL application. A direct context is required to
+use GL3+ features, such as vertex buffers, and even the GLX extension
+itself, used for creating OpenGL contexts, will soon be entirely removed
+from the X server, replaced by the new shared-library-only EGL.
+
+These changes pretty much put most of the graphics driver into each
+program using OpenGL. This has serious drawbacks aside from disallowing
+remote use.  System stability is significantly impacted by allowing each
+application to mess directly with the video card. One obvious example of
+this is that each OpenGL application must not under any circumstances
+crash. Bypassing OpenGL cleanup via abort() will eventually result in
+a kernel crash, presumably due to OpenGL not being able to delete the
+context in its atexit handler. Other kernel crashes can be triggered
+by using a vertex array, or most other GL3+ features, in an indirect
+context. Perhaps some of these problems are only bugs in the radeon
+driver, but the lack of a barrier between the user API and the device
+is quite troubling.
+
+The shared-library-only design is also contrary to the unix philosophy
+of using services, small apps, and data-coupling instead of stuffing all
+the functionality into the process space of a single executable. Use
+of shared libraries additionally introduces breakable dependencies,
+incompatibilities, and other DLL-hell manifestations.
+
+What is needed to address these problems is a decoupling of the OpenGL
+low level driver and DRI stuff from the end user application. Placing
+it all into a separate process and communicating with it through a
+well-defined protocol will go a long way toward solving many of the
+above mentioned problems.
+
+2. GLERI
+--------
+
+GLERI is a library implementing an OpenGL functionality service and a
+protocol for communicating with it. This allows creation of executables
+that do not have to link with OpenGL libraries, have direct access to
+the DRI devices, or require a local X11 connection.
+
+The target platform is a POSIX compliant architecture, such as Linux or
+BSD. Windows is absolutely not supported.
+
+OpenGL version 3.3+ or higher is also required; there is no point in
+supporting obsolete devices, and the design differences required to
+support pre-GL3 methods would be prohibitive to implement. This means
+that for the most part only the proprietary fglrx and nvidia drivers
+work. Mesa does not at the time of this writing provide GL3.3 support;
+however, it is expected to be implemented sometime in 2013. It remains
+to be seen if its performance would be acceptable for any serious use.
+
+3. Building
+-----------
+
+Pull from the git repository.
+
+./configure
+make check
+
+At this time the code is in the design stage
+and is not expected to be useful.
+
+4. Development plan
+-------------------
+
+Version 0.1: basic functionality for 2D apps
+
+We'll see what happens after that.
+
+5. Acknowledgements
+-------------------
+
+gleris embeds the Terminus font for default text output
+
+the princess spritesheet is from opengameart.org
