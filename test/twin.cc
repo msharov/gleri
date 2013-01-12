@@ -39,7 +39,7 @@ void CTestWindow::OnInit (void)
     CWindow::OnInit();
     Open (640, 480);
     BufferData (_vbuf = CreateBuffer(), _vdata1, sizeof(_vdata1));
-    LoadTexture (_walk = CreateTexture(), "bvt/princess.png");
+    LoadTexture (_walk = CreateTexture(), "test/princess.png");
 }
 
 void CTestWindow::OnResize (uint16_t w, uint16_t h)

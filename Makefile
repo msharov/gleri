@@ -8,7 +8,7 @@ CONFS	:= Config.mk config.h gleri/config.h config.status
 
 include data/Module.mk
 include gleri/Module.mk
-include bvt/Module.mk
+include test/Module.mk
 
 INC	:= $(wildcard *.h)
 SRC	:= $(wildcard *.cc) ${DCC}

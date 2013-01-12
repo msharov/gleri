@@ -7,5 +7,5 @@ gleris
 data/data.cc
 data/data.h
 data/resource.pak
-bvt/??????
-bvt/??????.out
+test/gltest
+test/*.out
