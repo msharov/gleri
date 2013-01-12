@@ -24,10 +24,10 @@ int main (int argc, const char* const* argv)
 	long fsz = ftell (f);
 	fseek (f, 0, SEEK_SET);
 	fprintf (dhdr, "extern const unsigned char %s [%ld];\n", aname, fsz);
-	fprintf (dsrc, "//{{{ %s\nconst unsigned char %s [%ld] = {\n", aname, aname, fsz);
+	fprintf (dsrc, "//""{{{ %s\nconst unsigned char %s [%ld] = {\n", aname, aname, fsz);
 	for (long j = 0; j < fsz; ++j)
 	    fprintf (dsrc, "%s%s%hhu", ","+!j, "\n"+(15!=j%16), fgetc(f));
-	fprintf (dsrc, "\n};\n//}}}-------------------------------------------------------------------\n");
+	fprintf (dsrc, "\n};\n//""}}}-------------------------------------------------------------------\n");
 	fclose (f);
     }
     fclose (dsrc);

@@ -3,7 +3,7 @@
 // Copyright (c) 2012 by Mike Sharov <msharov@users.sourceforge.net>
 // This file is free software, distributed under the MIT License.
 
-#include "rglp.h"
+#include "cmd.h"
 
 //----------------------------------------------------------------------
 
@@ -79,12 +79,12 @@ inline CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
 
 bstro CCmdBuf::CreateCmd (const char* m, size_type msz, size_type sz) noexcept
 {
-    pointer pip = addspace (sz+32);
-    uint8_t hsz = 8+Align(1+sizeof(RGLObject)+msz,8);
-    sz = Align(sz,8);
-    const size_type cmdsz = hsz+sz;
+    uint16_t fdoffset = m[msz-2] == 'h' ? sz-sizeof(int) : UINT16_MAX;
+    uint8_t hsz = Align(sizeof(sz)+sizeof(_iid)+sizeof(fdoffset)+sizeof(hsz)+sizeof(RGLObject)+msz,8);
+    const size_type cmdsz = hsz+(sz=Align(sz,8));
+    pointer pip = addspace (cmdsz);
     bstro os (pip,cmdsz);
-    os << sz << _iid << hsz << RGLObject;
+    os << sz << _iid << fdoffset << hsz << RGLObject;
     os.write (m, msz);
     os.align (8);
     _used += cmdsz;
@@ -98,32 +98,75 @@ void CCmdBuf::EndRead (bstri::const_pointer p) noexcept
     memcpy (_buf, p, _used-=br);
 }
 
-void CCmdBuf::ReadCmds (void) noexcept
+void CCmdBuf::ReadCmds (void)
 {
-    if (_fd < 0) return;
-    pointer pip = addspace (256);
-    ssize_t br = read (_fd, pip, remaining());
-    if (br <= 0) {
-	if (errno != EINTR && errno != EAGAIN)
-	    perror ("srv read cmd");
-	return;
-    }
-    _used += br;
+    if (!_outf.IsOpen()) return;
+    size_t br;
+    do {
+	pointer pip = addspace (256);
+	br = CanPassFd() ? _outf.ReadWithFdPass(pip, remaining()) : _outf.Read(pip, remaining());
+	_used += br;
+    } while (br);
 }
 
-void CCmdBuf::WriteCmds (void) noexcept
+void CCmdBuf::WriteCmds (void)
 {
-    if (_fd < 0) return;
+    if (!_outf.IsOpen()) return;
     bstri is (BeginRead());
-    while (is.remaining()) {
-	ssize_t bw = write (_fd, is.ipos(), is.remaining());
-	if (bw <= 0) {
-	    if (errno != EINTR && errno != EAGAIN) {
-		perror ("cmd write");
-		break;
-	    }
-	}
-	is.skip (bw);
-    }
+    _outf.Write (is.ipos(), is.remaining());
+    is.skip (is.remaining());
     EndRead (is);
+}
+
+void CCmdBuf::SendFile (CFile& f)
+{
+    WriteCmds();
+    if (CanPassFd())
+	_outf.SendFd (f);
+    else {
+	SSendFileHeader header;
+	header.totalSize = header.sizeInThisPacket = f.Size(); header.startOffset = 0;
+	_outf.Write (&header, sizeof(header));
+	f.SendfileTo (_outf, header.sizeInThisPacket);
+    }
+}
+
+bstri CCmdBuf::ReceiveFileOpen (bstri& is)
+{
+    const size_t hsize = CanPassFd() ? sizeof(int) : sizeof(SSendFileHeader);
+    for (; is.remaining() < hsize; is = BeginRead()) {
+	EndRead (is);
+	ReadCmds();
+    }
+    if (CanPassFd()) {
+	int fd;
+	is >> fd;
+	_recvf.Attach (fd);
+    } else {
+	SSendFileHeader header;
+	is.read (&header, sizeof(header));
+	if (header.totalSize < is.remaining())
+	    return (bstri (is.ipos(), header.totalSize));
+	if (!_recvf.IsOpen()) {
+	    _recvf.Open();
+	    _recvSize = header.totalSize;
+	}
+	_recvf.Write (is.ipos(), is.remaining());
+	loff_t fsz = header.sizeInThisPacket-is.remaining();
+	is.skip (is.remaining());
+	_outf.CopyTo (_recvf, fsz);
+    }
+    _recvf.Map();
+    if (CanPassFd())
+	_recvSize = _recvf.MMSize();
+    return (bstri (_recvf.MMData(), _recvf.MMSize()));
+}
+
+void CCmdBuf::ReceiveFileClose (void)
+{
+    if (ReceiveComplete()) {
+	_recvf.Close();
+	_recvSize = 0;
+    } else
+	_recvf.Unmap();
 }

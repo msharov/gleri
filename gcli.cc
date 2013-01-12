@@ -4,14 +4,14 @@
 // This file is free software, distributed under the MIT License.
 
 #include "gcli.h"
-#include "mmfile.h"
+#include "gleri/mmfile.h"
 
 //----------------------------------------------------------------------
 
 /*static*/ const CGLClient* CGLClient::s_RootClient = nullptr;
 
-CGLClient::CGLClient (int fd, iid_t iid, Window win, GLXContext ctx)
-: PRGLR(fd,iid)
+CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
+: PRGLR(iid)
 ,_ctx(ctx,win)
 ,_cidmap()
 ,_shader()
@@ -86,6 +86,55 @@ void CGLClient::UnmapId (uint32_t cid) noexcept
 }
 
 //----------------------------------------------------------------------
+// Resource loader by enum
+
+GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz)
+{
+    GLuint sid = UINT_MAX;
+    switch (dtype) {
+	case G::EResource::VERTEX_ARRAY:
+	case G::EResource::INDEX_ARRAY:
+	    BufferData (sid = CreateBuffer(), d, dsz, hint, G::ARRAY_BUFFER+unsigned(dtype)); break;
+	    break;
+	case G::EResource::DATAPAK:
+	    sid = LoadDatapak (d, dsz);
+	    break;
+	case G::EResource::SHADER: {
+	    bstri shis (d, dsz);
+	    const char* shs[5];
+	    for (unsigned i = 0; i < ArraySize(shs); ++i) {
+		shis >> shs[i];
+		if (!*shs[i])
+		    shs[i] = nullptr;
+	    }
+	    sid = LoadShader (shs[0],shs[1],shs[2],shs[3],shs[4]);
+	    } break;
+	case G::EResource::TEXTURE:
+	    sid = LoadTexture (d, dsz);
+	    break;
+	case G::EResource::FONT:
+	    sid = LoadFont (d, dsz);
+	    break;
+	default:
+	    Error();
+    }
+    return (sid);
+}
+
+void CGLClient::FreeResource (G::EResource dtype, GLuint id)
+{
+    switch (dtype) {
+	case G::EResource::VERTEX_ARRAY:
+	case G::EResource::INDEX_ARRAY:	FreeBuffer (id);	break;
+	case G::EResource::DATAPAK:	FreeDatapak (id);	break;
+	case G::EResource::SHADER:	FreeShader (id);	break;
+	case G::EResource::TEXTURE:	FreeTexture (id);	break;
+	case G::EResource::FONT:	FreeFont (id);		break;
+	default:			Error();
+    }
+}
+
+//----------------------------------------------------------------------
 // Datapak
 
 GLuint CGLClient::LoadDatapak (const GLubyte* pi, GLuint isz)
@@ -100,7 +149,7 @@ GLuint CGLClient::LoadDatapak (const GLubyte* pi, GLuint isz)
 GLuint CGLClient::LoadDatapak (const char* filename)
 {
     CMMFile f (filename);
-    return (LoadDatapak (f.Data(), f.Size()));
+    return (LoadDatapak (f.MMData(), f.MMSize()));
 }
 
 void CGLClient::FreeDatapak (GLuint id)
@@ -152,6 +201,12 @@ void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint 
 
 //----------------------------------------------------------------------
 // Shader interface
+
+GLuint CGLClient::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept
+{
+    _shader.emplace_back (ContextId(), CShader::Sources(v,tc,te,g,f));
+    return (_shader.back().Id());
+}
 
 GLuint CGLClient::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept
 {
@@ -267,11 +322,16 @@ void CGLClient::Primitive (GLenum mode, GLuint first, GLuint count) noexcept
 //----------------------------------------------------------------------
 // Texture
 
+GLuint CGLClient::LoadTexture (const GLubyte* d, GLuint dsz)
+{
+    _texture.emplace_back (ContextId(), d, dsz);
+    return (_texture.back().Id());
+}
+
 GLuint CGLClient::LoadTexture (const char* filename)
 {
     CMMFile f (filename);
-    _texture.emplace_back (ContextId(), f.Data(), f.Size());
-    return (_texture.back().Id());
+    return (LoadTexture (f.MMData(), f.MMSize()));
 }
 
 void CGLClient::FreeTexture (GLuint id)
@@ -309,7 +369,7 @@ GLuint CGLClient::LoadFont (const char* filename)
 {
     CMMFile f (filename);
     GLuint sz = 0;
-    GLubyte* p = CMMFile::DecompressBlock (f.Data(), f.Size(), sz);
+    GLubyte* p = CMMFile::DecompressBlock (f.MMData(), f.MMSize(), sz);
     if (!p) return (-1);
     GLuint id = LoadFont (p, sz);
     free (p);

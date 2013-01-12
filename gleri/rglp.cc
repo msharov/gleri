@@ -4,18 +4,19 @@
 // This file is free software, distributed under the MIT License.
 
 #include "rglp.h"
+#include "mmfile.h"
+#include <fcntl.h>
 
 //----------------------------------------------------------------------
 
 #define N(n,s)	#n "\0" #s "\0"
 /*static*/ const char PRGL::_cmdNames[] =
-     N(Open,hhu)
+     N(Open,qqu)
      N(Draw,ay)
-     N(BufferData,uay)
-     N(BufferSubData,uuay)
-     N(FreeBuffer,u)
-     N(LoadTexture,us)
-     N(FreeTexture,u)
+     N(LoadResource,uqqay)
+     N(LoadFile,uqqh)
+     N(FreeResource,uq)
+     N(BufferSubData,uqqay)
 ;
 #undef N
 
@@ -36,3 +37,9 @@ bstro PRGL::CreateCmd (ECmd cmd, size_type sz) noexcept
     return (CCmdBuf::CreateCmd (m, msz, sz));
 }
 
+void PRGL::LoadTexture (uint32_t id, const char* filename)
+{
+    CFile f (filename, O_RDONLY);
+    Cmd (ECmd::LoadFile, id, G::EResource::TEXTURE, G::STATIC_DRAW, f.Fd());
+    SendFile (f);
+}

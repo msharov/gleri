@@ -16,7 +16,7 @@ protected:
     virtual void		OnFd (int fd);
     virtual void		OnFdError (int fd);
     template <typename WC>
-    inline void			CreateWindow (void)	{ OpenWindow (new WC (_srvsock, 44)); }
+    inline void			CreateWindow (void)	{ OpenWindow (new WC (44)); }
 private:
     int				LaunchServer (void) noexcept;
     void			OpenWindow (CWindow* w);
@@ -32,7 +32,7 @@ private:
 inline CGLApp::CGLApp (void)
 : CApp()
 ,_wins()
-,_srvbuf(-1,0)
+,_srvbuf(0)
 ,_srvsock(-1)
 ,_srvpid(0)
 {

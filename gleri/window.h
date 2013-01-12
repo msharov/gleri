@@ -8,9 +8,9 @@
 
 class CWindow : protected PRGL {
 public:
-    typedef CCmd::iid_t	wid_t;
+    typedef iid_t	wid_t;
 public:
-    inline explicit	CWindow (int fd, wid_t wid)	: PRGL(fd,wid) { }
+    inline explicit	CWindow (wid_t wid)		: PRGL(wid) { }
     inline virtual void	OnExpose (void)			{ Draw(); }
     inline virtual void	OnInit (void)			{ }
     inline virtual void	OnResize (uint16_t, uint16_t)	{ }
@@ -19,6 +19,7 @@ public:
     template <typename Drw>
     inline void		OnDraw (Drw&) const		{ }
     inline void		WriteCmds (void)		{ PRGL::WriteCmds(); }
+    inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
 };
 
 //----------------------------------------------------------------------

@@ -6,9 +6,11 @@
 #pragma once
 #include "cmd.h"
 
-class PRGLR : public CCmdBuf {
+class PRGLR : private CCmdBuf {
+public:
+    typedef CCmdBuf::iid_t	iid_t;
 private:
-    enum class ECmd : uint32_t {
+    enum class ECmd : cmd_t {
 	Init,
 	Resize,
 	Draw,
@@ -16,13 +18,18 @@ private:
 	NCmds
     };
 public:
-    inline explicit		PRGLR (int fd, iid_t iid)	: CCmdBuf(fd,iid) {}
+    inline explicit		PRGLR (iid_t iid)		: CCmdBuf(iid) {}
     inline void			Init (void)			{ Cmd(ECmd::Init); }
     inline void			Resize (uint16_t w, uint16_t h)	{ Cmd(ECmd::Resize,w,h); }
     inline void			Draw (void)			{ Cmd(ECmd::Draw); }
     inline void			Event (uint32_t key)		{ Cmd(ECmd::Event,key); }
+    inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
+    inline void			SetFd (int fd, bool pfd=false)	{ CCmdBuf::SetFd(fd,pfd); }
+				// Reading interface
     template <typename F>
     static inline void		Parse (F& f, CCmdBuf& cmdbuf);
+    inline bool			Matches (int fd, iid_t iid)	{ return (Fd() == fd && IId() == iid); }
+    static inline void		Error (void)			{ CCmdBuf::Error(); }
 private:
     template <typename... Arg>
     inline void			Cmd (ECmd cmd, const Arg&... args);
@@ -47,14 +54,14 @@ inline void PRGLR::Cmd (ECmd cmd, const Arg&... args)
 template <typename F>
 /*static*/ inline void PRGLR::Parse (F& f, CCmdBuf& cmdbuf)
 {
-    size_type sz; iid_t iid; uint8_t hsz; uint32_t objn;	// All commands start with these
-    const size_type chsz = sizeof(sz)+sizeof(iid)+sizeof(hsz)+sizeof(objn);
+    size_type sz; iid_t iid; uint16_t fdoffset; uint8_t hsz; uint32_t objn;	// All commands start with these
+    const size_type chsz = sizeof(sz)+sizeof(iid)+sizeof(fdoffset)+sizeof(hsz)+sizeof(objn);
 
     bstri is = cmdbuf.BeginRead();
 
     while (is.remaining() > chsz) {	// While have commands
 	auto ihdr = is.ipos();		// Save header start for return
-	is >> sz >> iid >> hsz >> objn;
+	is >> sz >> iid >> fdoffset >> hsz >> objn;
 	if (is.remaining() < (hsz-=chsz)+sz) {
 	    is.iseek (ihdr);		// Restart at header
 	    break;

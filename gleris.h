@@ -20,8 +20,6 @@ protected:
 	opt_SingleClient,
 	opt_Last
     };
-    enum : GLshort { TEXCOORD_ONE = (1<<14) };
-    typedef float	matrix4f_t[4][4];
 public:
     inline bool		Option (EOption o) const	{ return (_options & (1<<o)); }
 			// Client id translation

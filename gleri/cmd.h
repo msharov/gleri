@@ -6,6 +6,7 @@
 #pragma once
 #include "gldefs.h"
 #include "bstr.h"
+#include "mmfile.h"
 
 //----------------------------------------------------------------------
 
@@ -13,12 +14,18 @@ class CCmd {
 public:
     typedef uint32_t		size_type;
     typedef uint8_t		value_type;
-    typedef uint16_t		iid_t;
+    typedef uint32_t		iid_t;
+    typedef uint32_t		cmd_t;
     typedef value_type*		pointer;
     typedef const value_type*	const_pointer;
+    struct SDataBlock {
+	const void*	_p;
+	size_type	_sz;
+	inline		SDataBlock (const void* p, size_type sz) :_p(p),_sz(sz) {}
+    };
 protected:
     enum : uint32_t { RGLObject = RGBA('R','G','L',0) };
-    enum : unsigned { InvalidCmd = UINT_MAX };
+    enum : cmd_t { InvalidCmd = UINT_MAX };
 protected:
     static inline bstrs& variadic_arg_size (bstrs& ss)
 	{ return (ss); }
@@ -38,34 +45,40 @@ protected:
     template <typename Stm, typename A, typename... Arg>
     static inline Stm& variadic_arg_write (Stm& os, const A& a, const Arg&... args)
 	{ os << a; return (variadic_arg_write (os, args...)); }
-public:
-    struct SDataBlock {
-	const void*	_p;
-	size_type	_sz;
-	inline		SDataBlock (const void* p, size_type sz) :_p(p),_sz(sz) {}
-    };
 };
 
 //----------------------------------------------------------------------
 
 class CCmdBuf : public CCmd {
 public:
-    inline			CCmdBuf (int fd, iid_t iid)	:_buf(nullptr),_sz(0),_used(0),_iid(iid),_fd(fd) {}
-    inline			~CCmdBuf (void)		{ if(_buf) free(_buf); }
+    inline explicit		CCmdBuf (iid_t iid)	:_buf(nullptr),_sz(0),_used(0),_iid(iid),_outf(),_recvf(),_recvSize(0),_bFdPass(false) {}
+    inline			~CCmdBuf (void)		{ if(_buf) free(_buf); _outf.Detach(); }
     inline iid_t		IId (void) const	{ return (_iid); }
-    inline int			Fd (void) const		{ return (_fd); }
-    inline void			SetFd (int fd)		{ _fd = fd; }
+    inline int			Fd (void) const		{ return (_outf.Fd()); }
+    inline void			SetFd (int fd, bool fdPass = false)		{ _outf.Attach (fd); _bFdPass = fdPass; }
+    inline bool			CanPassFd (void) const	{ return (_bFdPass); }
     inline size_type		size (void) const	{ return (_used); }
     inline size_type		capacity (void) const	{ return (_sz); }
-    void			ReadCmds (void) noexcept;
-    void			WriteCmds (void) noexcept;
+    void			ReadCmds (void);
+    void			WriteCmds (void);
     inline bstri		BeginRead (void) const	{ return (bstri(_buf,_used)); }
     inline void			EndRead (const bstri& is)	{ EndRead(is.ipos()); }
+    void			SendFile (CFile& f);
+    bstri			ReceiveFileOpen (bstri& is);
+    void			ReceiveFileClose (void);
+    inline size_t		ReceiveTotalSize (void) const	{ return (_recvSize); }
+    inline bool			ReceiveComplete (void) const	{ return (_recvf.MMSize() == ReceiveTotalSize()); }
 protected:
     bstro			CreateCmd (const char* m, size_type msz, size_type sz) noexcept;
     static const char*		LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept;
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
     static inline void		Error (void)		{ throw XError ("protocol error"); }
+private:
+    struct SSendFileHeader {
+	uint64_t		totalSize;
+	uint64_t		sizeInThisPacket;
+        uint64_t		startOffset;
+    };
 private:
     static inline const char*	nextname (const char* n, size_type& sz) noexcept;
     static inline bool		namecmp (const void* s1, const void* s2, size_type n) noexcept;
@@ -80,7 +93,10 @@ private:
     size_type			_sz;
     size_type			_used;
     iid_t			_iid;
-    short			_fd;
+    CFile			_outf;
+    CTmpfile			_recvf;
+    size_t			_recvSize;
+    bool			_bFdPass;
 };
 
 //----------------------------------------------------------------------

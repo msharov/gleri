@@ -1,15 +1,18 @@
+################ Source files ##########################################
+
 DSRC	:= data/ter-d18b.psf $(wildcard data/sh/*)
 DSRCB	:= $(subst data/,,${DSRC})
 MKDCC	:= .o/data/mkdata
 PAK	:= .o/data/resource.pak
 DCC	:= .o/data/data.cc
 DHH	:= .o/data/data.h
+DCCDEPS	:= ${DCC:.cc=.d} ${MKDCC}.d
 
-########################################################################
+################ Compilation ###########################################
 
 ${MKDCC}:	${MKDCC}.o
 	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ $^
+	@${LD} ${LDFLAGS} -o $@ $<
 
 ${PAK}:	${DSRC} ${MKDCC}.o
 	@echo "    Collecting data files ..."
@@ -21,4 +24,13 @@ ${DHH}:	${PAK} ${MKDCC}
 
 ${DCC} gleris.cc:	${DHH}
 
-${PAK} ${DCC} ${DHH}: Makefile Config.mk config.h ${NAME}/config.h
+${PAK} ${DCC} ${DHH} ${MKDCC}: Makefile data/Module.mk ${CONFS}
+
+################ Maintenance ###########################################
+
+clean:	data/clean
+data/clean:
+	@rm -f ${MKDCC} ${MKDCC}.o ${PAK} ${DCC} ${DHH} ${DCCDEPS}
+	@rmdir $O/data &> /dev/null || true
+
+-include ${DCCDEPS}

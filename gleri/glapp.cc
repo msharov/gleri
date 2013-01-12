@@ -16,11 +16,12 @@ void CGLApp::Init (argc_t argc, argv_t argv)
     CApp::Init (argc, argv);
     _srvpid = LaunchServer();
     WatchFd (_srvsock);
-    _srvbuf.SetFd (_srvsock);
+    _srvbuf.SetFd (_srvsock, true);
 }
 
 void CGLApp::OpenWindow (CWindow* w)
 {
+    w->SetFd (_srvsock, _srvbuf.CanPassFd());
     w->OnInit();
     _wins.push_back (w);
     w->WriteCmds();

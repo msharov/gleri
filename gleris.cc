@@ -4,7 +4,6 @@
 // This file is free software, distributed under the MIT License.
 
 #include "gleris.h"
-#include "mmfile.h"
 #include ".o/data/data.h"
 
 //----------------------------------------------------------------------
@@ -14,7 +13,7 @@ CGleris::CGleris (void) noexcept
 ,_fbconfig (nullptr)
 ,_curCli (nullptr)
 ,_cli()
-,_icbuf (STDIN_FILENO, 0)
+,_icbuf (0)
 ,_dpy (nullptr)
 ,_visinfo (nullptr)
 ,_colormap (None)
@@ -39,6 +38,7 @@ inline void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
 {
     if (argc > 1 && !strcmp(argv[1],"-s")) {
 	SetOption (opt_SingleClient);
+	_icbuf.SetFd (STDIN_FILENO, true);
 	WatchFd (STDIN_FILENO);
     }
 }
@@ -245,10 +245,11 @@ void CGleris::CreateClient (int fd, CGLClient::iid_t iid, uint16_t w, uint16_t h
     }
 
     // Create client record
-    _cli.push_back (new CGLClient (fd, iid, wid, ctx));
+    _cli.push_back (new CGLClient (iid, wid, ctx));
 
     // Activate the new context and set default parameters
     CGLClient& rcli = *_cli.back();
+    rcli.SetFd (fd, _icbuf.CanPassFd());
     ActivateClient (rcli);
     rcli.Init();
 
@@ -272,7 +273,7 @@ void CGleris::DestroyClient (CGLClient*& pc) noexcept
 CGLClient* CGleris::ClientRecord (int fd, CGLClient::iid_t iid) noexcept
 {
     for (auto& icli : _cli) {
-	if (icli->Fd() == fd && icli->IId() == iid) {
+	if (icli->Matches (fd,iid)) {
 	    ActivateClient (*icli);
 	    return (icli);
 	}

@@ -58,6 +58,15 @@ enum EStdParameter : uint8_t {
     TEXT_DATA
 };
 
+enum class EResource : uint16_t {
+    VERTEX_ARRAY,
+    INDEX_ARRAY,
+    DATAPAK,
+    SHADER,
+    TEXTURE,
+    FONT
+};
+
 } // namespace G
 
 //----------------------------------------------------------------------

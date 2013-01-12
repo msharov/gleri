@@ -23,7 +23,7 @@ seds=[s/^#\(DEBUG\)/\1/]
 }';
 
 # Header files
-HEADERS="ustl.h zlib.h png.h GL/gl.h"
+HEADERS="ustl.h zlib.h png.h GL/gl.h sys/sendfile.h"
 
 # Libraries
 LIBS="GL X11 png z ustl"

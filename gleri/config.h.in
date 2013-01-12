@@ -40,6 +40,9 @@
     #define __x86__ 1
 #endif
 
+// Define to 1 if you have sys/sendfile.h
+#undef HAVE_SYS_SENDFILE_H
+
 // Initialize libstdc++
 #include <algorithm>
 #include <vector>

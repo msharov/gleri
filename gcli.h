@@ -16,7 +16,7 @@ private:
     struct SIdMap {
 	union {
 	    struct {
-		GLuint	_sid;
+		GLuint		_sid;
 		uint32_t	_cid;
 	    };
 	    uint64_t	_key;
@@ -25,10 +25,9 @@ private:
 	inline bool	operator< (const SIdMap& v) const	{ return (_key < v._key); }
 	inline bool	operator== (const SIdMap& v) const	{ return (_key == v._key); }
     };
-    enum : GLshort { TEXCOORD_ONE = (1<<14) };
-    typedef float	matrix4f_t[4][4];
+    typedef float		matrix4f_t[4][4];
 public:
-				CGLClient (int fd, iid_t iid, Window win, GLXContext ctx);
+				CGLClient (iid_t iid, Window win, GLXContext ctx);
     void			Init (void);
     inline const CContext&	Context (void) const		{ return (_ctx); }
     inline GLXContext		ContextId (void) const		{ return (_ctx.Context()); }
@@ -50,6 +49,9 @@ public:
     inline void			SetTexture (GLuint t)	{ _curTexture = t; }
     inline GLuint		Font (void) const	{ return (_curFont); }
     inline void			SetFont (GLuint f)	{ _curFont = f; }
+				// Resource loader by enum
+    GLuint			LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz);
+    void			FreeResource (G::EResource dtype, GLuint id);
 				// Datapak
     GLuint			LoadDatapak (const char* filename);
     GLuint			LoadDatapak (const GLubyte* p, GLuint psz);
@@ -62,6 +64,7 @@ public:
     void			BufferSubData (GLuint buf, const void* data, GLuint size, GLuint offset = 0, GLushort btype = GL_ARRAY_BUFFER);
     void			BufferData (GLuint buf, const void* data, GLuint size, GLushort mode = GL_STATIC_DRAW, GLushort btype = GL_ARRAY_BUFFER);
 				// Shader
+    GLuint			LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept;
     GLuint			LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept;
     inline GLuint		LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* f) noexcept	{ return (LoadShader(pak,v,tc,te,nullptr,f)); }
     inline GLuint		LoadShader (GLuint pak, const char* v, const char* g, const char* f) noexcept	{ return (LoadShader(pak,v,nullptr,nullptr,g,f)); }
@@ -81,6 +84,7 @@ public:
     void			Clear (GLuint c) noexcept;
     void			Primitive (GLenum mode, GLuint first, GLuint count) noexcept;
 				// Texture
+    GLuint			LoadTexture (const GLubyte* d, GLuint dsz);
     GLuint			LoadTexture (const char* filename);
     void			FreeTexture (GLuint id);
     const CTexture*		Texture (GLuint id) const;

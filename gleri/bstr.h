@@ -67,7 +67,7 @@ public:
     inline bstro&	operator<< (const char* s);
 private:
     pointer		_p;
-    const const_pointer	_pend;
+    const_pointer	_pend;
 };
 
 //----------------------------------------------------------------------
@@ -94,7 +94,7 @@ public:
     inline bstri&	operator>> (const char*& s);
 private:
     const_pointer	_p;
-    const const_pointer	_pend;
+    const_pointer	_pend;
 };
 
 //----------------------------------------------------------------------
