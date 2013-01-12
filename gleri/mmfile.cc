@@ -6,6 +6,7 @@
 #include "mmfile.h"
 #include "gldefs.h"
 #include <sys/stat.h>
+#include <sys/poll.h>
 #include <sys/socket.h>
 #if HAVE_SYS_SENDFILE_H
     #include <sys/sendfile.h>
@@ -31,9 +32,13 @@ void CFile::Close (void)
 
 size_t CFile::Read (void* d, size_t dsz)
 {
-    ssize_t br = read (_fd, d, dsz);
-    if (br <= 0)
-	Error ("read");
+    ssize_t br;
+    while (0 > (br = read (_fd, d, dsz))) {
+	if (errno == EAGAIN)
+	    return (0);
+	if (errno != EINTR)
+	    Error ("read");
+    }
     return (br);
 }
 
@@ -43,9 +48,13 @@ void CFile::Write (const void* d, size_t dsz)
     while (dsz) {
 	ssize_t bw = write (_fd, p, dsz);
 	if (bw <= 0) {
-	    if (errno == EAGAIN && errno == EINTR)
+	    if (errno == EAGAIN) {
+		pollfd pfd = { _fd, POLLOUT, 0 };
+		poll (&pfd, 1, -1);
 		continue;
-	    Error ("read");
+	    } else if (errno == EINTR)
+		continue;
+	    Error ("write");
 	}
 	dsz -= bw;
 	p += bw;
