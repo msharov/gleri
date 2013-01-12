@@ -15,6 +15,7 @@ public:
     inline virtual void	OnInit (void)			{ }
     inline virtual void	OnResize (uint16_t, uint16_t)	{ }
     inline virtual void	OnEvent (uint32_t)		{ }
+    inline virtual void	OnError (const char* m)		{ throw XError (m); }
     inline virtual void	Draw (void)			{ }
     template <typename Drw>
     inline void		OnDraw (Drw&) const		{ }

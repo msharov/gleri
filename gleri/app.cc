@@ -56,12 +56,13 @@ void hexdump (const void* pv, size_t n)
 //}}}-------------------------------------------------------------------
 
 /*static*/ CApp* CApp::gs_pApp = nullptr;
+/*static*/ const char* CApp::gs_Name = nullptr;
 /*static*/ int CApp::s_LastSignal = 0;
 
 /*static*/ void CApp::TerminateHandler (void) noexcept
 {
     alarm (1);
-    printf ("Exiting on unexpected fatal error\n");
+    fprintf (stderr, "%s exiting on unexpected fatal error\n", Name());
     exit (EXIT_FAILURE);
 }
 
@@ -73,7 +74,7 @@ void hexdump (const void* pv, size_t n)
 	return;
     static bool doubleSignal = false;
     bool bFirst = AtomicSet (&doubleSignal);
-    psignal (sig, "[S] Error");
+    fprintf (stderr, "%s: signal: %s\n", Name(), strsignal(sig));
     if (bFirst)
 	exit (qc_ShellSignalQuitOffset+sig);
     _exit (qc_ShellSignalQuitOffset+sig);
@@ -105,10 +106,8 @@ int CApp::Run (void)
 	else if (SigInSet(sig,sigset_Quit))
 	    break;
 	int prv = poll (&_watch[0], _watch.size(), -1);
-	if (prv < 0 && errno != EINTR) {
-	    perror ("poll");
-	    return (EXIT_FAILURE);
-	}
+	if (prv < 0 && errno != EINTR)
+	    CFile::Error ("poll");
 	for (auto i = _watch.begin(); i < _watch.end(); ++i) {
 	    if (i->revents & (POLLHUP| POLLNVAL)) {
 		OnFdError (i->fd);

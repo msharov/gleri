@@ -32,14 +32,12 @@ int CGLApp::LaunchServer (void) noexcept
     static const char* const c_srvcmd[] = { GLERIS_NAME, "-s", nullptr };
 
     int sock[2];
-    if (0 > socketpair (PF_LOCAL, SOCK_STREAM| SOCK_NONBLOCK, 0, sock)) {
-	perror ("socketpair");
-	exit (EXIT_FAILURE);
-    }
+    if (0 > socketpair (PF_LOCAL, SOCK_STREAM| SOCK_NONBLOCK, 0, sock))
+	CFile::Error ("socketpair");
 
     pid_t cpid = fork();
     if (cpid < 0)
-	perror ("fork");
+	CFile::Error ("fork");
     else if (cpid > 0) {
 	_srvsock = sock[0];
 	close (sock[1]);
@@ -48,7 +46,7 @@ int CGLApp::LaunchServer (void) noexcept
 	close (sock[0]);
 	dup2 (sock[1], 0);
 	if (0 > execve (c_srvcmd[0], const_cast<char* const*>(c_srvcmd), environ))
-	    perror ("execve");
+	    CFile::Error ("execve");
     }
 
     exit (EXIT_FAILURE);

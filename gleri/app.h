@@ -17,7 +17,8 @@ public:
     inline		CApp (void);
     inline virtual	~CApp (void) noexcept	{ }
     static inline CApp&	Instance (void)		{ assert (gs_pApp); return (*gs_pApp); }
-    inline void		Init (argc_t, argv_t)	{ }
+    static inline const char* Name (void)	{ return (gs_Name); }
+    inline void		Init (argc_t, argv_t argv)	{ gs_Name = argv[0]; }
     inline void		Quit (void) noexcept	{ _quitting = true; }
     int			Run (void);
 protected:
@@ -45,6 +46,7 @@ private:
     vector<pollfd>	_watch;
     bool		_quitting;
     static CApp*	gs_pApp;
+    static const char*	gs_Name;
     static int		s_LastSignal;
 };
 
@@ -74,7 +76,8 @@ int Tmain (typename App::argc_t argc, typename App::argv_t argv)
 	app.Init (argc, argv);
 	ec = app.Run();
     } catch (XError& e) {
-	printf ("Error: %s\n", e.what());
+	fflush (stdout);
+	fprintf (stderr, "%s: error: %s\n", argv[0], e.what());
     }
     return (ec);
 }

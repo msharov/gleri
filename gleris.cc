@@ -59,7 +59,7 @@ inline void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
 
 /*static*/ int CGleris::XlibIOErrorHandler (Display*) noexcept
 {
-    printf ("Error: connection to X server abnormally terminated\n");
+    fprintf (stderr, "Error: connection to X server abnormally terminated\n");
     exit (EXIT_FAILURE);
 }
 
@@ -96,6 +96,7 @@ inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
 
 void CGleris::Init (argc_t argc, argv_t argv)
 {
+    CApp::Init (argc, argv);
     OnArgs (argc, argv);
     //
     // Connect to X display and get server information
@@ -173,9 +174,6 @@ void CGleris::Init (argc_t argc, argv_t argv)
     _curCli->LoadShader (pak, "sh/image_v.glsl", "sh/image_g.glsl", "sh/image_f.glsl");
     _curCli->LoadShader (pak, "sh/font_v.glsl", "sh/image_g.glsl", "sh/font_f.glsl");
     _curCli->FreeDatapak (pak);
-
-    // Process X events queued so far
-    OnXEvent();
 }
 
 void CGleris::OnXEvent (void)
@@ -205,6 +203,8 @@ void CGleris::OnFd (int fd)
     else if (fd == _icbuf.Fd()) {
 	_icbuf.ReadCmds();
 	PRGL::Parse (*this, _icbuf);
+	for (auto& c : _cli)
+	    c->WriteCmds();
     }
 }
 
@@ -214,8 +214,14 @@ void CGleris::OnFdError (int fd)
     if (fd == ConnectionNumber(_dpy))
 	throw XError ("X server connection terminated");
     else if (fd == STDIN_FILENO) {
-	printf ("client disconnected\n");
-	return (Quit());
+	for (auto i = _cli.begin(); i < _cli.end(); ++i) {
+	    if ((*i)->Matches(fd)) {
+		DestroyClient (*i);
+		--(i = _cli.erase(i));
+	    }
+	}
+	if (_cli.size() <= 1 && Option (opt_SingleClient))
+	    Quit();
     }
 }
 
@@ -293,6 +299,19 @@ void CGleris::ClientDraw (CGLClient& cli, bstri& cmdis)
 {
     PDraw<bstri>::Parse (cli, cmdis);
     glXSwapBuffers (_dpy, cli.Drawable());
+}
+
+void CGleris::ForwardError (PRGLR* pcli, const XError& e, int fd, CCmd::iid_t iid) const noexcept
+{
+    try {
+	PRGLR errbuf (iid);
+	if (!pcli) {
+	    errbuf.SetFd (fd);
+	    pcli = &errbuf;
+	}
+	pcli->ForwardError (e.what());
+	pcli->WriteCmds();
+    } catch (...) {}
 }
 
 GLERI_APP (CGleris)

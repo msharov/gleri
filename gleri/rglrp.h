@@ -11,6 +11,7 @@ public:
     typedef CCmdBuf::iid_t	iid_t;
 private:
     enum class ECmd : cmd_t {
+	Error,
 	Init,
 	Resize,
 	Draw,
@@ -23,12 +24,14 @@ public:
     inline void			Resize (uint16_t w, uint16_t h)	{ Cmd(ECmd::Resize,w,h); }
     inline void			Draw (void)			{ Cmd(ECmd::Draw); }
     inline void			Event (uint32_t key)		{ Cmd(ECmd::Event,key); }
+    inline void			ForwardError (const char* m)	{ Cmd(ECmd::Error,m); }
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool pfd=false)	{ CCmdBuf::SetFd(fd,pfd); }
 				// Reading interface
     template <typename F>
     static inline void		Parse (F& f, CCmdBuf& cmdbuf);
-    inline bool			Matches (int fd, iid_t iid)	{ return (Fd() == fd && IId() == iid); }
+    inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
+    inline bool			Matches (int fd) const		{ return (Fd() == fd); }
     static inline void		Error (void)			{ CCmdBuf::Error(); }
 private:
     template <typename... Arg>
@@ -74,6 +77,7 @@ template <typename F>
 	is.skip (hsz+sz);			// Skip to next command
 
 	switch (LookupCmd (cmdname, hsz)) {
+	    case ECmd::Error:	{ const char* m; cmdis >> m; f.OnError(m); } break;
 	    case ECmd::Init:	f.OnInit(); break;
 	    case ECmd::Resize:	{ uint16_t w,h; cmdis >> w >> h; f.OnResize(w,h); } break;
 	    case ECmd::Draw:	f.OnExpose(); break;

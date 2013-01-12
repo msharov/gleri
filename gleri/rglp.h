@@ -96,70 +96,71 @@ template <typename F>
 	    break;
 	}
 	auto clir = f.ClientRecord(cmdbuf.Fd(), iid);
-	if (objn != RGLObject)	// Not for me
-	    Error();
+	try {
+	    bstri cmdis (is.ipos()+hsz, sz);	// Command data stream
+	    const char* cmdname = (const char*) is.ipos();
+	    is.skip (hsz+sz);			// Skip to next command
 
-	bstri cmdis (is.ipos()+hsz, sz);	// Command data stream
-	const char* cmdname = (const char*) is.ipos();
-	is.skip (hsz+sz);			// Skip to next command
+	    ECmd cmd = LookupCmd (cmdname, hsz);
+	    if (objn != RGLObject || (!clir ^ (cmd == ECmd::Open)))
+		Error();
 
-	ECmd cmd = LookupCmd (cmdname, hsz);
-	if (!clir ^ (cmd == ECmd::Open))
-	    Error();
-
-	switch (cmd) {
-	    case ECmd::Open: {
-		uint16_t w,h; uint32_t glver;
-		if (cmdis.remaining() < sizeof(w)+sizeof(h)+sizeof(glver)) Error();
-		cmdis >> w >> h >> glver;
-		f.CreateClient (cmdbuf.Fd(), iid, w, h, glver);
-		} break;
-	    case ECmd::Draw: {
-		size_type dlsz; cmdis >> dlsz;
-		if (cmdis.remaining() < dlsz) Error();
-		f.ClientDraw (*clir,cmdis);
-		} break;
-	    case ECmd::LoadResource: {
-		uint32_t id, dsz; G::EBufferHint hint; G::EResource dtype;
-		if (cmdis.remaining() < sizeof(id)+sizeof(dtype)+sizeof(hint)+sizeof(dsz)) Error();
-		cmdis >> id >> dtype >> hint >> dsz;
-		if (cmdis.remaining() < dsz) Error();
-		uint32_t sid = clir->LookupId (id);
-		if (sid != UINT32_MAX)
-		    clir->FreeResource (dtype, sid);
-		sid = clir->LoadResource (dtype, hint, cmdis.ipos(), dsz);
-		clir->MapId (id, sid);
-		} break;
-	    case ECmd::LoadFile: {
-		uint32_t id, dsz; G::EBufferHint hint; G::EResource dtype;
-		if (cmdis.remaining() < sizeof(id)+sizeof(dtype)+sizeof(hint)+sizeof(dsz)) Error();
-		cmdis >> id >> dtype >> hint >> dsz;
-		bstri dfis = cmdbuf.ReceiveFileOpen (is);
-		if (cmdbuf.ReceiveComplete()) {
+	    switch (cmd) {
+		case ECmd::Open: {
+		    uint16_t w,h; uint32_t glver;
+		    if (cmdis.remaining() < sizeof(w)+sizeof(h)+sizeof(glver)) Error();
+		    cmdis >> w >> h >> glver;
+		    f.CreateClient (cmdbuf.Fd(), iid, w, h, glver);
+		    } break;
+		case ECmd::Draw: {
+		    size_type dlsz; cmdis >> dlsz;
+		    if (cmdis.remaining() < dlsz) Error();
+		    f.ClientDraw (*clir,cmdis);
+		    } break;
+		case ECmd::LoadResource: {
+		    uint32_t id, dsz; G::EBufferHint hint; G::EResource dtype;
+		    if (cmdis.remaining() < sizeof(id)+sizeof(dtype)+sizeof(hint)+sizeof(dsz)) Error();
+		    cmdis >> id >> dtype >> hint >> dsz;
+		    if (cmdis.remaining() < dsz) Error();
 		    uint32_t sid = clir->LookupId (id);
 		    if (sid != UINT32_MAX)
 			clir->FreeResource (dtype, sid);
-		    sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
+		    sid = clir->LoadResource (dtype, hint, cmdis.ipos(), dsz);
 		    clir->MapId (id, sid);
-		}
-		cmdbuf.ReceiveFileClose();
-		} break;
-	    case ECmd::FreeResource: {
-		uint32_t id; G::EResource dtype;
-		if (cmdis.remaining() < sizeof(id)+sizeof(dtype)) Error();
-		cmdis >> id >> dtype;
-		clir->FreeResource (dtype, clir->LookupId(id));
-		clir->UnmapId (id);
-		} break;
-	    case ECmd::BufferSubData: {
-		uint32_t id, dsz; uint16_t offset, btype;
-		if (cmdis.remaining() < sizeof(id)+sizeof(btype)+sizeof(offset)+sizeof(dsz)) Error();
-		cmdis >> id >> btype >> offset >> dsz;
-		if (cmdis.remaining() < dsz) Error();
-		clir->BufferSubData (clir->LookupId(id), cmdis.ipos(), dsz, offset, btype);
-		} break;
-	    default:
-		Error();
+		    } break;
+		case ECmd::LoadFile: {
+		    uint32_t id, dsz; G::EBufferHint hint; G::EResource dtype;
+		    if (cmdis.remaining() < sizeof(id)+sizeof(dtype)+sizeof(hint)+sizeof(dsz)) Error();
+		    cmdis >> id >> dtype >> hint >> dsz;
+		    bstri dfis = cmdbuf.ReceiveFileOpen (is);
+		    if (cmdbuf.ReceiveComplete()) {
+			uint32_t sid = clir->LookupId (id);
+			if (sid != UINT32_MAX)
+			    clir->FreeResource (dtype, sid);
+			sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
+			clir->MapId (id, sid);
+		    }
+		    cmdbuf.ReceiveFileClose();
+		    } break;
+		case ECmd::FreeResource: {
+		    uint32_t id; G::EResource dtype;
+		    if (cmdis.remaining() < sizeof(id)+sizeof(dtype)) Error();
+		    cmdis >> id >> dtype;
+		    clir->FreeResource (dtype, clir->LookupId(id));
+		    clir->UnmapId (id);
+		    } break;
+		case ECmd::BufferSubData: {
+		    uint32_t id, dsz; uint16_t offset, btype;
+		    if (cmdis.remaining() < sizeof(id)+sizeof(btype)+sizeof(offset)+sizeof(dsz)) Error();
+		    cmdis >> id >> btype >> offset >> dsz;
+		    if (cmdis.remaining() < dsz) Error();
+		    clir->BufferSubData (clir->LookupId(id), cmdis.ipos(), dsz, offset, btype);
+		    } break;
+		default:
+		    break;
+	    }
+	} catch (XError& e) {
+	    f.ForwardError (clir, e, cmdbuf.Fd(), iid);
 	}
     }
     cmdbuf.EndRead(is);

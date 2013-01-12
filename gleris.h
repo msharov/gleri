@@ -27,6 +27,7 @@ public:
     CGLClient*		ClientRecordForWindow (Window w) noexcept;
     void		CreateClient (int fd, CGLClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion, bool hidden = false);
     void		ClientDraw (CGLClient& cli, bstri& cmdis);
+    void		ForwardError (PRGLR* pcli, const XError& e, int fd, CCmd::iid_t iid) const noexcept;
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     void		CheckForXlibErrors (void) const;

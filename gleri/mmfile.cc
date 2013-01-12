@@ -80,7 +80,11 @@ void* CFile::Map (size_t dsz)
 void CFile::CopyTo (CFile& outf, size_t n)
 {
     for (char buf [BUFSIZ]; n;) {
-	ssize_t br = Read (buf, min(n,sizeof(buf)));
+	size_t br = Read (buf, min(n,sizeof(buf)));
+	if (!br) {
+	    pollfd pfd = { _fd, POLLIN, 0 };
+	    poll (&pfd, 1, -1);
+	}
 	outf.Write (buf, br);
 	n -= br;
     }
