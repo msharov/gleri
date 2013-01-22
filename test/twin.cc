@@ -6,15 +6,15 @@
 #include "twin.h"
 
 //{{{ Vertex data ------------------------------------------------------
-
 namespace {
 
-static const uint16_t _vdata1[] = {
+static const int16_t _vdata1[] = {
     0,0, 0,479, 639,479, 639,0,
     50,50, 50,300, 150,300, 150,50,
     100,100, 200,200, 300,200, 300,300,
     250,250, 250,400, 350,250, 500,450,
     250,50, 300,100, 300,50, 350,75,
+    0,0, 0,-1, 1,0, 1,-1
 };
 enum {
     vb_WindowBorderOffset,
@@ -27,28 +27,55 @@ enum {
     vb_TransparentStripSize = 4,
     vb_SkewQuadOffset = vb_TransparentStripOffset+vb_TransparentStripSize,
     vb_SkewQuadSize = 4,
-    vb_nVertices
+    vb_FanOverlayOffset = vb_SkewQuadOffset + vb_SkewQuadSize,
+    vb_FanOverlaySize = 4
 };
 
-} // namespace
+//}}}-------------------------------------------------------------------
+//{{{ Gradient shader
 
+static const char c_gradShader_v[] =
+"#version 330 core\n"
+"\n"
+"uniform vec4 Color;\n"
+"layout(location=0) in vec2 Vertex;\n"
+"invariant out vec4 gl_Position;\n"
+"invariant out vec4 f_color;\n"
+"\n"
+"void main() {\n"
+"    gl_Position = vec4(Vertex,1,1);\n"
+"    f_color = Color*vec4(1,1,1,gl_Position.x*-gl_Position.y);\n"
+"}";
+
+static const char c_gradShader_f[] =
+"#version 330 core\n"
+"\n"
+"invariant in vec4 f_color;\n"
+"invariant out vec4 gl_FragColor;\n"
+"\n"
+"void main() {\n"
+"    gl_FragColor = f_color;\n"
+"}";
+
+} // namespace
 //}}}-------------------------------------------------------------------
 
 void CTestWindow::OnInit (void)
 {
     CWindow::OnInit();
     Open (640, 480);
-    BufferData (_vbuf = CreateBuffer(), _vdata1, sizeof(_vdata1));
-    LoadTexture (_walk = CreateTexture(), "test/princess.png");
+    _vbuf = BufferData (_vdata1, sizeof(_vdata1));
+    _walk = LoadTexture ("test/princess.png");
+    _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
 }
 
 void CTestWindow::OnResize (uint16_t w, uint16_t h)
 {
     CWindow::OnResize (w,h);
     printf ("Test window OnResize\n");
-    const uint16_t sw = w-1, sh = h-1;
-    const uint16_t _vdata1[] = { sh, sw,sh, sw };
-    BufferSubData (_vbuf, _vdata1, sizeof(_vdata1), 3*sizeof(short));
+    const int16_t sw = w-1, sh = h-1;
+    const int16_t _vdata1[] = { sh, sw,sh, sw };
+    BufferSubData (_vbuf, _vdata1, sizeof(_vdata1), 3*sizeof(int16_t));
 }
 
 void CTestWindow::OnEvent (uint32_t key)
@@ -90,4 +117,9 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 
     drw.Color (128,90,150,220);
     drw.TriangleFan (vb_PurpleQuadOffset, vb_PurpleQuadSize);
+
+    drw.Shader (_gradShader);
+    drw.Color (0,128,128);
+    drw.TriangleStrip (vb_FanOverlayOffset, vb_FanOverlaySize);
+    drw.DefaultShader();
 }

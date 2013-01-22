@@ -15,4 +15,5 @@ public:
 private:
     uint32_t		_vbuf;
     uint32_t		_walk;
+    uint32_t		_gradShader;
 };

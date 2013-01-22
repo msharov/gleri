@@ -25,17 +25,20 @@ private:
 public:
     inline			PRGL (iid_t iid)		: CCmdBuf(iid),_nextid(0) {}
 				// Command writing
-    inline void			Open (uint16_t w, uint16_t h, uint32_t glver = 0x33)	{ Cmd(ECmd::Open,w,h,glver); }
-    inline draww_t		Draw (size_type sz);
-    inline uint32_t		CreateBuffer (void)		{ return (GenId()); }
-    inline void			BufferData (uint32_t id, const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
-    inline void			BufferSubData (uint32_t id, const void* data, uint32_t dsz, uint16_t offset = 0, G::EBufferType btype = G::ARRAY_BUFFER);
-    inline void			FreeBuffer (uint32_t id);
-    inline uint32_t		CreateTexture (void)		{ return (GenId()); }
-    void			LoadTexture (uint32_t id, const char* f);
-    inline void			FreeTexture (uint32_t id);
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
+				// Commands
+    inline void			Open (uint16_t w, uint16_t h, uint32_t glver = 0x33)	{ Cmd(ECmd::Open,w,h,glver); }
+    inline draww_t		Draw (size_type sz);
+    inline uint32_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
+    inline void			BufferSubData (uint32_t id, const void* data, uint32_t dsz, uint16_t offset = 0, G::EBufferType btype = G::ARRAY_BUFFER);
+    inline void			FreeBuffer (uint32_t id);
+    uint32_t			LoadTexture (const char* f);
+    inline void			FreeTexture (uint32_t id);
+    inline uint32_t		LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f);
+    inline uint32_t		LoadShader (const char* v, const char* tc, const char* te, const char* f);
+    inline uint32_t		LoadShader (const char* v, const char* g, const char* f);
+    inline uint32_t		LoadShader (const char* v, const char* f);
 				// Buffer reading for serialization
     template <typename F>
     static inline void		Parse (F& f, CCmdBuf& cmdbuf);
@@ -48,12 +51,14 @@ private:
     static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
     static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
 				// Generic loader interface
-    inline void			LoadResource (uint32_t id, const void* data, uint32_t dsz, G::EResource dtype, G::EBufferHint hint = G::STATIC_DRAW);
+    inline uint32_t		LoadResource (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW);
     inline void			FreeResource (uint32_t id, G::EResource dtype);
 private:
     uint32_t			_nextid;
     static const char		_cmdNames[];
 };
+
+//{{{ Inline bodies ----------------------------------------------------
 
 template <typename... Arg>
 inline void PRGL::Cmd (ECmd cmd, const Arg&... args)
@@ -68,17 +73,42 @@ inline PRGL::draww_t PRGL::Draw (size_type sz)
     { bstro os = CreateCmd (ECmd::Draw,sz+sizeof(size_type)); os << sz; return (draww_t(os)); }
 inline void PRGL::BufferSubData (uint32_t id, const void* data, uint32_t dsz, uint16_t offset, G::EBufferType btype)
     { Cmd (ECmd::BufferSubData, id, btype, offset, SDataBlock (data, dsz)); }
-inline void PRGL::LoadResource (uint32_t id, const void* data, uint32_t dsz, G::EResource dtype, G::EBufferHint hint)
-    { Cmd (ECmd::LoadResource, id, dtype, hint, SDataBlock (data, dsz)); }
+inline uint32_t PRGL::LoadResource (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint)
+    { uint32_t id = GenId(); Cmd (ECmd::LoadResource, id, dtype, hint, SDataBlock (data, dsz)); return (id); }
 inline void PRGL::FreeResource (uint32_t id, G::EResource dtype)
     { Cmd (ECmd::FreeResource, id, dtype); }
 
-inline void PRGL::BufferData (uint32_t id, const void* data, uint32_t dsz, G::EBufferHint hint, G::EBufferType btype)
-    { LoadResource (id, data, dsz, G::EResource(btype-unsigned(G::ARRAY_BUFFER)), hint); }
+inline uint32_t PRGL::BufferData (const void* data, uint32_t dsz, G::EBufferHint hint, G::EBufferType btype)
+    { return (LoadResource (G::EResource(btype-unsigned(G::ARRAY_BUFFER)), data, dsz, hint)); }
 inline void PRGL::FreeBuffer (uint32_t id)
     { FreeResource (id, G::EResource::VERTEX_ARRAY); }
 inline void PRGL::FreeTexture (uint32_t id)
     { FreeResource (id, G::EResource::TEXTURE); }
+inline uint32_t PRGL::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
+{
+    // Inline LoadResource call here because the compiler knows all about
+    // the passed in strings and can crush this code very well
+    uint32_t id = GenId();
+    G::EResource dtype = G::EResource::SHADER;
+    G::EBufferHint hint = G::STATIC_DRAW;
+    bstrs ss;
+    const uint32_t shdsz = strlen(v)+1+strlen(tc)+1+strlen(te)+1+strlen(g)+1+strlen(f)+1;
+    ss << id << dtype << hint << shdsz;
+    ss.write_strz (v); ss.write_strz (tc); ss.write_strz (te); ss.write_strz (g); ss.write_strz (f);
+    bstro os = CreateCmd (ECmd::LoadResource, ss.size());
+    os << id << dtype << hint << shdsz;
+    os.write_strz (v); os.write_strz (tc); os.write_strz (te); os.write_strz (g); os.write_strz (f);
+    return (id);
+}
+inline uint32_t PRGL::LoadShader (const char* v, const char* tc, const char* te, const char* f)
+    { return (LoadShader (v, tc, te, "", f)); }
+inline uint32_t PRGL::LoadShader (const char* v, const char* g, const char* f)
+    { return (LoadShader (v, "", "", g, f)); }
+inline uint32_t PRGL::LoadShader (const char* v, const char* f)
+    { return (LoadShader (v, "", "", "", f)); }
+
+//}}}-------------------------------------------------------------------
+//{{{ The read parser
 
 template <typename F>
 /*static*/ inline void PRGL::Parse (F& f, CCmdBuf& cmdbuf)
@@ -165,3 +195,4 @@ template <typename F>
     }
     cmdbuf.EndRead(is);
 }
+//}}}-------------------------------------------------------------------

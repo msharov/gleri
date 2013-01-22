@@ -37,9 +37,12 @@ bstro PRGL::CreateCmd (ECmd cmd, size_type sz) noexcept
     return (CCmdBuf::CreateCmd (m, msz, sz));
 }
 
-void PRGL::LoadTexture (uint32_t id, const char* filename)
+uint32_t PRGL::LoadTexture (const char* filename)
 {
+    uint32_t id = GenId();
     CFile f (filename, O_RDONLY);
     Cmd (ECmd::LoadFile, id, G::EResource::TEXTURE, G::STATIC_DRAW, f.Fd());
     SendFile (f);
+    return (id);
 }
+

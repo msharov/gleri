@@ -20,9 +20,6 @@ OBJ	:= $(addprefix .o/,$(SRC:.cc=.o))
 
 all:	${EXE}
 
-run:	${EXE}
-	@./${EXE}
-
 ${EXE}:	${OBJ} ${LIBA}
 	@echo "Linking $@ ..."
 	@${LD} ${LDFLAGS} -o $@ ${OBJ} ${LIBA} ${LIBS}

@@ -63,7 +63,7 @@ public:
     template <typename T>
     inline bstro&	operator<< (const T& v)	{ *iptr<T>() = v; skip(sizeof(v)); return (*this); }
     inline void		write (const void* v, size_type sz)	{ assert(_p+sz<=_pend && "write overflow"); memcpy (_p,v,sz); skip(sz); }
-    inline void		write_strz (const char* v)		{ _p = (pointer) stpcpy((char*)_p,v)+1; assert(_p<=_pend && "write overflow"); }
+    inline void		write_strz (const char* v)		{ write (v, strlen(v)+1); }
     inline bstro&	operator<< (const char* s);
 private:
     pointer		_p;

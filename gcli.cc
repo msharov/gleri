@@ -103,7 +103,7 @@ GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
 	    bstri shis (d, dsz);
 	    const char* shs[5];
 	    for (unsigned i = 0; i < ArraySize(shs); ++i) {
-		shis >> shs[i];
+		shs[i] = shis.read_strz();
 		if (!*shs[i])
 		    shs[i] = nullptr;
 	    }
