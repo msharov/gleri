@@ -5,7 +5,7 @@
 
 #include "gopak.h"
 
-//{{{2 CPIO file format definitions
+//{{{ CPIO file format definitions
 namespace {
 
 // CPIO file format header copied from the spec
@@ -34,7 +34,7 @@ private:
 };
 
 } // namespace
-//}}}2
+//}}}
 
 CDatapak::CDatapak (GLXContext ctx, GLubyte* p, GLuint psz) noexcept
 : CGObject(ctx, GenId())

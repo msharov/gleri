@@ -70,7 +70,7 @@ void CGleris::CheckForXlibErrors (void) const
 	throw XError (true, _xlib_error);
 }
 
-Window CGleris::CreateWindow (unsigned w, unsigned h) const
+Window CGleris::CreateWindow (const SWinInfo& winfo) const
 {
     XSetWindowAttributes swa;
     swa.colormap = _colormap;
@@ -78,7 +78,7 @@ Window CGleris::CreateWindow (unsigned w, unsigned h) const
     swa.border_pixel = BlackPixel (_dpy, _screen);
     swa.event_mask = StructureNotifyMask| ExposureMask| KeyPressMask| ButtonPressMask| PointerMotionMask;
 
-    Window win = XCreateWindow (_dpy, _rootWindow, 0, 0, w, h, 0,
+    Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
 				_visinfo->depth, InputOutput, _visinfo->visual,
 				CWBackPixmap| CWBorderPixel| CWColormap| CWEventMask, &swa);
     if (!win)
@@ -141,7 +141,8 @@ void CGleris::Init (argc_t argc, argv_t argv)
     _colormap = XCreateColormap(_dpy, _rootWindow, _visinfo->visual, AllocNone);
 
     // Create the root gl context (share root)
-    Window rctxw = CreateWindow (1, 1);	// Temporary window to create the root gl context
+    static const SWinInfo rootinfo = { 0, 0, 1, 1, 0x33, 0x43, SWinInfo::wt_Normal, SWinInfo::wf_Hidden };
+    Window rctxw = CreateWindow (rootinfo);	// Temporary window to create the root gl context
     CheckForXlibErrors();
     GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig, GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
@@ -165,7 +166,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
     glXDestroyContext (_dpy, ctx);
     XDestroyWindow (_dpy, rctxw);
 
-    CreateClient (-1, 0, 1, 1, _glversion, true);
+    CreateClient (-1, 0, rootinfo);
 
     // Load shared resources into the root context
     GLuint pak = _curCli->LoadDatapak (ArrayBlock (File_resource));
@@ -188,7 +189,7 @@ void CGleris::OnXEvent (void)
 	    icli->Draw();
 	else if (xev.type == ConfigureNotify) {
 	    ActivateClient (*icli);
-	    icli->Resize (xev.xconfigure.width, xev.xconfigure.height);
+	    icli->Resize (xev.xconfigure.x, xev.xconfigure.y, xev.xconfigure.width, xev.xconfigure.height);
 	} else if (xev.type == KeyPress)
 	    icli->Event (xev.xkey.keycode);
 	icli->WriteCmds();
@@ -225,16 +226,20 @@ void CGleris::OnFdError (int fd)
     }
 }
 
-void CGleris::CreateClient (int fd, CGLClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion, bool hidden)
+void CGleris::CreateClient (int fd, iid_t iid, SWinInfo winfo)
 {
+    // Parse requested GL version, high byte max version, low byte min version
+    uint8_t reqver = min(max(winfo.mingl,winfo.maxgl), _glversion);
+    int major = reqver>>4, minor = reqver&0xf;
+    if (reqver < winfo.mingl)
+	throw XError ("X server does not support OpenGL %d.%d", major, minor);
+    winfo.mingl = winfo.maxgl = reqver;
+
     // Create the window
-    Window wid = CreateWindow (w, h);
-    if (!hidden)
-	XMapWindow (_dpy, wid);
+    Window wid = CreateWindow (winfo);
     CheckForXlibErrors();
 
     // Create the OpenGL context
-    int major = glversion>>4, minor = glversion&0xf;
     int context_attribs[] = {
 	GLX_CONTEXT_MAJOR_VERSION_ARB,	major,
 	GLX_CONTEXT_MINOR_VERSION_ARB,	minor,
@@ -247,6 +252,7 @@ void CGleris::CreateClient (int fd, CGLClient::iid_t iid, uint16_t w, uint16_t h
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
     if (!glXIsDirect (_dpy, ctx)) {
 	glXDestroyContext (_dpy, ctx);
+	XDestroyWindow (_dpy, wid);
 	throw XError ("direct rendering is not enabled");
     }
 
@@ -254,6 +260,8 @@ void CGleris::CreateClient (int fd, CGLClient::iid_t iid, uint16_t w, uint16_t h
     _cli.push_back (new CGLClient (iid, wid, ctx));
 
     // Activate the new context and set default parameters
+    if (!(winfo.flags & SWinInfo::wf_Hidden))
+	XMapWindow (_dpy, wid);
     CGLClient& rcli = *_cli.back();
     rcli.SetFd (fd, _icbuf.CanPassFd());
     ActivateClient (rcli);
@@ -276,7 +284,7 @@ void CGleris::DestroyClient (CGLClient*& pc) noexcept
     XDestroyWindow (_dpy, w);
 }
 
-CGLClient* CGleris::ClientRecord (int fd, CGLClient::iid_t iid) noexcept
+CGLClient* CGleris::ClientRecord (int fd, iid_t iid) noexcept
 {
     for (auto& icli : _cli) {
 	if (icli->Matches (fd,iid)) {
@@ -301,7 +309,7 @@ void CGleris::ClientDraw (CGLClient& cli, bstri& cmdis)
     glXSwapBuffers (_dpy, cli.Drawable());
 }
 
-void CGleris::ForwardError (PRGLR* pcli, const XError& e, int fd, CCmd::iid_t iid) const noexcept
+void CGleris::ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, int fd, iid_t iid) const noexcept
 {
     try {
 	PRGLR errbuf (iid);
@@ -309,7 +317,10 @@ void CGleris::ForwardError (PRGLR* pcli, const XError& e, int fd, CCmd::iid_t ii
 	    errbuf.SetFd (fd);
 	    pcli = &errbuf;
 	}
-	pcli->ForwardError (e.what());
+	size_t bufsz = strlen(cmdname)+2+strlen(e.what())+1;
+	char buf [bufsz];
+	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
+	pcli->ForwardError (buf);
 	pcli->WriteCmds();
     } catch (...) {}
 }

@@ -26,13 +26,14 @@ private:
 	inline bool	operator== (const SIdMap& v) const	{ return (_key == v._key); }
     };
     typedef float		matrix4f_t[4][4];
+    typedef PRGL::SWinInfo	SWinInfo;
 public:
 				CGLClient (iid_t iid, Window win, GLXContext ctx);
     void			Init (void);
     inline const CContext&	Context (void) const		{ return (_ctx); }
     inline GLXContext		ContextId (void) const		{ return (_ctx.Context()); }
     inline Window		Drawable (void) const		{ return (_ctx.Drawable()); }
-    void			Resize (uint16_t w, uint16_t h) noexcept;
+    void			Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept;
     void			MapId (uint32_t cid, GLuint sid) noexcept;
     GLuint			LookupId (uint32_t cid) const noexcept;
     uint32_t			LookupSid (GLuint sid) const noexcept;
@@ -77,12 +78,14 @@ public:
     void			Parameter (const char* name, GLuint buf, GLenum type = GL_SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
     void			Parameter (GLuint slot, GLuint buf, GLenum type = GL_SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
     void			Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept;
+    inline void			Uniform4fv (const char* varname, const GLfloat* v) const noexcept	{ Uniform4f(varname,v[0],v[1],v[2],v[3]); }
+    void			Uniform4iv (const char* varname, const GLint* v) const noexcept;
     void			UniformMatrix (const char* varname, const GLfloat* mat) const noexcept;
     void			UniformTexture (const char* varname, GLuint img, GLuint itex = 0) noexcept;
     void			Color (GLuint c) noexcept;
     inline void			Color (GLubyte r, GLubyte g, GLubyte b, GLubyte a =255)	{ Color (RGBA(r,g,b,a)); }
     void			Clear (GLuint c) noexcept;
-    void			Primitive (GLenum mode, GLuint first, GLuint count) noexcept;
+    void			Shape (GLenum mode, GLuint first, GLuint count) noexcept;
 				// Texture
     GLuint			LoadTexture (const GLubyte* d, GLuint dsz);
     GLuint			LoadTexture (const char* filename);
@@ -115,7 +118,6 @@ private:
     GLuint			_curBuffer;
     GLuint			_curTexture;
     GLuint			_curFont;
-    uint16_t			_w;
-    uint16_t			_h;
+    SWinInfo			_winfo;
     static const CGLClient*	s_RootClient;
 };

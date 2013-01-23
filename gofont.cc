@@ -11,7 +11,7 @@ CFont::CFont (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept
 ,_height(0)
 ,_rowwidth(0)
 {
-    //{{{2 PSF format definitions ------------------------------------------
+    //{{{ PSF format definitions ------------------------------------------
     enum {
 	PSF1_MAGIC	= 0x0436,
 	PSF1_SEPARATOR	= 0xFFFF,
@@ -43,7 +43,7 @@ CFont::CFont (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept
 	uint32_t	height;
 	uint32_t	width;
     };
-    //}}}2------------------------------------------------------------------
+    //}}}------------------------------------------------------------------
 
     const GLubyte* pend = p+psz;
     const SPsf1Header* ph1 = (const SPsf1Header*) p;

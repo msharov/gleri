@@ -72,7 +72,7 @@ protected:
     bstro			CreateCmd (const char* m, size_type msz, size_type sz) noexcept;
     static const char*		LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept;
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
-    static inline void		Error (void)		{ throw XError ("protocol error"); }
+    static void			Error (void)			{ throw XError ("protocol error"); }
 private:
     struct SSendFileHeader {
 	uint64_t		totalSize;

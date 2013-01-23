@@ -20,18 +20,21 @@ protected:
 	opt_SingleClient,
 	opt_Last
     };
+    typedef CGLClient::iid_t	iid_t;
+    typedef PRGL::SWinInfo	SWinInfo;
+    typedef const SWinInfo&	rcwininfo_t;
 public:
     inline bool		Option (EOption o) const	{ return (_options & (1<<o)); }
 			// Client id translation
-    CGLClient*		ClientRecord (int fd, CGLClient::iid_t iid) noexcept;
+    CGLClient*		ClientRecord (int fd, iid_t iid) noexcept;
     CGLClient*		ClientRecordForWindow (Window w) noexcept;
-    void		CreateClient (int fd, CGLClient::iid_t iid, uint16_t w, uint16_t h, uint16_t glversion, bool hidden = false);
+    void		CreateClient (int fd, iid_t iid, SWinInfo winfo);
     void		ClientDraw (CGLClient& cli, bstri& cmdis);
-    void		ForwardError (PRGLR* pcli, const XError& e, int fd, CCmd::iid_t iid) const noexcept;
+    void		ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, int fd, iid_t iid) const noexcept;
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     void		CheckForXlibErrors (void) const;
-    Window		CreateWindow (unsigned w, unsigned h) const;
+    Window		CreateWindow (rcwininfo_t winfo) const;
     inline void		ActivateClient (CGLClient& rcli) noexcept;
     void		DestroyClient (CGLClient*& pcli) noexcept;
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
@@ -50,7 +53,7 @@ private:
     Colormap		_colormap;
     XID			_screen;
     Window		_rootWindow;
-    unsigned short	_glversion;
+    uint8_t		_glversion;
     uint8_t		_options;
     static char*	_xlib_error;
 };

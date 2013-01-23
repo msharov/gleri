@@ -12,6 +12,29 @@ class PRGL : private CCmdBuf {
 public:
     typedef CCmdBuf::iid_t	iid_t;
     typedef PDraw<bstro>	draww_t;
+    struct SWinInfo {
+	int16_t		x;
+	int16_t		y;
+	uint16_t	w;
+	uint16_t	h;
+	uint8_t		mingl;
+	uint8_t		maxgl;
+	enum EWinType : uint8_t {
+	    wt_Normal,
+	    wt_Dialog,
+	    wt_Menu,
+	    wt_Tray
+	}		state;
+	enum EWinFlag {
+	    wf_Hidden		= 1<<0,
+	    wf_MaximizedX	= 1<<1,
+	    wf_MaximizedY	= 1<<2,
+	    wf_Maximized	= wf_MaximizedX| wf_MaximizedY,
+	    wf_Fullscreen	= 1<<3,
+	    wf_Gamescreen	= 1<<4
+	};
+	uint8_t		flags;
+    };
 private:
     enum class ECmd : cmd_t {
 	Open,
@@ -28,7 +51,8 @@ public:
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
 				// Commands
-    inline void			Open (uint16_t w, uint16_t h, uint32_t glver = 0x33)	{ Cmd(ECmd::Open,w,h,glver); }
+    inline void			Open (const SWinInfo& winfo)	{ Cmd(ECmd::Open,winfo); }
+    inline void			Open (uint16_t w, uint16_t h, uint8_t glver = 0x33)	{ SWinInfo winfo = { 0,0,w,h,glver,0,SWinInfo::wt_Normal,0 }; Open(winfo); }
     inline draww_t		Draw (size_type sz);
     inline uint32_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline void			BufferSubData (uint32_t id, const void* data, uint32_t dsz, uint16_t offset = 0, G::EBufferType btype = G::ARRAY_BUFFER);
@@ -120,15 +144,17 @@ template <typename F>
 
     while (is.remaining() > chsz) {	// While have commands
 	auto ihdr = is.ipos();		// Save header start for return
+
 	is >> sz >> iid >> fdoffset >> hsz >> objn;
 	if (is.remaining() < (hsz-=chsz)+sz) {
 	    is.iseek (ihdr);		// Restart at header
 	    break;
 	}
 	auto clir = f.ClientRecord(cmdbuf.Fd(), iid);
+	const char* cmdname = "protocol";
 	try {
 	    bstri cmdis (is.ipos()+hsz, sz);	// Command data stream
-	    const char* cmdname = (const char*) is.ipos();
+	    cmdname = (const char*) is.ipos();
 	    is.skip (hsz+sz);			// Skip to next command
 
 	    ECmd cmd = LookupCmd (cmdname, hsz);
@@ -137,10 +163,10 @@ template <typename F>
 
 	    switch (cmd) {
 		case ECmd::Open: {
-		    uint16_t w,h; uint32_t glver;
-		    if (cmdis.remaining() < sizeof(w)+sizeof(h)+sizeof(glver)) Error();
-		    cmdis >> w >> h >> glver;
-		    f.CreateClient (cmdbuf.Fd(), iid, w, h, glver);
+		    SWinInfo winfo;
+		    if (cmdis.remaining() < sizeof(SWinInfo)) Error();
+		    cmdis >> winfo;
+		    f.CreateClient (cmdbuf.Fd(), iid, winfo);
 		    } break;
 		case ECmd::Draw: {
 		    size_type dlsz; cmdis >> dlsz;
@@ -187,10 +213,11 @@ template <typename F>
 		    clir->BufferSubData (clir->LookupId(id), cmdis.ipos(), dsz, offset, btype);
 		    } break;
 		default:
+		    Error();
 		    break;
 	    }
 	} catch (XError& e) {
-	    f.ForwardError (clir, e, cmdbuf.Fd(), iid);
+	    f.ForwardError (clir, cmdname, e, cmdbuf.Fd(), iid);
 	}
     }
     cmdbuf.EndRead(is);

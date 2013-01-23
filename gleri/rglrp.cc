@@ -8,8 +8,7 @@
 #define N(n,s)	#n "\0" #s "\0"
 /*static*/ const char PRGLR::_cmdNames[] =
      N(Error,s)
-     N(Init,)
-     N(Resize,qq)
+     N(Restate,(qqqqbbbb))
      N(Draw,)
      N(Event,u)
 ;

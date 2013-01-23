@@ -20,7 +20,11 @@ private:
 	Clear,
 	Shader,
 	Parameter,
-	Primitive,
+	Uniformf,
+	Uniformi,
+	Uniformm,
+	Uniformt,
+	Shape,
 	Color,
 	Text,
 	Sprite,
@@ -36,18 +40,24 @@ public:
     inline void		Clear (uint32_t c = 0)					{ Cmd (ECmd::Clear, c); }
     inline void		Shader (uint32_t id)					{ Cmd (ECmd::Shader, id); }
     inline void		Text (int16_t x, int16_t y, const char* s)		{ Cmd (ECmd::Text, x, y, s); }
-    inline void		Primitive (G::EPrimitive type, uint32_t start, uint32_t sz)	{ Cmd (ECmd::Primitive, type, start, sz); }
+    inline void		Shape (G::EShape type, uint32_t start, uint32_t sz)	{ Cmd (ECmd::Shape, type, start, sz); }
     inline void		Sprite (int16_t x, int16_t y, uint32_t s)		{ Cmd (ECmd::Sprite, x, y, s); }
     inline void		Parameter (uint8_t slot, uint32_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }
+    inline void		Uniform (const char* name, float x, float y, float z, float w)		{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
+    inline void		Uniformi (const char* name, int x, int y, int z, int w)			{ Cmd (ECmd::Uniformi, name, x,y,z,w); }
+    inline void		Uniformv (const char* name, const float* v)				{ Cmd (ECmd::Uniformf, name, v[0],v[1],v[2],v[3]); }
+    inline void		Uniformv (const char* name, const int* v)				{ Cmd (ECmd::Uniformf, name, v[0],v[1],v[2],v[3]); }
+    inline void		Texture (const char* name, uint32_t id, uint32_t slot = 0)		{ Cmd (ECmd::Uniformt, name, id, slot); }
+    inline void		Matrix (const char* name, const float* m);
 			// Forwarding drawing commands
     inline void		Color (uint8_t r, uint8_t g, uint8_t b, uint8_t a = UINT8_MAX)	{ Color(RGBA(r,g,b,a)); }
-    inline void		Points (uint32_t start, uint32_t sz)			{ Primitive (G::POINTS, start, sz); }
-    inline void		Lines (uint32_t start, uint32_t sz)			{ Primitive (G::LINES, start, sz); }
-    inline void		LineLoop (uint32_t start, uint32_t sz)			{ Primitive (G::LINE_LOOP, start, sz); }
-    inline void		LineStrip (uint32_t start, uint32_t sz)			{ Primitive (G::LINE_STRIP, start, sz); }
-    inline void		Triangles (uint32_t start, uint32_t sz)			{ Primitive (G::TRIANGLES, start, sz); }
-    inline void		TriangleStrip (uint32_t start, uint32_t sz)		{ Primitive (G::TRIANGLE_STRIP, start, sz); }
-    inline void		TriangleFan (uint32_t start, uint32_t sz)		{ Primitive (G::TRIANGLE_FAN, start, sz); }
+    inline void		Points (uint32_t start, uint32_t sz)			{ Shape (G::POINTS, start, sz); }
+    inline void		Lines (uint32_t start, uint32_t sz)			{ Shape (G::LINES, start, sz); }
+    inline void		LineLoop (uint32_t start, uint32_t sz)			{ Shape (G::LINE_LOOP, start, sz); }
+    inline void		LineStrip (uint32_t start, uint32_t sz)			{ Shape (G::LINE_STRIP, start, sz); }
+    inline void		Triangles (uint32_t start, uint32_t sz)			{ Shape (G::TRIANGLES, start, sz); }
+    inline void		TriangleStrip (uint32_t start, uint32_t sz)		{ Shape (G::TRIANGLE_STRIP, start, sz); }
+    inline void		TriangleFan (uint32_t start, uint32_t sz)		{ Shape (G::TRIANGLE_FAN, start, sz); }
     inline void		VertexPointer (uint32_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::VERTEX, buf, type, sz, offset, stride); }
     inline void		TexCoordPointer (uint32_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::TEXTURE_COORD, buf, type, sz, offset, stride); }
 			// Reading interface
@@ -64,7 +74,7 @@ private:
     Stm			_os;
 };
 
-//----------------------------------------------------------------------
+//{{{ Inline bodies ----------------------------------------------------
 
 template <typename Stm>
 template <typename... Arg>
@@ -74,6 +84,19 @@ inline void PDraw<Stm>::Cmd (ECmd cmd, const Arg&... args)
     variadic_arg_size (ss, args...);
     variadic_arg_write (_os, Header(cmd,ss.size()), args...);
 }
+
+template <typename Stm>
+inline void PDraw<Stm>::Matrix (const char* name, const float* m)
+{
+    bstrs ss;
+    ss << name;
+    ss.write (m, 16*sizeof(float));
+    _os << Header(ECmd::Uniformm,ss.size()) << name;
+    _os.write (m, 16*sizeof(float));
+}
+
+//}}}-------------------------------------------------------------------
+//{{{ Parser
 
 template <typename Stm>
 template <typename... Arg>
@@ -102,15 +125,42 @@ template <typename F>
 	    case ECmd::Shader: { uint32_t id; Args(is,id); f.Shader(f.LookupId(id)); } break;
 	    case ECmd::Text: { uint16_t x,y; const char* s = nullptr; Args(is,x,y,s); if (s) f.Text(x,y,s); } break;
 	    case ECmd::Sprite: { uint16_t x,y; uint32_t s; Args(is,x,y,s); f.Sprite(x,y,f.LookupId(s)); } break;
-	    case ECmd::Primitive: { uint32_t t,s,z; Args(is,t,s,z); f.Primitive(t,s,z); } break;
+	    case ECmd::Shape: { uint32_t t,s,z; Args(is,t,s,z); f.Shape(t,s,z); } break;
 	    case ECmd::Parameter: {
 		uint32_t buf, offset, stride; uint16_t type; uint8_t slot, size;
 		Args(is,buf,type,slot,size,offset,stride);
 		f.Parameter (slot, f.LookupId(buf), type, size, offset, stride);
+	    } break;
+	    case ECmd::Uniformf: {
+		const char* name;
+		is >> name;
+		const float* uv = (const float*) is.ipos();
+		is.skip (4*sizeof(float));
+		f.Uniform4fv (name, uv);
+	    } break;
+	    case ECmd::Uniformi: {
+		const char* name;
+		is >> name;
+		const int* uv = (const int*) is.ipos();
+		is.skip (4*sizeof(int));
+		f.Uniform4iv (name, uv);
+	    } break;
+	    case ECmd::Uniformm: {
+		const char* name;
+		is >> name;
+		const float* uv = (const float*) is.ipos();
+		is.skip (16*sizeof(float));
+		f.UniformMatrix (name, uv);
+	    } break;
+	    case ECmd::Uniformt: {
+		const char* name;
+		uint32_t id, slot;
+		is >> name >> id >> slot;
+		f.UniformTexture (name, id, slot);
 	    } break;
 	    default: Error();
 	}
     }
 }
 
-//----------------------------------------------------------------------
+//}}}-------------------------------------------------------------------

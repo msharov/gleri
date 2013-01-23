@@ -4,24 +4,24 @@
 // This file is free software, distributed under the MIT License.
 
 #pragma once
-#include "cmd.h"
+#include "rglp.h"
 
 class PRGLR : private CCmdBuf {
 public:
     typedef CCmdBuf::iid_t	iid_t;
+    typedef PRGL::SWinInfo	SWinInfo;
+    typedef const SWinInfo&	rcwininfo_t;
 private:
     enum class ECmd : cmd_t {
 	Error,
-	Init,
-	Resize,
+	Restate,
 	Draw,
 	Event,
 	NCmds
     };
 public:
     inline explicit		PRGLR (iid_t iid)		: CCmdBuf(iid) {}
-    inline void			Init (void)			{ Cmd(ECmd::Init); }
-    inline void			Resize (uint16_t w, uint16_t h)	{ Cmd(ECmd::Resize,w,h); }
+    inline void			Restate (rcwininfo_t winfo)	{ Cmd(ECmd::Restate,winfo); }
     inline void			Draw (void)			{ Cmd(ECmd::Draw); }
     inline void			Event (uint32_t key)		{ Cmd(ECmd::Event,key); }
     inline void			ForwardError (const char* m)	{ Cmd(ECmd::Error,m); }
@@ -78,8 +78,7 @@ template <typename F>
 
 	switch (LookupCmd (cmdname, hsz)) {
 	    case ECmd::Error:	{ const char* m; cmdis >> m; f.OnError(m); } break;
-	    case ECmd::Init:	f.OnInit(); break;
-	    case ECmd::Resize:	{ uint16_t w,h; cmdis >> w >> h; f.OnResize(w,h); } break;
+	    case ECmd::Restate:	{ SWinInfo winfo; cmdis >> winfo; f.OnRestate(winfo); } break;
 	    case ECmd::Draw:	f.OnExpose(); break;
 	    case ECmd::Event:	{ uint32_t key; cmdis >> key; f.OnEvent(key); } break;
 	    default: Error();

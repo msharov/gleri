@@ -30,7 +30,7 @@ enum EBufferType : uint16_t {
     ELEMENT_ARRAY_BUFFER
 };
 
-enum EPrimitive : uint32_t {
+enum EShape : uint32_t {
     POINTS,
     LINES,
     LINE_LOOP,

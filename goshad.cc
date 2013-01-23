@@ -34,7 +34,7 @@ void CShader::Sources::LoadFromPak (const CDatapak& pak)
     GLuint sz;
     for (GLuint i = 0; i < shader_NStages; ++i) {
 	if (!_stage[i]) continue;
-	_stage[i] = (const char*) pak.File(_stage[i], sz);
+	_stage[i] = (const char*) pak.File (_stage[i], sz);
 	_stageSize[i] = sz;
     }
 }

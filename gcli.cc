@@ -23,9 +23,8 @@ CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
 ,_curBuffer (CGObject::NoObject)
 ,_curTexture (CGObject::NoObject)
 ,_curFont (CGObject::NoObject)
-,_w(0)
-,_h(0)
 {
+    memset (&_winfo, 0, sizeof(_winfo));
     if (!s_RootClient)
 	s_RootClient = this;
 }
@@ -43,11 +42,12 @@ void CGLClient::Init (void)
     SetDefaultShader();
 }
 
-void CGLClient::Resize (uint16_t w, uint16_t h) noexcept
+void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 {
-    if (_w == w && _h == h)
+    _winfo.x = x; _winfo.y = y;
+    if (_winfo.w == w && _winfo.h == h)
 	return;
-    _w = w; _h = h;
+    _winfo.w = w; _winfo.h = h;
 
     glViewport (0, 0, w, h);
     memset (_proj, 0, sizeof(_proj));
@@ -58,7 +58,7 @@ void CGLClient::Resize (uint16_t w, uint16_t h) noexcept
     _proj[3][1] = float(h-1)/h;
     UniformMatrix ("Transform", Proj());
 
-    PRGLR::Resize (w, h);
+    PRGLR::Restate (_winfo);
 }
 
 void CGLClient::MapId (uint32_t cid, GLuint sid) noexcept
@@ -253,6 +253,13 @@ void CGLClient::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z,
     glUniform4f (slot, x, y, z, w);
 }
 
+void CGLClient::Uniform4iv (const char* varname, const GLint* v) const noexcept
+{
+    GLint slot = glGetUniformLocation (Shader(), varname);
+    if (slot < 0) return;
+    glUniform4iv (slot, 4, v);
+}
+
 void CGLClient::UniformMatrix (const char* varname, const GLfloat* mat) const noexcept
 {
     GLint slot = glGetUniformLocation (Shader(), varname);
@@ -312,7 +319,7 @@ void CGLClient::Clear (GLuint c) noexcept
     glClear (GL_COLOR_BUFFER_BIT);
 }
 
-void CGLClient::Primitive (GLenum mode, GLuint first, GLuint count) noexcept
+void CGLClient::Shape (GLenum mode, GLuint first, GLuint count) noexcept
 {
     if (_curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader())
 	SetDefaultShader();
