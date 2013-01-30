@@ -14,6 +14,10 @@ public:
 	is_reading = Stm::is_reading,
 	is_writing = Stm::is_writing
     };
+    template <typename T, unsigned N> struct ArrayArg {
+	inline ArrayArg (const T* v = nullptr):_v(v) {}
+	const T* _v;
+    };
 private:
     enum class ECmd : uint16_t {
 	DefaultShader,
@@ -45,8 +49,8 @@ public:
     inline void		Parameter (uint8_t slot, uint32_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }
     inline void		Uniform (const char* name, float x, float y, float z, float w)		{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
     inline void		Uniformi (const char* name, int x, int y, int z, int w)			{ Cmd (ECmd::Uniformi, name, x,y,z,w); }
-    inline void		Uniformv (const char* name, const float* v)				{ Cmd (ECmd::Uniformf, name, v[0],v[1],v[2],v[3]); }
-    inline void		Uniformv (const char* name, const int* v)				{ Cmd (ECmd::Uniformf, name, v[0],v[1],v[2],v[3]); }
+    inline void		Uniformv (const char* name, const float* v);
+    inline void		Uniformv (const char* name, const int* v);
     inline void		Texture (const char* name, uint32_t id, uint32_t slot = 0)		{ Cmd (ECmd::Uniformt, name, id, slot); }
     inline void		Matrix (const char* name, const float* m);
 			// Forwarding drawing commands
@@ -85,15 +89,22 @@ inline void PDraw<Stm>::Cmd (ECmd cmd, const Arg&... args)
     variadic_arg_write (_os, Header(cmd,ss.size()), args...);
 }
 
+template <typename Stm, typename T, unsigned N>
+inline Stm& operator<< (Stm& stm, const typename PDraw<Stm>::template ArrayArg<T,N>& aa)
+    { stm.write (aa._v, N*sizeof(T)); return (stm); }
+template <typename T, unsigned N>
+inline bstri& operator>> (bstri& stm, typename PDraw<bstri>::ArrayArg<T,N>& aa)
+    { aa._v = stm.iptr<T>(); stm.skip (N*sizeof(T)); return (stm); }
+
+template <typename Stm>
+inline void PDraw<Stm>::Uniformv (const char* name, const float* v)
+    { Cmd (ECmd::Uniformf, name, ArrayArg<float,4>(v)); }
+template <typename Stm>
+inline void PDraw<Stm>::Uniformv (const char* name, const int* v)
+    { Cmd (ECmd::Uniformf, name, ArrayArg<int,4>(v)); }
 template <typename Stm>
 inline void PDraw<Stm>::Matrix (const char* name, const float* m)
-{
-    bstrs ss;
-    ss << name;
-    ss.write (m, 16*sizeof(float));
-    _os << Header(ECmd::Uniformm,ss.size()) << name;
-    _os.write (m, 16*sizeof(float));
-}
+    { Cmd (ECmd::Uniformm, name, ArrayArg<float,16>(m)); }
 
 //}}}-------------------------------------------------------------------
 //{{{ Parser
@@ -116,10 +127,10 @@ template <typename Stm>
 template <typename F>
 /*static*/ inline void PDraw<Stm>::Parse (F& f, Stm& is)
 {
-    while (is.remaining() >= 8) {
+    while (is.remaining() >= sizeof(ECmd)) {
 	ECmd cmd; is >> cmd;
 	switch (cmd) {
-	    case ECmd::DefaultShader: f.SetDefaultShader(); break;
+	    case ECmd::DefaultShader: Args(is); f.SetDefaultShader(); break;
 	    case ECmd::Color: { uint32_t c; Args(is,c); f.Color(c); } break;
 	    case ECmd::Clear: { uint32_t c; Args(is,c); f.Clear(c); } break;
 	    case ECmd::Shader: { uint32_t id; Args(is,id); f.Shader(f.LookupId(id)); } break;
@@ -131,33 +142,10 @@ template <typename F>
 		Args(is,buf,type,slot,size,offset,stride);
 		f.Parameter (slot, f.LookupId(buf), type, size, offset, stride);
 	    } break;
-	    case ECmd::Uniformf: {
-		const char* name;
-		is >> name;
-		const float* uv = (const float*) is.ipos();
-		is.skip (4*sizeof(float));
-		f.Uniform4fv (name, uv);
-	    } break;
-	    case ECmd::Uniformi: {
-		const char* name;
-		is >> name;
-		const int* uv = (const int*) is.ipos();
-		is.skip (4*sizeof(int));
-		f.Uniform4iv (name, uv);
-	    } break;
-	    case ECmd::Uniformm: {
-		const char* name;
-		is >> name;
-		const float* uv = (const float*) is.ipos();
-		is.skip (16*sizeof(float));
-		f.UniformMatrix (name, uv);
-	    } break;
-	    case ECmd::Uniformt: {
-		const char* name;
-		uint32_t id, slot;
-		is >> name >> id >> slot;
-		f.UniformTexture (name, id, slot);
-	    } break;
+	    case ECmd::Uniformf: { const char* name = nullptr; ArrayArg<float,4> uv; Args(is,name,uv); f.Uniform4fv (name, uv._v); } break;
+	    case ECmd::Uniformi: { const char* name = nullptr; ArrayArg<int,4> uv; Args(is,name,uv); f.Uniform4iv (name, uv._v); } break;
+	    case ECmd::Uniformm: { const char* name = nullptr; ArrayArg<float,16> uv; Args(is,name,uv); f.UniformMatrix (name, uv._v); } break;
+	    case ECmd::Uniformt: { const char* name = nullptr; uint32_t id,slot; Args (is,name,id,slot); f.UniformTexture (name, id, slot); } break;
 	    default: Error();
 	}
     }

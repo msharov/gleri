@@ -97,6 +97,13 @@ void CApp::WatchFd (int fd)
     _watch.push_back ((pollfd){fd,POLLIN,0});
 }
 
+void CApp::StopWatchingFd (int fd)
+{
+    for (auto i = _watch.begin(); i < _watch.end(); ++i)
+	if (i->fd == fd)
+	    --(i = _watch.erase(i));
+}
+
 int CApp::Run (void)
 {
     while (!_quitting) {
@@ -108,12 +115,14 @@ int CApp::Run (void)
 	int prv = poll (&_watch[0], _watch.size(), -1);
 	if (prv < 0 && errno != EINTR)
 	    CFile::Error ("poll");
-	for (auto i = _watch.begin(); i < _watch.end(); ++i) {
-	    if (i->revents & (POLLHUP| POLLNVAL)) {
-		OnFdError (i->fd);
-		--(i = _watch.erase(i));
-	    } else if (i->revents & POLLIN)
-		OnFd (i->fd);
+	for (unsigned i = 0; i < _watch.size(); ++i) {
+	    int efd = _watch[i].fd;
+	    uint16_t rev = _watch[i].revents;
+	    if (rev & (POLLHUP| POLLNVAL)) {
+		_watch.erase (_watch.begin()+i--);
+		OnFdError (efd);
+	    } else if (rev & POLLIN)
+		OnFd (efd);
 	}
     }
     return (EXIT_SUCCESS);

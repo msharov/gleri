@@ -8,45 +8,112 @@
 
 //----------------------------------------------------------------------
 
+/*static*/ char* CGleris::_xlib_error = nullptr;
+/*static*/ char CGleris::s_SocketPath [c_SocketPathLen];
+
+//----------------------------------------------------------------------
+
 CGleris::CGleris (void) noexcept
 : CApp()
 ,_fbconfig (nullptr)
 ,_curCli (nullptr)
 ,_cli()
-,_icbuf (0)
+,_iconn()
 ,_dpy (nullptr)
 ,_visinfo (nullptr)
 ,_colormap (None)
 ,_screen (None)
 ,_rootWindow (None)
+,_nextiid (0)
+,_localSocket()
+,_tcpSocket()
 ,_glversion (0)
 ,_options (0)
 {
     XSetErrorHandler (XlibErrorHandler);
     XSetIOErrorHandler (XlibIOErrorHandler);
+    snprintf (ArrayBlock(s_SocketPath), GLERIS_SOCKET, getenv("HOME"));
 }
 
 CGleris::~CGleris (void) noexcept
 {
     for (auto& c : _cli)
 	DestroyClient (c);
-    XSync (_dpy, True);
-    XCloseDisplay (_dpy);
+    _cli.clear();
+    if (_dpy) {
+	XSync (_dpy, True);
+	XCloseDisplay (_dpy);
+    }
+    if (_localSocket.IsOpen()) {
+	_localSocket.ForceClose();
+	unlink (s_SocketPath);
+    }
 }
 
-inline void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
+void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
 {
-    if (argc > 1 && !strcmp(argv[1],"-s")) {
-	SetOption (opt_SingleClient);
-	_icbuf.SetFd (STDIN_FILENO, true);
-	WatchFd (STDIN_FILENO);
+    for (;;) {
+	switch (getopt(argc, argv, "?st")) {
+	    case -1:	return;
+	    case 's':	SetOption (opt_SingleClient); break;
+	    case 't':	SetOption (opt_TCPSocket); break;
+	    default:
+		printf (
+		    GLERIS_NAME " " GLERI_VERSTRING "\n"
+		    "An OpenGL interface service\n\n"
+		    "Usage:\t" GLERIS_NAME " [-st]\n\n"
+		    "\t-s\tsingle client mode, command socket on stdin\n"
+		    "\t-t\tcreate tcp socket on localhost:" PP_STRINGIFY_I(GLERIS_PORT) "+display\n");
+		exit (EXIT_SUCCESS);
+	}
     }
+}
+
+void CGleris::LaunchLocalSocket (void)
+{
+    _localSocket.Bind (s_SocketPath, GLERIS_LISTEN_QUEUE_SIZE);
+    WatchFd (_localSocket.Fd());
+}
+
+void CGleris::LaunchTCPSocket (void)
+{
+    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT, GLERIS_LISTEN_QUEUE_SIZE);
+    WatchFd (_tcpSocket.Fd());
+}
+
+void CGleris::AddConnection (int fd, bool canPassFd) noexcept
+{
+    _iconn.emplace_back (GenIId());
+    _iconn.back().SetFd (fd, canPassFd);
+    WatchFd (fd);
+}
+
+void CGleris::RemoveConnection (int fd)
+{
+    for (auto i = _iconn.begin(); i < _iconn.end(); ++i) {
+	if (i->Fd() != fd) continue;
+	--(i = _iconn.erase(i));
+	for (auto j = _cli.begin(); j < _cli.end(); ++j) {
+	    if ((*j)->Matches(fd)) {
+		DestroyClient (*j);
+		--(j = _cli.erase(j));
+	    }
+	}
+    }
+    if (_iconn.empty() && Option (opt_SingleClient))
+	Quit();
+}
+
+CCmdBuf* CGleris::LookupConnection (int fd) noexcept
+{
+    for (auto i = _iconn.begin(); i < _iconn.end(); ++i)
+	if (i->Fd() == fd)
+	    return (&*i);
+    return (nullptr);
 }
 
 //----------------------------------------------------------------------
 // X and OpenGL interface
-
-/*static*/ char* CGleris::_xlib_error = nullptr;
 
 /*static*/ int CGleris::XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept
 {
@@ -63,14 +130,12 @@ inline void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
     exit (EXIT_FAILURE);
 }
 
-void CGleris::CheckForXlibErrors (void) const
+/*static*/ void CGleris::Error (const char* m)
 {
-    XSync (_dpy, False);
-    if (_xlib_error)
-	throw XError (true, _xlib_error);
+    throw XError (m);
 }
 
-Window CGleris::CreateWindow (const SWinInfo& winfo) const
+Window CGleris::CreateWindow (const SWinInfo& winfo)
 {
     XSetWindowAttributes swa;
     swa.colormap = _colormap;
@@ -82,7 +147,9 @@ Window CGleris::CreateWindow (const SWinInfo& winfo) const
 				_visinfo->depth, InputOutput, _visinfo->visual,
 				CWBackPixmap| CWBorderPixel| CWColormap| CWEventMask, &swa);
     if (!win)
-	throw XError ("failed to create window");
+	Error ("failed to create window");
+    XSync (_dpy, False);
+    OnXEvent();
     return (win);
 }
 
@@ -103,12 +170,12 @@ void CGleris::Init (argc_t argc, argv_t argv)
     //
     _dpy = XOpenDisplay (nullptr);
     if (!_dpy)
-	throw XError ("could not open X display");
+	Error ("could not open X display");
     WatchFd (ConnectionNumber(_dpy));
 
     int glx_major = 0, glx_minor = 0;
     if (!glXQueryVersion (_dpy, &glx_major, &glx_minor) || (glx_major<<4|glx_minor) < 0x14)
-	throw XError ("X server does not support GLX 1.4");
+	Error ("X server does not support GLX 1.4");
 
     static const int fbconfattr[] = {
 	GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT,
@@ -126,13 +193,13 @@ void CGleris::Init (argc_t argc, argv_t argv)
     int fbcount;
     GLXFBConfig* fbcs = glXChooseFBConfig (_dpy, DefaultScreen(_dpy), fbconfattr, &fbcount);
     if (!fbcs || !fbcount)
-	throw XError ("no suitable visuals available");
+	Error ("no suitable visuals available");
     _fbconfig = fbcs[0];
     XFree (fbcs);
 
     _visinfo = glXGetVisualFromFBConfig (_dpy, _fbconfig);
     if (!_visinfo)
-	throw XError ("no suitable visuals available");
+	Error ("no suitable visuals available");
     _screen = _visinfo->screen;
     _rootWindow = RootWindow(_dpy, _screen);
     //
@@ -143,10 +210,9 @@ void CGleris::Init (argc_t argc, argv_t argv)
     // Create the root gl context (share root)
     static const SWinInfo rootinfo = { 0, 0, 1, 1, 0x33, 0x43, SWinInfo::wt_Normal, SWinInfo::wf_Hidden };
     Window rctxw = CreateWindow (rootinfo);	// Temporary window to create the root gl context
-    CheckForXlibErrors();
     GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig, GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
-	throw XError ("failed to create an OpenGL context");
+	Error ("failed to create an OpenGL context");
     glXMakeCurrent (_dpy, rctxw, ctx);
 
     // The root context is needed to get the highest supported opengl version
@@ -166,7 +232,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
     glXDestroyContext (_dpy, ctx);
     XDestroyWindow (_dpy, rctxw);
 
-    CreateClient (-1, 0, rootinfo);
+    CreateClient (0, rootinfo);
 
     // Load shared resources into the root context
     GLuint pak = _curCli->LoadDatapak (ArrayBlock (File_resource));
@@ -175,6 +241,15 @@ void CGleris::Init (argc_t argc, argv_t argv)
     _curCli->LoadShader (pak, "sh/image_v.glsl", "sh/image_g.glsl", "sh/image_f.glsl");
     _curCli->LoadShader (pak, "sh/font_v.glsl", "sh/image_g.glsl", "sh/font_f.glsl");
     _curCli->FreeDatapak (pak);
+
+    // Start listening on server sockets
+    if (Option (opt_SingleClient))
+	AddConnection (STDIN_FILENO, true);
+    else {
+	LaunchLocalSocket();
+	if (Option (opt_TCPSocket))
+	    LaunchTCPSocket();
+    }
 }
 
 void CGleris::OnXEvent (void)
@@ -192,41 +267,40 @@ void CGleris::OnXEvent (void)
 	    icli->Resize (xev.xconfigure.x, xev.xconfigure.y, xev.xconfigure.width, xev.xconfigure.height);
 	} else if (xev.type == KeyPress)
 	    icli->Event (xev.xkey.keycode);
-	icli->WriteCmds();
     }
+    if (_xlib_error)
+	throw XError (true, _xlib_error);
 }
 
 void CGleris::OnFd (int fd)
 {
     CApp::OnFd(fd);
-    if (fd == ConnectionNumber(_dpy))
-	OnXEvent();
-    else if (fd == _icbuf.Fd()) {
-	_icbuf.ReadCmds();
-	PRGL::Parse (*this, _icbuf);
-	for (auto& c : _cli)
-	    c->WriteCmds();
+    CCmdBuf* pic;
+    if (fd == _localSocket.Fd() || fd == _tcpSocket.Fd()) {
+	int cfd = accept4 (fd, nullptr, nullptr, SOCK_NONBLOCK| SOCK_CLOEXEC);
+	if (cfd < 0)
+	    Error ("accept");
+	AddConnection (cfd, fd == _localSocket.Fd());
+    } else if ((pic = LookupConnection(fd))) {
+	pic->ReadCmds();
+	PRGL::Parse (*this, *pic);
     }
+    OnXEvent();
+    for (auto& c : _cli)
+	try { c->WriteCmds(); } catch (...) {}	// fd errors will be caught by poll
 }
 
 void CGleris::OnFdError (int fd)
 {
     CApp::OnFdError(fd);
     if (fd == ConnectionNumber(_dpy))
-	throw XError ("X server connection terminated");
-    else if (fd == STDIN_FILENO) {
-	for (auto i = _cli.begin(); i < _cli.end(); ++i) {
-	    if ((*i)->Matches(fd)) {
-		DestroyClient (*i);
-		--(i = _cli.erase(i));
-	    }
-	}
-	if (_cli.size() <= 1 && Option (opt_SingleClient))
-	    Quit();
-    }
+	Error ("X server connection terminated");
+    else
+	RemoveConnection (fd);
+    OnXEvent();
 }
 
-void CGleris::CreateClient (int fd, iid_t iid, SWinInfo winfo)
+void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn)
 {
     // Parse requested GL version, high byte max version, low byte min version
     uint8_t reqver = min(max(winfo.mingl,winfo.maxgl), _glversion);
@@ -237,7 +311,6 @@ void CGleris::CreateClient (int fd, iid_t iid, SWinInfo winfo)
 
     // Create the window
     Window wid = CreateWindow (winfo);
-    CheckForXlibErrors();
 
     // Create the OpenGL context
     int context_attribs[] = {
@@ -253,7 +326,7 @@ void CGleris::CreateClient (int fd, iid_t iid, SWinInfo winfo)
     if (!glXIsDirect (_dpy, ctx)) {
 	glXDestroyContext (_dpy, ctx);
 	XDestroyWindow (_dpy, wid);
-	throw XError ("direct rendering is not enabled");
+	Error ("direct rendering is not enabled");
     }
 
     // Create client record
@@ -263,12 +336,10 @@ void CGleris::CreateClient (int fd, iid_t iid, SWinInfo winfo)
     if (!(winfo.flags & SWinInfo::wf_Hidden))
 	XMapWindow (_dpy, wid);
     CGLClient& rcli = *_cli.back();
-    rcli.SetFd (fd, _icbuf.CanPassFd());
+    if (piconn)
+	rcli.SetFd (piconn->Fd(), piconn->CanPassFd());
     ActivateClient (rcli);
     rcli.Init();
-
-    // Process events generated by above
-    OnXEvent();
 }
 
 void CGleris::DestroyClient (CGLClient*& pc) noexcept
@@ -322,7 +393,7 @@ void CGleris::ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, i
 	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
 	pcli->ForwardError (buf);
 	pcli->WriteCmds();
-    } catch (...) {}
+    } catch (...) {}	// fd errors will be caught by poll
 }
 
 GLERI_APP (CGleris)

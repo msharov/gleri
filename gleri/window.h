@@ -38,9 +38,11 @@ private:
 
 #define ONDRAWIMPL(W)				\
     void W::Draw (void) {			\
-	PDraw<bstrs> drws; OnDraw (drws);	\
+	const W& w = *this;			\
+	PDraw<bstrs> drws;			\
+	w.OnDraw (drws);			\
 	auto drww = PRGL::Draw (drws.size());	\
-	OnDraw (drww);				\
+	w.OnDraw (drww);			\
     }						\
     template <typename Drw>			\
     inline void W

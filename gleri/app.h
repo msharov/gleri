@@ -37,6 +37,7 @@ protected:
     static inline bool	SigInSet (int sig, uint32_t sset)	{ return ((1u<<sig)&sset); }
     static int		AckSignal (void) noexcept;
     void		WatchFd (int fd);
+    void		StopWatchingFd (int fd);
     inline virtual void	OnFd (int)		{ }
     inline virtual void	OnFdError (int)		{ }
 private:
@@ -68,7 +69,7 @@ inline CApp::CApp (void)
 //{{{ main
 
 template <typename App>
-int Tmain (typename App::argc_t argc, typename App::argv_t argv)
+inline int Tmain (typename App::argc_t argc, typename App::argv_t argv)
 {
     int ec = EXIT_FAILURE;
     try {

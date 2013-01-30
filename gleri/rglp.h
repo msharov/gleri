@@ -152,8 +152,8 @@ template <typename F>
 	}
 	auto clir = f.ClientRecord(cmdbuf.Fd(), iid);
 	const char* cmdname = "protocol";
+	bstri cmdis (is.ipos()+hsz, sz);	// Command data stream
 	try {
-	    bstri cmdis (is.ipos()+hsz, sz);	// Command data stream
 	    cmdname = (const char*) is.ipos();
 	    is.skip (hsz+sz);			// Skip to next command
 
@@ -166,11 +166,12 @@ template <typename F>
 		    SWinInfo winfo;
 		    if (cmdis.remaining() < sizeof(SWinInfo)) Error();
 		    cmdis >> winfo;
-		    f.CreateClient (cmdbuf.Fd(), iid, winfo);
+		    f.CreateClient (iid, winfo, &cmdbuf);
 		    } break;
 		case ECmd::Draw: {
 		    size_type dlsz; cmdis >> dlsz;
 		    if (cmdis.remaining() < dlsz) Error();
+		    cmdis = bstri(cmdis.ipos(), dlsz);
 		    f.ClientDraw (*clir,cmdis);
 		    } break;
 		case ECmd::LoadResource: {
@@ -218,6 +219,13 @@ template <typename F>
 	    }
 	} catch (XError& e) {
 	    f.ForwardError (clir, cmdname, e, cmdbuf.Fd(), iid);
+	    #ifndef NDEBUG
+	        hsz = 8+Align(hsz,8);
+		printf ("Failing command (hsz=0x%x,sz=0x%x):\n", hsz,sz); fflush(stdout);
+		hexdump (ihdr, hsz+sz);
+		printf ("Error at offset 0x%lx:\n", cmdis.ipos()-(is.ipos()-sz)); fflush(stdout);
+		hexdump (cmdis.ipos(), cmdis.remaining());
+	    #endif
 	}
     }
     cmdbuf.EndRead(is);

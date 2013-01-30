@@ -9,7 +9,6 @@
 #include "goshad.h"
 #include "gotex.h"
 #include "gofont.h"
-#include "gopak.h"
 
 class CGLClient : public PRGLR {
 private:

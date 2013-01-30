@@ -4,7 +4,6 @@
 // This file is free software, distributed under the MIT License.
 
 #include "goshad.h"
-#include "gopak.h"
 
 //----------------------------------------------------------------------
 

@@ -75,7 +75,7 @@ enum class EResource : uint16_t {
 class XError {
 public:
     template <typename... T>
-    inline explicit	XError (const char* fmt, T... args) noexcept __attribute__((__format__(__printf__,1,2)));
+    inline explicit	XError (const char* fmt, T... args) noexcept __attribute__((__format__(__printf__,2,0)));
     inline		XError (bool, char*& msg)	:_msg(msg) { msg = nullptr; }
     inline		~XError (void) noexcept		{ free (_msg); }
     inline const char*	what (void) const noexcept	{ return (_msg); }
@@ -100,8 +100,6 @@ inline void erase_if (Ctr& v, Condition f)
 	    --(i = v.erase(i));
 }
 
-namespace {
-
 /// Creates uint32_t color value from components
 inline constexpr uint32_t RGBA (uint8_t r, uint8_t g, uint8_t b, uint8_t a)
     { return ((a<<24)|(b<<16)|(g<<8)|r); }
@@ -123,5 +121,3 @@ inline constexpr uint32_t RGB (uint8_t r, uint8_t g, uint8_t b)
 /// Creates uint32_t color value from components
 inline static uint32_t RGB (uint32_t c)
     { return (ARGB((UINT8_MAX<<24)|c)); }
-
-} // namespace

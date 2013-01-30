@@ -51,7 +51,7 @@ protected:
 
 class CCmdBuf : public CCmd {
 public:
-    inline explicit		CCmdBuf (iid_t iid)	:_buf(nullptr),_sz(0),_used(0),_iid(iid),_outf(),_recvf(),_recvSize(0),_bFdPass(false) {}
+    inline explicit		CCmdBuf (iid_t iid=0)	:_buf(nullptr),_sz(0),_used(0),_iid(iid),_outf(),_recvf(),_recvSize(0),_bFdPass(false) {}
     inline			~CCmdBuf (void)		{ if(_buf) free(_buf); _outf.Detach(); }
     inline iid_t		IId (void) const	{ return (_iid); }
     inline int			Fd (void) const		{ return (_outf.Fd()); }

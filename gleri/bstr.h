@@ -17,7 +17,7 @@ public:
     enum { is_sizing = false, is_reading = false, is_writing = false };
 protected:
     inline constexpr size_type	align_size (size_type sz, size_type g) const	{ return ((g-1)-((sz+(g-1))%g)); }
-    inline constexpr size_type	align_size (const_pointer p, size_type g) const	{ return (align_size(uintptr_t(p),g)); }
+    inline constexpr size_type	align_size (const_pointer p, size_type g) const	{ return (align_size(p-(pointer)nullptr,g)); }
 };
 
 //----------------------------------------------------------------------
@@ -26,15 +26,15 @@ class bstrs : public bstrb {
 public:
     enum { is_sizing = true };
 private:
-    template <typename T>
-    inline T*		iptr (void)		{ return (nullptr); }
     inline size_type	wrstrlen (const char* s) const	{ return (s?strlen(s):0); }
 public:
     inline		bstrs (void)		:_sz(0) { }
+    template <typename T>
+    inline T*		iptr (void)		{ return (nullptr); }
     inline size_type	remaining (void) const	{ return (UINT_MAX); }
     inline size_type	size (void) const	{ return (_sz); }
     inline void		skip (size_type n)	{ _sz += n; }
-    inline void		align (size_type g)	{ skip (align_size(_sz,g)); }
+    inline void		align (size_type g)	{ skip (align_size(size(),g)); }
     template <typename T>
     inline bstrs&	operator<< (const T& v)	{ skip(sizeof(v)); return (*this); }
     inline bstrs&	operator<< (const char* s);
@@ -49,20 +49,20 @@ private:
 class bstro : public bstrb {
 public:
     enum { is_writing = true };
-private:
-    template <typename T>
-    inline T*		iptr (void)		{ return (reinterpret_cast<T*>(_p)); }
 public:
     inline		bstro (pointer p, size_type sz)	:_p(p),_pend(_p+sz) {}
-    inline pointer	ipos (void) const	{ return (_p); }
+    inline pointer	ipos (void)		{ return (_p); }
+   inline const_pointer	ipos (void) const	{ return (_p); }
    inline const_pointer	end (void) const	{ return (_pend); }
-    inline size_type	remaining (void) const	{ return (_pend-_p); }
+    template <typename T>
+    inline T*		iptr (void)		{ return (reinterpret_cast<T*>(ipos())); }
+    inline size_type	remaining (void) const	{ return (end()-ipos()); }
     inline size_type	size (void) const	{ return (remaining()); }
     inline void		skip (size_type n)	{ assert(remaining()>=n && "stream overflow");  _p += n; }
-    inline void		align (size_type g)	{ const size_type nz = align_size(_p,g); memset(_p,0,nz); skip(nz); }
+    inline void		align (size_type g)	{ const size_type nz = align_size(ipos(),g); memset(ipos(),0,nz); skip(nz); }
     template <typename T>
     inline bstro&	operator<< (const T& v)	{ *iptr<T>() = v; skip(sizeof(v)); return (*this); }
-    inline void		write (const void* v, size_type sz)	{ assert(_p+sz<=_pend && "write overflow"); memcpy (_p,v,sz); skip(sz); }
+    inline void		write (const void* v, size_type sz)	{ pointer o = _p; skip(sz); memcpy (o,v,sz); }
     inline void		write_strz (const char* v)		{ write (v, strlen(v)+1); }
     inline bstro&	operator<< (const char* s);
 private:
@@ -75,22 +75,21 @@ private:
 class bstri : public bstrb {
 public:
     enum { is_reading = true };
-private:
-    template <typename T>
-    inline const T*	iptr (void)		{ return (reinterpret_cast<const T*>(_p)); }
 public:
     inline		bstri (const_pointer p, size_type sz)	:_p(p),_pend(_p+sz) {}
    inline const_pointer	ipos (void) const	{ return (_p); }
    inline const_pointer	end (void) const	{ return (_pend); }
-    inline size_type	remaining (void) const	{ return (_pend-_p); }
+    template <typename T>
+    inline const T*	iptr (void) const	{ return (reinterpret_cast<const T*>(ipos())); }
+    inline size_type	remaining (void) const	{ return (end()-ipos()); }
     inline size_type	size (void) const	{ return (remaining()); }
-    inline void		iseek (const_pointer i)	{ assert(_p <= end() && "stream underflow"); _p = i; }
-    inline void		skip (size_type n)	{ assert(remaining()>=n && "stream underflow");  _p += n; }
-    inline void		align (size_type g)	{ skip (align_size(_p,g)); }
+    inline void		iseek (const_pointer i)	{ assert(i <= end() && "stream underflow"); _p = i; }
+    inline void		skip (size_type n)	{ iseek (ipos()+n); }
+    inline void		align (size_type g)	{ skip (align_size(ipos(),g)); }
     template <typename T>
     inline bstri&	operator>> (T& v)		{ v = *iptr<T>(); skip(sizeof(v)); return (*this); }
-    inline void		read (void* v, size_type sz)	{ assert(remaining()>=sz && "read overflow"); memcpy (v,_p,sz); skip(sz); }
-    inline const char*	read_strz (void)		{ const char* v = (const char*)_p; skip(strlen(v)+1); return (_p <= _pend ? v : nullptr); }
+    inline void		read (void* v, size_type sz)	{ assert(remaining()>=sz && "read overflow"); memcpy (v,ipos(),sz); skip(sz); }
+    inline const char*	read_strz (void)		{ const char* v = iptr<char>(); skip(strlen(v)+1); return (ipos() <= end() ? v : nullptr); }
     inline bstri&	operator>> (const char*& s);
 private:
     const_pointer	_p;
@@ -120,7 +119,7 @@ inline bstri& bstri::operator>> (const char*& s)
     size_type sl;
     operator>> (sl);
     sl += align_size (++sl,4);
-    s = remaining() < sl ? nullptr : (const char*)ipos();
+    s = remaining() < sl ? nullptr : iptr<char>();
     skip (sl);
     return (*this);
 }

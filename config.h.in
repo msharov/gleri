@@ -8,6 +8,8 @@
 
 #include "gleri/config.h"
 
+#define GLERIS_LISTEN_QUEUE_SIZE	32
+
 // Define to 1 if you have OpenGL
 #undef HAVE_GL_GL_H
 #if !HAVE_GL_GL_H

@@ -145,8 +145,11 @@ bstri CCmdBuf::ReceiveFileOpen (bstri& is)
     } else {
 	SSendFileHeader header;
 	is.read (&header, sizeof(header));
-	if (header.totalSize < is.remaining())
-	    return (bstri (is.ipos(), header.totalSize));
+	if (header.totalSize <= is.remaining()) {
+	    bstri fis (is.ipos(), header.totalSize);
+	    is.skip (header.totalSize);
+	    return (fis);
+	}
 	if (!_recvf.IsOpen()) {
 	    _recvf.Open();
 	    _recvSize = header.totalSize;

@@ -5,6 +5,9 @@ test/SRCS	:= $(wildcard test/*.cc)
 test/OBJS	:= $(addprefix $O,$(test/SRCS:.cc=.o))
 test/DEPS	:= $(test/OBJS:.o=.d)
 test/LIBS	:= ${LIBA}
+ifdef DEBUG
+test/LIBS	+= -lz
+endif
 
 ################ Compilation ###########################################
 

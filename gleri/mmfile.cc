@@ -6,8 +6,6 @@
 #include "mmfile.h"
 #include "gldefs.h"
 #include <sys/stat.h>
-#include <sys/poll.h>
-#include <sys/socket.h>
 #if HAVE_SYS_SENDFILE_H
     #include <sys/sendfile.h>
 #endif
@@ -15,11 +13,30 @@
 
 //----------------------------------------------------------------------
 
-void CFile::Open (const char* filename, int flags, mode_t mode)
+void CFile::BindStream (const sockaddr* sa, socklen_t sasz, unsigned backlog)
 {
-    _fd = open (filename, flags, mode);
-    if (_fd < 0)
-	Error (filename);
+    CreateSocket (sa->sa_family);
+    int doreuse = 1;
+    if (0 > setsockopt (_fd, SOL_SOCKET, SO_REUSEADDR, &doreuse, sizeof(doreuse)))
+	Error ("setsockopt");
+    if (0 > bind (_fd, sa, sasz))
+	Error ("bind");
+    if (0 > listen (_fd, backlog))
+	Error ("listen");
+}
+
+bool CFile::ConnectStream (const sockaddr* sa, socklen_t sasz)
+{
+    CreateSocket (sa->sa_family);
+    int crv;
+    while (0 > (crv = connect (_fd, sa, sasz)) && errno == EINPROGRESS)
+	WaitForWrite();
+    if (crv >= 0)
+	return (true);
+    ForceClose();
+    if (errno != ECONNREFUSED && errno != ENOENT)
+	Error ("connect");
+    return (false);
 }
 
 void CFile::Close (void)
@@ -27,13 +44,17 @@ void CFile::Close (void)
     int r = close (_fd);
     if (r < 0)
 	Error ("close");
-    _fd = -1;
+    Detach();
 }
 
 size_t CFile::Read (void* d, size_t dsz)
 {
     ssize_t br;
-    while (0 > (br = read (_fd, d, dsz))) {
+    while (0 >= (br = read (_fd, d, dsz))) {
+	if (!br) {
+	    close (_fd);
+	    return (0);
+	}
 	if (errno == EAGAIN)
 	    return (0);
 	if (errno != EINTR)
@@ -49,8 +70,7 @@ void CFile::Write (const void* d, size_t dsz)
 	ssize_t bw = write (_fd, p, dsz);
 	if (bw <= 0) {
 	    if (errno == EAGAIN) {
-		pollfd pfd = { _fd, POLLOUT, 0 };
-		poll (&pfd, 1, -1);
+		WaitForWrite();
 		continue;
 	    } else if (errno == EINTR)
 		continue;
@@ -81,10 +101,8 @@ void CFile::CopyTo (CFile& outf, size_t n)
 {
     for (char buf [BUFSIZ]; n;) {
 	size_t br = Read (buf, min(n,sizeof(buf)));
-	if (!br) {
-	    pollfd pfd = { _fd, POLLIN, 0 };
-	    poll (&pfd, 1, -1);
-	}
+	if (!br)
+	    WaitForRead();
 	outf.Write (buf, br);
 	n -= br;
     }
@@ -158,6 +176,10 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
 
     ssize_t br;
     while (0 >= (br = recvmsg (_fd, &msg, 0))) {
+	if (!br) {
+	    close (_fd);
+	    return (0);
+	}
 	if (errno == EINTR)
 	    continue;
 	if (errno == EAGAIN)

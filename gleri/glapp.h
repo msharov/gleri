@@ -16,15 +16,17 @@ protected:
     virtual void		OnFd (int fd);
     virtual void		OnFdError (int fd);
     template <typename WC>
-    inline void			CreateWindow (void)	{ OpenWindow (new WC (44)); }
+    inline void			CreateWindow (void)	{ OpenWindow (new WC (GenWId())); }
 private:
-    int				LaunchServer (void) noexcept;
+    inline CWindow::wid_t	GenWId (void)		{ return (++_nextwid); }
+    void			ConnectToServer (void);
+    static int			LaunchServer (void);
     void			OpenWindow (CWindow* w);
 private:
     vector<CWindow*>		_wins;
     CCmdBuf			_srvbuf;
-    int				_srvsock;
-    pid_t			_srvpid;
+    CFile			_srvsock;
+    CWindow::wid_t		_nextwid;
 };
 
 //----------------------------------------------------------------------
@@ -33,7 +35,7 @@ inline CGLApp::CGLApp (void)
 : CApp()
 ,_wins()
 ,_srvbuf(0)
-,_srvsock(-1)
-,_srvpid(0)
+,_srvsock()
+,_nextwid(0)
 {
 }

@@ -17,6 +17,8 @@
 
 // Define to the name of the service executable
 #define @PKG_UNAME@S_NAME	"@PKG_NAME@s"
+#define @PKG_UNAME@S_SOCKET	"%s/.config/" @PKG_UNAME@S_NAME ".socket"
+#define @PKG_UNAME@S_PORT	6540
 
 // Global macros turning on library features
 #define __STDC_LIMIT_MACROS
@@ -66,5 +68,9 @@ template <typename T> constexpr inline T* ArrayEnd (T(&a)[0]) { return (a); }
 #define ArrayBlock(v)	&(v)[0], ArraySize(v)
 /// Expands into a begin,end expression for the given static vector; useful for algorithm arguments.
 #define ArrayRange(v)	&(v)[0], ArrayEnd(v)
+
+// Macros to expand macro values into a string
+#define PP_STRINGIFY(x)		#x
+#define PP_STRINGIFY_I(x)	PP_STRINGIFY(x)
 
 } // namespace

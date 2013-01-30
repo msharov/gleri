@@ -30,9 +30,8 @@ LIBS		:= @libGL@ @libX11@ @libpng@ @libz@
 ifdef DEBUG
     CXXFLAGS	+= -O0 -g
 else
-    CXXFLAGS	+= -Os -g0 -DNDEBUG=1 -fno-rtti -march=native \
-		   -fno-enforce-eh-specs -fno-threadsafe-statics \
-		   -ffunction-sections -fdata-sections
+    CXXFLAGS	+= -Os -g0 -DNDEBUG=1 -fno-rtti -ffunction-sections \
+		   -fdata-sections @INLINE_OPTS@
     LDFLAGS	+= -s -Wl,-gc-sections
 endif
 O		:= .o/
