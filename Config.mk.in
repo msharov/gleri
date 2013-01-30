@@ -14,11 +14,14 @@ INSTALL		:= @INSTALL@
 
 INSTALLEXE	:= ${INSTALL} -D -p -m 755 -s
 INSTALLDATA	:= ${INSTALL} -D -p -m 644
+INSTALLLIB	:= ${INSTALL} -D -p -m 644
 
 ################ Destination #########################################
 
 prefix		:= @prefix@
 BINDIR		:= @bindir@
+LIBDIR		:= @libdir@
+INCDIR		:= @includedir@
 
 ################ Compiler options ####################################
 
