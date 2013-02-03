@@ -51,17 +51,17 @@ protected:
 
 class CCmdBuf : public CCmd {
 public:
-    inline explicit		CCmdBuf (iid_t iid=0)	:_buf(nullptr),_sz(0),_used(0),_iid(iid),_outf(),_recvf(),_recvSize(0),_bFdPass(false) {}
-    inline			~CCmdBuf (void)		{ if(_buf) free(_buf); _outf.Detach(); }
-    inline iid_t		IId (void) const	{ return (_iid); }
-    inline int			Fd (void) const		{ return (_outf.Fd()); }
-    inline void			SetFd (int fd, bool fdPass = false)		{ _outf.Attach (fd); _bFdPass = fdPass; }
-    inline bool			CanPassFd (void) const	{ return (_bFdPass); }
-    inline size_type		size (void) const	{ return (_used); }
-    inline size_type		capacity (void) const	{ return (_sz); }
+    inline explicit		CCmdBuf (iid_t iid=0) noexcept	:_buf(nullptr),_sz(0),_used(0),_iid(iid),_outf(),_recvf(),_recvSize(0),_bFdPass(false) {}
+    inline			~CCmdBuf (void) noexcept	{ if(_buf) free(_buf); _outf.Detach(); }
+    inline iid_t		IId (void) const		{ return (_iid); }
+    inline int			Fd (void) const			{ return (_outf.Fd()); }
+    inline void			SetFd (int fd, bool fdPass = false)	{ _outf.Attach (fd); _bFdPass = fdPass; }
+    inline bool			CanPassFd (void) const		{ return (_bFdPass); }
+    inline size_type		size (void) const		{ return (_used); }
+    inline size_type		capacity (void) const		{ return (_sz); }
     void			ReadCmds (void);
     void			WriteCmds (void);
-    inline bstri		BeginRead (void) const	{ return (bstri(_buf,_used)); }
+    inline bstri		BeginRead (void) const		{ return (bstri(_buf,_used)); }
     inline void			EndRead (const bstri& is)	{ EndRead(is.ipos()); }
     void			SendFile (CFile& f);
     bstri			ReceiveFileOpen (bstri& is);

@@ -201,13 +201,13 @@ void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint 
 //----------------------------------------------------------------------
 // Shader interface
 
-GLuint CGLClient::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept
+GLuint CGLClient::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
     _shader.emplace_back (ContextId(), CShader::Sources(v,tc,te,g,f));
     return (_shader.back().Id());
 }
 
-GLuint CGLClient::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept
+GLuint CGLClient::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
     const CDatapak* ppak = Datapak(pak);
     if (!ppak) return (CGObject::NoObject);

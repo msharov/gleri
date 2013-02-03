@@ -64,8 +64,8 @@ public:
     void			BufferSubData (GLuint buf, const void* data, GLuint size, GLuint offset = 0, GLushort btype = GL_ARRAY_BUFFER);
     void			BufferData (GLuint buf, const void* data, GLuint size, GLushort mode = GL_STATIC_DRAW, GLushort btype = GL_ARRAY_BUFFER);
 				// Shader
-    GLuint			LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept;
-    GLuint			LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f) noexcept;
+    GLuint			LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f);
+    GLuint			LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f);
     inline GLuint		LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* f) noexcept	{ return (LoadShader(pak,v,tc,te,nullptr,f)); }
     inline GLuint		LoadShader (GLuint pak, const char* v, const char* g, const char* f) noexcept	{ return (LoadShader(pak,v,nullptr,nullptr,g,f)); }
     inline GLuint		LoadShader (GLuint pak, const char* v, const char* f) noexcept	{ return (LoadShader(pak,v,nullptr,nullptr,nullptr,f)); }

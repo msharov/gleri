@@ -15,7 +15,6 @@ public:
     typedef char* const*	argv_t;
 public:
     inline		CApp (void);
-    inline virtual	~CApp (void) noexcept	{ }
     static inline CApp&	Instance (void)		{ assert (gs_pApp); return (*gs_pApp); }
     static inline const char* Name (void)	{ return (gs_Name); }
     inline void		Init (argc_t, argv_t argv)	{ gs_Name = argv[0]; }
@@ -37,7 +36,7 @@ protected:
     static inline bool	SigInSet (int sig, uint32_t sset)	{ return ((1u<<sig)&sset); }
     static int		AckSignal (void) noexcept;
     void		WatchFd (int fd);
-    void		StopWatchingFd (int fd);
+    void		StopWatchingFd (int fd) noexcept;
     inline virtual void	OnFd (int)		{ }
     inline virtual void	OnFdError (int)		{ }
 private:

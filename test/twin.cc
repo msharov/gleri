@@ -78,11 +78,11 @@ void CTestWindow::OnResize (uint16_t w, uint16_t h)
     BufferSubData (_vbuf, _vdata1, sizeof(_vdata1), 3*sizeof(int16_t));
 }
 
-void CTestWindow::OnEvent (uint32_t key)
+void CTestWindow::OnKey (uint32_t key)
 {
-    CWindow::OnEvent (key);
-    if (key == 24 || key == 9) {
-	printf ("Event received. Quitting\n");
+    CWindow::OnKey (key);
+    if (key == 'q' || key == Key::Escape) {
+	printf ("Event received, quitting\n");
 	CApp::Instance().Quit();
     }
 }

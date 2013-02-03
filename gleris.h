@@ -12,7 +12,7 @@
 class CGleris : public CApp {
 			CGleris (void) noexcept;
 public:
-    static CGleris&	Instance (void) { static CGleris app; return (app); }
+    static CGleris&	Instance (void) noexcept { static CGleris app; return (app); }
     virtual		~CGleris (void) noexcept;
     void		Init (argc_t argc, argv_t argv);
 protected:
@@ -35,17 +35,19 @@ public:
     void		ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, int fd, iid_t iid) const noexcept;
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
-    inline void		LaunchLocalSocket (void);
-    inline void		LaunchTCPSocket (void);
     Window		CreateWindow (rcwininfo_t winfo);
-    inline void		AddConnection (int fd, bool canPassFd) noexcept;
-    void		RemoveConnection (int fd);
+    inline void		AddConnection (int fd, bool canPassFd = false);
+    void		RemoveConnection (int fd) noexcept;
     inline CCmdBuf*	LookupConnection (int fd) noexcept;
     inline void		ActivateClient (CGLClient& rcli) noexcept;
     void		DestroyClient (CGLClient*& pcli) noexcept;
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
     inline iid_t	GenIId (void)		{ return (++_nextiid); }
     void		OnXEvent (void);
+    static uint32_t	ModsFromXState (uint32_t state) noexcept;
+   static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
+   static inline CEvent	EventFromButton (const XButtonEvent& xev) noexcept;
+   static inline CEvent	EventFromMotion (const XMotionEvent& xev) noexcept;
     virtual void	OnFd (int fd);
     virtual void	OnFdError (int fd);
     static int		XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept;

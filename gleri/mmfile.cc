@@ -243,7 +243,7 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
 
 //----------------------------------------------------------------------
 
-CTmpfile::~CTmpfile (void)
+CTmpfile::~CTmpfile (void) noexcept
 {
     Close();
 }

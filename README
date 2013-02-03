@@ -54,8 +54,7 @@ only the local $HOME/.config/gleris.socket is created. If you want a
 TCP socket, run gleris -t, which will make it listen on localhost port
 6450+display. You can then forward that port with ssh to wherever.
 
-The library is libgleri.a, installed into your include directory. See
-the test/ program for an example of how to use it.
+The library is libgleri.a, See the test/ program for a usage example.
 
 The target platform is a POSIX compliant architecture, such as Linux or
 BSD. Windows and embedded platforms are absolutely not supported.

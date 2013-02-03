@@ -6,7 +6,6 @@
 #pragma once
 #include "cmd.h"
 #include "drawp.h"
-#include <sys/mman.h>
 
 class PRGL : private CCmdBuf {
 public:
@@ -46,7 +45,7 @@ private:
 	NCmds,
     };
 public:
-    inline			PRGL (iid_t iid)		: CCmdBuf(iid),_nextid(0) {}
+    inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_nextid(0) {}
 				// Command writing
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }

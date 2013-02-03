@@ -10,7 +10,7 @@
      N(Error,s)
      N(Restate,(qqqqbbbb))
      N(Draw,)
-     N(Event,u)
+     N(Event,(uqquqq))
 ;
 #undef N
 

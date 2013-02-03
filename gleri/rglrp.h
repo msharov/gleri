@@ -5,6 +5,7 @@
 
 #pragma once
 #include "rglp.h"
+#include "event.h"
 
 class PRGLR : private CCmdBuf {
 public:
@@ -20,10 +21,10 @@ private:
 	NCmds
     };
 public:
-    inline explicit		PRGLR (iid_t iid)		: CCmdBuf(iid) {}
+    inline explicit		PRGLR (iid_t iid) noexcept	: CCmdBuf(iid) {}
     inline void			Restate (rcwininfo_t winfo)	{ Cmd(ECmd::Restate,winfo); }
     inline void			Draw (void)			{ Cmd(ECmd::Draw); }
-    inline void			Event (uint32_t key)		{ Cmd(ECmd::Event,key); }
+    inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }
     inline void			ForwardError (const char* m)	{ Cmd(ECmd::Error,m); }
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool pfd=false)	{ CCmdBuf::SetFd(fd,pfd); }
@@ -80,7 +81,7 @@ template <typename F>
 	    case ECmd::Error:	{ const char* m; cmdis >> m; f.OnError(m); } break;
 	    case ECmd::Restate:	{ SWinInfo winfo; cmdis >> winfo; f.OnRestate(winfo); } break;
 	    case ECmd::Draw:	f.OnExpose(); break;
-	    case ECmd::Event:	{ uint32_t key; cmdis >> key; f.OnEvent(key); } break;
+	    case ECmd::Event:	{ CEvent e; cmdis >> e; f.OnEvent(e); } break;
 	    default: Error();
 	}
     }

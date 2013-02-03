@@ -5,6 +5,7 @@
 
 #pragma once
 #include "rglp.h"
+#include "event.h"
 
 class CWindow : protected PRGL {
 public:
@@ -12,14 +13,19 @@ public:
     typedef PRGL::SWinInfo	SWinInfo;
     typedef const SWinInfo&	rcwininfo_t;
 public:
-    inline explicit	CWindow (wid_t wid)		: PRGL(wid) { memset (&_info,0,sizeof(_info)); }
+    inline explicit	CWindow (wid_t wid) noexcept	: PRGL(wid) { memset (&_info,0,sizeof(_info)); }
     inline rcwininfo_t	Info (void) const		{ return (_info); }
     inline virtual void	OnExpose (void)			{ Draw(); }
     inline virtual void	OnInit (void)			{ }
     inline void		OnRestate (rcwininfo_t wi)	{ _info = wi; OnResize (wi.w, wi.h); }
     inline virtual void	OnResize (uint16_t, uint16_t)	{ }
-    inline virtual void	OnEvent (uint32_t)		{ }
-    inline virtual void	OnError (const char* m)		{ throw XError (m); }
+    virtual void	OnError (const char* m);
+    virtual void	OnEvent (const CEvent& e);
+    inline virtual void	OnKey (uint32_t)		{ }
+    inline virtual void	OnKeyUp (uint32_t)		{ }
+    inline virtual void	OnButton (uint32_t, int16_t, int16_t)		{ }
+    inline virtual void	OnButtonUp (uint32_t, int16_t, int16_t)		{ }
+    inline virtual void	OnMotion (int16_t, int16_t, uint32_t)		{ }
     inline virtual void	Draw (void)			{ }
     template <typename Drw>
     inline void		OnDraw (Drw&) const		{ }

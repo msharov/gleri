@@ -10,7 +10,7 @@ public:
     inline explicit	CTestWindow (wid_t wid)	: CWindow(wid) { }
     virtual void	OnInit (void);
     virtual void	OnResize (uint16_t w, uint16_t h);
-    virtual void	OnEvent (uint32_t key);
+    virtual void	OnKey (uint32_t key);
     ONDRAWDECL		OnDraw (Drw& drw) const;
 private:
     uint32_t		_vbuf;

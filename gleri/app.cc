@@ -97,7 +97,7 @@ void CApp::WatchFd (int fd)
     _watch.push_back ((pollfd){fd,POLLIN,0});
 }
 
-void CApp::StopWatchingFd (int fd)
+void CApp::StopWatchingFd (int fd) noexcept
 {
     for (auto i = _watch.begin(); i < _watch.end(); ++i)
 	if (i->fd == fd)

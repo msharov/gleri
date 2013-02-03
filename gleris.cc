@@ -5,6 +5,7 @@
 
 #include "gleris.h"
 #include ".o/data/data.h"
+#include <X11/XF86keysym.h>
 
 //----------------------------------------------------------------------
 
@@ -69,26 +70,14 @@ void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
     }
 }
 
-void CGleris::LaunchLocalSocket (void)
-{
-    _localSocket.Bind (s_SocketPath, GLERIS_LISTEN_QUEUE_SIZE);
-    WatchFd (_localSocket.Fd());
-}
-
-void CGleris::LaunchTCPSocket (void)
-{
-    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT, GLERIS_LISTEN_QUEUE_SIZE);
-    WatchFd (_tcpSocket.Fd());
-}
-
-void CGleris::AddConnection (int fd, bool canPassFd) noexcept
+void CGleris::AddConnection (int fd, bool canPassFd)
 {
     _iconn.emplace_back (GenIId());
     _iconn.back().SetFd (fd, canPassFd);
     WatchFd (fd);
 }
 
-void CGleris::RemoveConnection (int fd)
+void CGleris::RemoveConnection (int fd) noexcept
 {
     for (auto i = _iconn.begin(); i < _iconn.end(); ++i) {
 	if (i->Fd() != fd) continue;
@@ -133,32 +122,6 @@ CCmdBuf* CGleris::LookupConnection (int fd) noexcept
 /*static*/ void CGleris::Error (const char* m)
 {
     throw XError (m);
-}
-
-Window CGleris::CreateWindow (const SWinInfo& winfo)
-{
-    XSetWindowAttributes swa;
-    swa.colormap = _colormap;
-    swa.background_pixmap = None;
-    swa.border_pixel = BlackPixel (_dpy, _screen);
-    swa.event_mask = StructureNotifyMask| ExposureMask| KeyPressMask| ButtonPressMask| PointerMotionMask;
-
-    Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
-				_visinfo->depth, InputOutput, _visinfo->visual,
-				CWBackPixmap| CWBorderPixel| CWColormap| CWEventMask, &swa);
-    if (!win)
-	Error ("failed to create window");
-    XSync (_dpy, False);
-    OnXEvent();
-    return (win);
-}
-
-inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
-{
-    if (_curCli == &rcli)
-	return;
-    _curCli = &rcli;
-    glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
 }
 
 void CGleris::Init (argc_t argc, argv_t argv)
@@ -246,10 +209,34 @@ void CGleris::Init (argc_t argc, argv_t argv)
     if (Option (opt_SingleClient))
 	AddConnection (STDIN_FILENO, true);
     else {
-	LaunchLocalSocket();
-	if (Option (opt_TCPSocket))
-	    LaunchTCPSocket();
+	_localSocket.Bind (s_SocketPath, GLERIS_LISTEN_QUEUE_SIZE);
+	WatchFd (_localSocket.Fd());
+	if (Option (opt_TCPSocket)) {
+	    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT, GLERIS_LISTEN_QUEUE_SIZE);
+	    WatchFd (_tcpSocket.Fd());
+	}
     }
+}
+
+Window CGleris::CreateWindow (const SWinInfo& winfo)
+{
+    XSetWindowAttributes swa;
+    swa.colormap = _colormap;
+    swa.background_pixmap = None;
+    swa.border_pixel = BlackPixel (_dpy, _screen);
+    swa.event_mask =
+	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
+	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| KeymapStateMask|
+	VisibilityChangeMask| FocusChangeMask| PropertyChangeMask;
+
+    Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
+				_visinfo->depth, InputOutput, _visinfo->visual,
+				CWBackPixmap| CWBorderPixel| CWColormap| CWEventMask, &swa);
+    if (!win)
+	Error ("failed to create window");
+    XSync (_dpy, False);
+    OnXEvent();
+    return (win);
 }
 
 void CGleris::OnXEvent (void)
@@ -265,11 +252,106 @@ void CGleris::OnXEvent (void)
 	else if (xev.type == ConfigureNotify) {
 	    ActivateClient (*icli);
 	    icli->Resize (xev.xconfigure.x, xev.xconfigure.y, xev.xconfigure.width, xev.xconfigure.height);
-	} else if (xev.type == KeyPress)
-	    icli->Event (xev.xkey.keycode);
+	} else if (xev.type == KeyPress || xev.type == KeyRelease)
+	    icli->Event (EventFromXKey (xev.xkey));
+	else if (xev.type == ButtonPress || xev.type == ButtonRelease)
+	    icli->Event (EventFromButton (xev.xbutton));
+	else if (xev.type == MotionNotify)
+	    icli->Event (EventFromMotion (xev.xmotion));
+	else if (xev.type == MappingNotify)
+	    XRefreshKeyboardMapping (&xev.xmapping);
     }
     if (_xlib_error)
 	throw XError (true, _xlib_error);
+}
+
+/*static*/ uint32_t CGleris::ModsFromXState (uint32_t state) noexcept
+{
+    static const uint8_t c_Modmap[] = {
+	ShiftMapIndex,	ModShiftShift,
+	ControlMapIndex,ModCtrlShift,
+	Mod1MapIndex,	ModAltShift,
+	Mod4MapIndex,	ModBannerShift,
+	8,		ModLeftShift,
+	9,		ModMiddleShift,
+	10,		ModRightShift
+    };
+    uint32_t mods = 0;
+    for (unsigned i = 0; i < ArraySize(c_Modmap); i+=2)
+	if (state & (1u << c_Modmap[i]))
+	    mods |= (1u << c_Modmap[i+1]);
+    return (mods);
+}
+
+/*static*/ inline CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept
+{
+    // Lookup keysym and char equivalent
+    char keybuf [8];
+    KeySym ksym;
+    XComposeStatus kmods;
+    int bufused = XLookupString (const_cast<XKeyEvent*>(&xev), ArrayBlock(keybuf), &ksym, &kmods);
+
+    // Convert X-specific ranges to unicode
+    enum : uint32_t {
+	XK_Prefix		= 0xff00,
+	XK_Offset		= XK_Prefix - Key::XKBase,
+	XF86XK_Prefix		= 0x1008FF00,
+	XF86XK_Offset		= XF86XK_Prefix - Key::XFKSBase,
+	XK_Unicode_Prefix	= 0x01000000
+    };
+    if (ksym >= 0xff00 && ksym <= 0xffff)
+	ksym -= XK_Offset;
+    else if (ksym >= XF86XK_Prefix)
+	ksym -= XF86XK_Offset;
+    else if (ksym >= XK_Unicode_Prefix)
+	ksym -= XK_Unicode_Prefix;
+
+    #include "xkeymap.h"	// Defines c_Keymap and c_Modmap
+
+    // Map KeySyms to CEvent Key enum
+    uint32_t ekey = 0;
+    for (unsigned i = 0; i < ArraySize(c_Keymap); i+=2)
+	if (c_Keymap[i] == ksym)
+	    ekey = c_Keymap[i+1];
+    if (!ekey && bufused > 0 && (ksym >= ' ' && ksym <= '~')) {
+	ekey = keybuf[0];
+	if (ekey < ' ')
+	    ekey += 'a'-1;
+    }
+
+    // Map modifiers to Mod constants
+    ekey |= ModsFromXState (xev.state);
+    // Remove Shift mod from uppercase letters
+    if ((ekey & KMod::Shift) && uint16_t(ekey) >= 'A' && uint16_t(ekey) <= 'Z')
+	ekey &= ~KMod::Shift;
+
+    // Return the event
+    CEvent e;
+    e.key = ekey;
+    e.x = xev.x;
+    e.y = xev.y;
+    e.type = (xev.type == KeyRelease) ? CEvent::KeyUp : CEvent::KeyDown;
+    return (e);
+}
+
+/*static*/ inline CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept
+{
+    CEvent e;
+    e.key = xev.button| ModsFromXState(xev.state);
+    e.x = xev.x;
+    e.y = xev.y;
+    e.type = (xev.type == ButtonRelease) ? CEvent::ButtonUp : CEvent::ButtonDown;
+    return (e);
+}
+
+/*static*/ inline CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept
+{
+    CEvent e;
+    e.key = ModsFromXState(xev.state);
+    e.x = xev.x;
+    e.y = xev.y;
+    e.type = CEvent::Motion;
+    return (e);
 }
 
 void CGleris::OnFd (int fd)
@@ -299,6 +381,9 @@ void CGleris::OnFdError (int fd)
 	RemoveConnection (fd);
     OnXEvent();
 }
+
+//----------------------------------------------------------------------
+// Client records, selection and forwarding
 
 void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn)
 {
@@ -340,6 +425,14 @@ void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn)
 	rcli.SetFd (piconn->Fd(), piconn->CanPassFd());
     ActivateClient (rcli);
     rcli.Init();
+}
+
+inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
+{
+    if (_curCli == &rcli)
+	return;
+    _curCli = &rcli;
+    glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
 }
 
 void CGleris::DestroyClient (CGLClient*& pc) noexcept
