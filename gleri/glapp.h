@@ -11,10 +11,12 @@ class CGLApp : public CApp {
 public:
     virtual			~CGLApp (void) noexcept;
     void			Init (argc_t argc, argv_t argv);
+    CWindow*			ClientRecord (int fd, CWindow::wid_t wid);
 protected:
     inline			CGLApp (void);
     virtual void		OnFd (int fd);
     virtual void		OnFdError (int fd);
+    virtual void		OnTimer (uint64_t tms);
     template <typename WC>
     inline void			CreateWindow (void)	{ OpenWindow (new WC (GenWId())); }
 private:
@@ -38,4 +40,14 @@ inline CGLApp::CGLApp (void)
 ,_srvsock()
 ,_nextwid(0)
 {
+}
+
+// Here because CApp is needed
+inline void CWindow::WaitForTime (uint64_t tms) const
+{
+    CApp::Instance().WaitForTime (tms);
+}
+inline uint64_t CWindow::NowMS (void) const noexcept
+{
+    return (CApp::NowMS());
 }

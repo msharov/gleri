@@ -5,6 +5,7 @@
 
 #include "app.h"
 #include <sys/wait.h>
+#include <sys/time.h>
 
 //{{{ Utility functions ------------------------------------------------
 
@@ -92,6 +93,13 @@ void hexdump (const void* pv, size_t n)
     return (r);
 }
 
+/*static*/ uint64_t CApp::NowMS (void) noexcept
+{
+    timeval tv;
+    gettimeofday (&tv, NULL);
+    return (tv.tv_sec*1000+tv.tv_usec/1000);
+}
+
 void CApp::WatchFd (int fd)
 {
     _watch.push_back ((pollfd){fd,POLLIN,0});
@@ -104,26 +112,53 @@ void CApp::StopWatchingFd (int fd) noexcept
 	    --(i = _watch.erase(i));
 }
 
+void CApp::WaitForTime (uint64_t tms)
+{
+    auto i = _timer.begin();
+    while (i < _timer.end() && *i >= tms)
+	++i;		// _timer is reverse sorted
+    if (i[-1] != tms)	// No duplicates
+	_timer.emplace (i, tms);
+}
+
+inline bool CApp::CheckForQuitSignal (void) const
+{
+    int sig = AckSignal();
+    if (sig == SIGCHLD)
+	waitpid(-1,nullptr,0);
+    return (SigInSet(sig,sigset_Quit));
+}
+
+inline void CApp::WaitForFdsAndTimers (void)
+{
+    uint64_t timeToWait = _timer.back();
+    if (timeToWait != UINT64_MAX)
+	timeToWait -= NowMS();
+    int prv = poll (&_watch[0], _watch.size(), uint32_t(timeToWait));
+    if (prv < 0 && errno != EINTR)
+	CFile::Error ("poll");
+    for (unsigned i = 0; i < _watch.size(); ++i) {
+	int efd = _watch[i].fd;
+	uint16_t rev = _watch[i].revents;
+	if (rev & (POLLHUP| POLLNVAL)) {
+	    _watch.erase (_watch.begin()+i--);
+	    OnFdError (efd);
+	} else if (rev & POLLIN)
+	    OnFd (efd);
+    }
+    for (uint64_t now = NowMS(), t; now >= (t = _timer.back());) {
+	_timer.pop_back();
+	OnTimer (t);
+    }
+}
+
 int CApp::Run (void)
 {
+    // Run until Quit()
     while (!_quitting) {
-	int sig = AckSignal();
-	if (sig == SIGCHLD)
-	    waitpid(-1,nullptr,0);
-	else if (SigInSet(sig,sigset_Quit))
+	if (CheckForQuitSignal())
 	    break;
-	int prv = poll (&_watch[0], _watch.size(), -1);
-	if (prv < 0 && errno != EINTR)
-	    CFile::Error ("poll");
-	for (unsigned i = 0; i < _watch.size(); ++i) {
-	    int efd = _watch[i].fd;
-	    uint16_t rev = _watch[i].revents;
-	    if (rev & (POLLHUP| POLLNVAL)) {
-		_watch.erase (_watch.begin()+i--);
-		OnFdError (efd);
-	    } else if (rev & POLLIN)
-		OnFd (efd);
-	}
+	WaitForFdsAndTimers();
     }
     return (EXIT_SUCCESS);
 }

@@ -7,13 +7,32 @@
 
 class CTestWindow : public CWindow {
 public:
-    inline explicit	CTestWindow (wid_t wid)	: CWindow(wid) { }
+    inline explicit	CTestWindow (wid_t wid);
     virtual void	OnInit (void);
-    virtual void	OnResize (uint16_t w, uint16_t h);
-    virtual void	OnKey (uint32_t key);
+    virtual void	OnResize (dim_t w, dim_t h);
+    virtual void	OnKey (key_t key);
+    virtual void	OnTimer (uint64_t tms);
     ONDRAWDECL		OnDraw (Drw& drw) const;
 private:
-    uint32_t		_vbuf;
-    uint32_t		_walk;
-    uint32_t		_gradShader;
+    goid_t		_vbuf;
+    goid_t		_gradShader;
+    goid_t		_walk;
+    coord_t		_wx;
+    coord_t		_wy;
+    coord_t		_wsx;
+    coord_t		_wsy;
+    uint64_t		_wtimer;
 };
+
+inline CTestWindow::CTestWindow (wid_t wid)
+: CWindow(wid)
+,_vbuf(0)
+,_gradShader(0)
+,_walk(0)
+,_wx(0)
+,_wy(0)
+,_wsx(0)
+,_wsy(0)
+,_wtimer(UINT64_MAX)
+{
+}

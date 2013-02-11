@@ -16,14 +16,21 @@ private:
 	union {
 	    struct {
 		GLuint		_sid;
-		uint32_t	_cid;
+		goid_t		_cid;
 	    };
 	    uint64_t	_key;
 	};
-	inline		SIdMap (uint32_t c, uint32_t s)		:_sid(s),_cid(c) {}
+	inline		SIdMap (goid_t c, GLuint s)		:_sid(s),_cid(c) {}
 	inline bool	operator< (const SIdMap& v) const	{ return (_key < v._key); }
 	inline bool	operator== (const SIdMap& v) const	{ return (_key == v._key); }
     };
+    enum EStdQuery {
+	query_RenderBegin,
+	query_RenderEnd,
+	query_FrameEnd,
+	NStdQueries
+    };
+    enum { NotWaitingForVSync = UINT64_MAX };
     typedef float		matrix4f_t[4][4];
     typedef PRGL::SWinInfo	SWinInfo;
 public:
@@ -32,11 +39,15 @@ public:
     inline const CContext&	Context (void) const		{ return (_ctx); }
     inline GLXContext		ContextId (void) const		{ return (_ctx.Context()); }
     inline Window		Drawable (void) const		{ return (_ctx.Drawable()); }
-    void			Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept;
-    void			MapId (uint32_t cid, GLuint sid) noexcept;
-    GLuint			LookupId (uint32_t cid) const noexcept;
-    uint32_t			LookupSid (GLuint sid) const noexcept;
-    void			UnmapId (uint32_t cid) noexcept;
+    void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
+    void			MapId (goid_t cid, GLuint sid) noexcept;
+    GLuint			LookupId (goid_t cid) const noexcept;
+    goid_t			LookupSid (GLuint sid) const noexcept;
+    void			UnmapId (goid_t cid) noexcept;
+    uint64_t			DrawFrame (bstri cmdis, Display* dpy);
+    uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy);
+    uint64_t			DrawPendingFrame (Display* dpy);
+    uint64_t			NextFrameTime (void) const	{ return (_nextVSync); }
 				// State variables
     inline const float*		Proj (void) const	{ return (&_proj[0][0]); }
     inline GLuint		Color (void) const	{ return (_color); }
@@ -49,6 +60,8 @@ public:
     inline void			SetTexture (GLuint t)	{ _curTexture = t; }
     inline GLuint		Font (void) const	{ return (_curFont); }
     inline void			SetFont (GLuint f)	{ _curFont = f; }
+    inline GLuint		LastRenderTime (void) const	{ return (_syncEvent.time); }
+    inline GLuint		LastFrameTime (void) const	{ return (_syncEvent.key); }
 				// Resource loader by enum
     GLuint			LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz);
     void			FreeResource (G::EResource dtype, GLuint id);
@@ -90,20 +103,24 @@ public:
     GLuint			LoadTexture (const char* filename);
     void			FreeTexture (GLuint id);
     const CTexture*		Texture (GLuint id) const;
-    void			Sprite (short x, short y, GLuint id);
+    void			Sprite (coord_t x, coord_t y, GLuint id);
+    void			Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy, dim_t sw, dim_t sh);
 				// Font
     GLuint			LoadFont (const char* filename);
     GLuint			LoadFont (GLuint pak, const char* filename);
     GLuint			LoadFont (const GLubyte* p, GLuint psz);
     void			FreeFont (GLuint id);
     const CFont*		Font (GLuint id) const noexcept;
-    void			Text (int16_t x, int16_t y, const char* s);
+    void			Text (coord_t x, coord_t y, const char* s);
 private:
 				// Shared resources
     inline GLuint		DefaultShader (void) const	{ assert (s_RootClient == this && _shader.size() > 0); return (_shader[0].Id()); }
     inline GLuint		TextureShader (void) const	{ assert (s_RootClient == this && _shader.size() > 1); return (_shader[1].Id()); }
     inline GLuint		FontShader (void) const		{ assert (s_RootClient == this && _shader.size() > 2); return (_shader[2].Id()); }
     inline const CFont*		DefaultFont (void) const	{ assert (s_RootClient == this && _font.size() > 0);   return (&_font[0]); }
+				// Queries
+    inline void			PostQuery (GLuint q);
+    inline bool			QueryResultAvailable (GLuint q) const;
 private:
     CContext			_ctx;
     set<SIdMap>			_cidmap;
@@ -111,8 +128,12 @@ private:
     vector<CTexture>		_texture;
     vector<CFont>		_font;
     vector<CDatapak>		_pak;
+    vector<unsigned char>	_pendingFrame;
     matrix4f_t			_proj;
     GLuint			_color;
+    GLuint			_query[NStdQueries];
+    CEvent			_syncEvent;
+    uint64_t			_nextVSync;
     GLuint			_curShader;
     GLuint			_curBuffer;
     GLuint			_curTexture;

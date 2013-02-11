@@ -7,7 +7,9 @@
 
 class CGLTest : public CGLApp {
 public:
-    inline CGLTest (void) : CGLApp() {}
+    inline CGLTest (void) : CGLApp() {
+	setenv ("PATH", ".:..", 1);	// Use gleris in project dir
+    }
     static inline CGLTest& Instance (void) {
 	static CGLTest s_App; return (s_App);
     }

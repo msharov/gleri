@@ -8,7 +8,7 @@
 //{{{ Vertex data ------------------------------------------------------
 namespace {
 
-static const int16_t _vdata1[] = {
+static const CTestWindow::coord_t _vdata1[] = {
     0,0, 0,479, 639,479, 639,0,
     50,50, 50,300, 150,300, 150,50,
     100,100, 200,200, 300,200, 300,300,
@@ -29,6 +29,15 @@ enum {
     vb_SkewQuadSize = 4,
     vb_FanOverlayOffset = vb_SkewQuadOffset + vb_SkewQuadSize,
     vb_FanOverlaySize = 4
+};
+enum {
+    walk_SpriteW = 64,
+    walk_SpriteH = walk_SpriteW,
+    walk_StripUp = walk_SpriteH*0,
+    walk_StripLeft = walk_SpriteH*1,
+    walk_StripDown = walk_SpriteH*2,
+    walk_StripRight = walk_SpriteH*3,
+    walk_StripLength = walk_SpriteW*9
 };
 
 //}}}-------------------------------------------------------------------
@@ -64,33 +73,84 @@ void CTestWindow::OnInit (void)
 {
     CWindow::OnInit();
     Open (640, 480);
+    printf ("Initializing test window\n");
     _vbuf = BufferData (_vdata1, sizeof(_vdata1));
     _walk = LoadTexture ("test/princess.png");
     _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
 }
 
-void CTestWindow::OnResize (uint16_t w, uint16_t h)
+void CTestWindow::OnResize (dim_t w, dim_t h)
 {
     CWindow::OnResize (w,h);
     printf ("Test window OnResize\n");
-    const int16_t sw = w-1, sh = h-1;
-    const int16_t _vdata1[] = { sh, sw,sh, sw };
+    const coord_t sw = w-1, sh = h-1;
+    const coord_t _vdata1[] = { sh, sw,sh, sw };
     BufferSubData (_vbuf, _vdata1, sizeof(_vdata1), 3*sizeof(int16_t));
+    _wx = 0; _wy = (h-walk_SpriteH)/2;
+    _wsx = 0*walk_SpriteW; _wsy = walk_StripRight;
+    WaitForTime (_wtimer = NowMS()+1000/30);
 }
 
-void CTestWindow::OnKey (uint32_t key)
+void CTestWindow::OnKey (key_t key)
 {
     CWindow::OnKey (key);
     if (key == 'q' || key == Key::Escape) {
 	printf ("Event received, quitting\n");
 	CApp::Instance().Quit();
+    } else if (key == Key::Up) {
+	if (--_wy < 0)
+	    _wy = 0;
+	_wsy = walk_StripUp;
+	_wsx += walk_SpriteW;
+	if (_wsx >= walk_StripLength)
+	    _wsx = 0;
+	Draw();
+    } else if (key == Key::Down) {
+	if (++_wy > Info().h-walk_SpriteH)
+	    _wy = Info().h-walk_SpriteH;
+	_wsy = walk_StripDown;
+	_wsx += walk_SpriteW;
+	if (_wsx >= walk_StripLength)
+	    _wsx = 0;
+	Draw();
+    } else if (key == Key::Left) {
+	if (--_wx < 0)
+	    _wx = 0;
+	_wsy = walk_StripLeft;
+	_wsx += walk_SpriteW;
+	if (_wsx >= walk_StripLength)
+	    _wsx = 0;
+	Draw();
+    } else if (key == Key::Right) {
+	if (++_wx > Info().w-walk_SpriteW)
+	    _wx = Info().w-walk_SpriteW;
+	_wsy = walk_StripRight;
+	_wsx += walk_SpriteW;
+	if (_wsx >= walk_StripLength)
+	    _wsx = 0;
+	Draw();
     }
+}
+
+void CTestWindow::OnTimer (uint64_t tms)
+{
+    CWindow::OnTimer (tms);
+    if (tms != _wtimer)
+	return;
+
+    if (++_wx > Info().w-walk_SpriteW)
+	_wx = Info().w-walk_SpriteW;
+    _wsy = walk_StripRight;
+    _wsx += walk_SpriteW;
+    if (_wsx >= walk_StripLength)
+	_wsx = 0;
+    Draw();
+
+    WaitForTime (_wtimer += 1000/30);
 }
 
 ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 {
-    if (Drw::is_writing)
-	printf ("Drawing test window\n");
     CWindow::OnDraw (drw);
 
     drw.Clear (RGB(0,0,64));
@@ -102,7 +162,8 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Color (255,255,255);
     drw.LineStrip (vb_BrokenLineOffset, vb_BrokenLineSize);
 
-    drw.Sprite (200, 75, _walk);
+    drw.Image (200, 75, _walk);
+    drw.Sprite (_wx, _wy, _walk, _wsx, _wsy, walk_SpriteW, walk_SpriteH);
 
     drw.Color (ARGB(0xc0804040));
     drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);

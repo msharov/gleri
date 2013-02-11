@@ -4,6 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #include "gcli.h"
+#include <sys/time.h>
 
 //----------------------------------------------------------------------
 
@@ -17,7 +18,10 @@ CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
 ,_texture()
 ,_font()
 ,_pak()
+,_pendingFrame()
 ,_color (0xffffffff)
+,_syncEvent()
+,_nextVSync (NotWaitingForVSync)
 ,_curShader (CGObject::NoObject)
 ,_curBuffer (CGObject::NoObject)
 ,_curTexture (CGObject::NoObject)
@@ -26,6 +30,9 @@ CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
     memset (&_winfo, 0, sizeof(_winfo));
     if (!s_RootClient)
 	s_RootClient = this;
+    _query[query_FrameEnd] = 0;
+    _syncEvent.type = CEvent::FrameSync;
+    _syncEvent.key = 1000000000/60;
 }
 
 void CGLClient::Init (void)
@@ -39,6 +46,7 @@ void CGLClient::Init (void)
     if (s_RootClient == this)
 	return;
     SetDefaultShader();
+    glGenQueries (ArraySize(_query), _query);
 }
 
 void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
@@ -59,6 +67,49 @@ void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 
     PRGLR::Restate (_winfo);
 }
+
+uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
+{
+    if (_nextVSync != NotWaitingForVSync) {
+	while (!QueryResultAvailable(_query[query_FrameEnd]))
+	    usleep(256);
+	uint64_t times[ArraySize(_query)];	// Query times are in ns
+	for (unsigned i = 0; i < ArraySize(_query); ++i)
+	    glGetQueryObjectui64v (_query[i], GL_QUERY_RESULT, &times[i]);
+	_syncEvent.time = times[query_RenderEnd] - times[query_RenderBegin];
+	_syncEvent.key = times[query_FrameEnd] - times[query_RenderBegin];
+	Event (_syncEvent);
+	_nextVSync = NotWaitingForVSync;
+    }
+    if (cmdis.remaining()) {
+	_nextVSync = CApp::NowMS() + LastFrameTime()/1000000 + 1;	// Round up to avoid busywait above
+	PostQuery (_query[query_RenderBegin]);
+	PDraw<bstri>::Parse (*this, cmdis);
+	PostQuery (_query[query_RenderEnd]);
+	glXSwapBuffers (dpy, Drawable());
+	PostQuery (_query[query_FrameEnd]);
+    }
+    return (_nextVSync);
+}
+
+uint64_t CGLClient::DrawFrameNoWait (bstri cmdis, Display* dpy)
+{
+    if (_nextVSync != NotWaitingForVSync) {
+	_pendingFrame.assign (cmdis.ipos(), cmdis.end());
+	return (_nextVSync);
+    }
+    return (DrawFrame (cmdis, dpy));
+}
+
+uint64_t CGLClient::DrawPendingFrame (Display* dpy)
+{
+    uint64_t nf = DrawFrame (bstri (&_pendingFrame[0], _pendingFrame.size()), dpy);
+    _pendingFrame.clear();
+    return (nf);
+}
+
+//----------------------------------------------------------------------
+// Client-side id mapping
 
 void CGLClient::MapId (uint32_t cid, GLuint sid) noexcept
 {
@@ -350,7 +401,7 @@ const CTexture* CGLClient::Texture (GLuint id) const
     return (FindGObject (_texture, id));
 }
 
-void CGLClient::Sprite (short x, short y, GLuint id)
+void CGLClient::Sprite (coord_t x, coord_t y, GLuint id)
 {
     const CTexture* pimg = Texture(id);
     if (!pimg) return;
@@ -358,6 +409,17 @@ void CGLClient::Sprite (short x, short y, GLuint id)
     UniformTexture ("Texture", pimg->Id());
     Uniform4f ("ImageRect", x, y, pimg->Width(), pimg->Height());
     Uniform4f ("SpriteRect", 0, 0, pimg->Width(), pimg->Height());
+    glDrawArrays (GL_POINTS, 0, 1);
+}
+
+void CGLClient::Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy, dim_t sw, dim_t sh)
+{
+    const CTexture* pimg = Texture(id);
+    if (!pimg) return;
+    SetTextureShader();
+    UniformTexture ("Texture", pimg->Id());
+    Uniform4f ("ImageRect", x, y, pimg->Width(), pimg->Height());
+    Uniform4f ("SpriteRect", sx, sy, sw, sh);
     glDrawArrays (GL_POINTS, 0, 1);
 }
 
@@ -402,14 +464,14 @@ const CFont* CGLClient::Font (GLuint id) const noexcept
     return (FindGObject (_font, id));
 }
 
-void CGLClient::Text (int16_t x, int16_t y, const char* s)
+void CGLClient::Text (coord_t x, coord_t y, const char* s)
 {
     const CFont* pfont = Font (Font());
     if (!pfont && !(pfont = s_RootClient->DefaultFont()))
 	return;
 
     const unsigned nChars = strlen(s);
-    struct SVertex { int16_t x,y,s,t; } v [nChars];
+    struct SVertex { GLshort x,y,s,t; } v [nChars];
     const unsigned fw = pfont->Width(), fh = pfont->Height();
     for (unsigned i = 0, lx = x; i < nChars; ++i, lx+=fw) {
 	v[i].x = lx;
@@ -431,4 +493,20 @@ void CGLClient::Text (int16_t x, int16_t y, const char* s)
     FreeBuffer (buf);
 
     glFlush();	// Bug in radeon driver overrides uniforms for all queued texts
+}
+
+//----------------------------------------------------------------------
+// Queries
+
+inline void CGLClient::PostQuery (GLuint q)
+{
+    glQueryCounter (q, GL_TIMESTAMP);
+    QueryResultAvailable (q);	// Probably a radeon bug: an unasked for query may be set to the first ask time
+}
+
+inline bool CGLClient::QueryResultAvailable (GLuint q) const
+{
+    GLint haveQuery;
+    glGetQueryObjectiv (q, GL_QUERY_RESULT_AVAILABLE, &haveQuery);
+    return (haveQuery);
 }

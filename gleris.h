@@ -31,7 +31,7 @@ public:
     CGLClient*		ClientRecord (int fd, iid_t iid) noexcept;
     CGLClient*		ClientRecordForWindow (Window w) noexcept;
     void		CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn = nullptr);
-    void		ClientDraw (CGLClient& cli, bstri& cmdis);
+    void		ClientDraw (CGLClient& cli, bstri cmdis);
     void		ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, int fd, iid_t iid) const noexcept;
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
@@ -50,6 +50,7 @@ private:
    static inline CEvent	EventFromMotion (const XMotionEvent& xev) noexcept;
     virtual void	OnFd (int fd);
     virtual void	OnFdError (int fd);
+    virtual void	OnTimer (uint64_t tms);
     static int		XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept;
     static int		XlibIOErrorHandler (Display*) noexcept NORETURN;
     static void		Error (const char* m) NORETURN;

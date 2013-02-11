@@ -52,7 +52,7 @@ The service is called gleris and can be used either standalone, or
 be launched individually by libgleri-using applications. By default,
 only the local $HOME/.config/gleris.socket is created. If you want a
 TCP socket, run gleris -t, which will make it listen on localhost port
-6450+display. You can then forward that port with ssh to wherever.
+6540+display. You can then forward that port with ssh to wherever.
 
 The library is libgleri.a, See the test/ program for a usage example.
 
@@ -61,13 +61,12 @@ BSD. Windows and embedded platforms are absolutely not supported.
 Linux kernel 2.6.28 is required. GCC 4.6 or clang++ 3.2 is required.
 X server is required. Wayland will likely be supported in the future.
 
-OpenGL 3.3 or higher is also required; there is no point in supporting
-obsolete devices, and the design differences required to support pre-GL3
-methods would be prohibitive to implement. This means that for the most
-part only the proprietary fglrx and nvidia drivers work. Mesa does not at
-the time of this writing provide GL3.3 support; however, it is expected
-to be implemented with Mesa 10 release sometime in 2013. It remains to
-be seen if its performance would be acceptable for any serious use.
+OpenGL 3.3+ is required. Due to the still dire driver situation on Linux,
+this means that only the proprietary fglrx and nvidia drivers work. Mesa
+does not at the time of this writing provide GL3.3 support; however,
+it is expected to be implemented with the Mesa 10 release sometime in
+2013. It remains to be seen if its performance would be acceptable for
+any serious use.
 
 Currently, GLERI has been tested with Catalyst 12.9, kernel 3.6.
 

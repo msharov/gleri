@@ -368,7 +368,7 @@ void CGleris::OnFd (int fd)
 	PRGL::Parse (*this, *pic);
     }
     OnXEvent();
-    for (auto& c : _cli)
+    for (auto c : _cli)
 	try { c->WriteCmds(); } catch (...) {}	// fd errors will be caught by poll
 }
 
@@ -380,6 +380,17 @@ void CGleris::OnFdError (int fd)
     else
 	RemoveConnection (fd);
     OnXEvent();
+}
+
+void CGleris::OnTimer (uint64_t tms)
+{
+    CApp::OnTimer (tms);
+    for (auto c : _cli)
+	if (c->NextFrameTime() == tms)
+	    WaitForTime (c->DrawPendingFrame (_dpy));
+    OnXEvent();
+    for (auto c : _cli)
+	try { c->WriteCmds(); } catch (...) {}	// fd errors will be caught by poll
 }
 
 //----------------------------------------------------------------------
@@ -467,10 +478,9 @@ CGLClient* CGleris::ClientRecordForWindow (Window w) noexcept
     return (nullptr);
 }
 
-void CGleris::ClientDraw (CGLClient& cli, bstri& cmdis)
+void CGleris::ClientDraw (CGLClient& cli, bstri cmdis)
 {
-    PDraw<bstri>::Parse (cli, cmdis);
-    glXSwapBuffers (_dpy, cli.Drawable());
+    WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy));
 }
 
 void CGleris::ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, int fd, iid_t iid) const noexcept

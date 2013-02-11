@@ -23,6 +23,14 @@ void CGLApp::OpenWindow (CWindow* w)
     w->WriteCmds();
 }
 
+CWindow* CGLApp::ClientRecord (int fd, CWindow::wid_t wid)
+{
+    for (auto w : _wins)
+	if (w->Matches (fd, wid))
+	    return (w);
+    return (nullptr);
+}
+
 void CGLApp::ConnectToServer (void)
 {
     // The X server must either be running locally or be ssh forwarded here
@@ -55,8 +63,27 @@ void CGLApp::ConnectToServer (void)
 
 /*static*/ int CGLApp::LaunchServer (void)
 {
-    static const char* const c_srvcmd[] = { GLERIS_NAME, "-s", nullptr };
+    // Look for the GLERIS executable in PATH
+    const char* pathenv = getenv("PATH");
+    if (!pathenv)
+	pathenv = "/bin:/usr/bin";
+    char* srvexe = nullptr;
+    for (char *pcolon, *path=strdup(pathenv), *pathend=path+strlen(path); path < pathend;) {
+	if ((pcolon = strchr(path,':')))
+	    *pcolon = 0;
+	asprintf (&srvexe, "%s/" GLERIS_NAME, path);
+	if (access (srvexe, X_OK) == 0)
+	    break;
+	free (srvexe);
+	srvexe = nullptr;
+	path += strlen(path)+1;
+    }
+    if (!srvexe)
+	throw XError ("could not find " GLERIS_NAME " in PATH");
+    // Server is launched with -s flag, in single application mode
+    const char* srvcmd[] = { srvexe, "-s", nullptr };
 
+    // Single app mode communicates through a socket on stdin
     int sock[2];
     if (0 > socketpair (PF_LOCAL, SOCK_STREAM| SOCK_NONBLOCK, 0, sock))
 	CFile::Error ("socketpair");
@@ -70,24 +97,34 @@ void CGLApp::ConnectToServer (void)
     } else {
 	close (sock[0]);
 	dup2 (sock[1], 0);
-	if (0 > execve (c_srvcmd[0], const_cast<char* const*>(c_srvcmd), environ))
+	if (0 > execve (srvcmd[0], const_cast<char* const*>(srvcmd), environ))
 	    CFile::Error ("execve");
     }
-
     exit (EXIT_FAILURE);
 }
 
 void CGLApp::OnFd (int fd)
 {
+    CApp::OnFd (fd);
     if (fd != _srvbuf.Fd()) return;
     _srvbuf.ReadCmds();
-    PRGLR::Parse (*_wins[0], _srvbuf);
-    _wins[0]->WriteCmds();
+    PRGLR::Parse (*this, _srvbuf);
+    for (auto w : _wins)
+	w->WriteCmds();
 }
 
 void CGLApp::OnFdError (int fd)
 {
     CApp::OnFdError (fd);
+    if (fd != _srvbuf.Fd()) return;
     printf ("gleris connection terminated\n");
     Quit();
+}
+
+void CGLApp::OnTimer (uint64_t tms)
+{
+    for (auto w : _wins) {
+	w->OnTimer (tms);
+	w->WriteCmds();
+    }
 }

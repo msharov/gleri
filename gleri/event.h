@@ -16,10 +16,10 @@ public:
 	KeyUp,
 	ButtonDown,
 	ButtonUp,
-	Motion
+	Motion,
+	FrameSync
     }		type;
-    int16_t	dx;
-    int16_t	dy;
+    uint32_t	time;
 public:
     inline	CEvent (void) noexcept { memset (this, 0, sizeof(*this)); }
 };
