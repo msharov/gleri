@@ -48,6 +48,20 @@ uninstall:
 	@rm -f ${EXEI}
 endif
 
+ifdef MAJOR
+DISTVER	:= ${MAJOR}.${MINOR}
+DISTNAM	:= ${NAME}-${DISTVER}
+DISTTAR	:= ${DISTNAM}.tar.bz2
+
+dist:
+	@echo "Generating ${DISTTAR} ..."
+	@mkdir .${DISTNAM}
+	@rm -f ${DISTTAR}
+	@cp -r * .${DISTNAM} && mv .${DISTNAM} ${DISTNAM}
+	@+${MAKE} -sC ${DISTNAM} maintainer-clean
+	@tar acf ${DISTTAR} ${DISTNAM} && rm -rf ${DISTNAM}
+endif
+
 ################ Maintenance ###########################################
 
 clean:
