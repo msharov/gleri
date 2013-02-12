@@ -5,6 +5,7 @@ MAJOR		:= @PKG_MAJOR@
 MINOR		:= @PKG_MINOR@
 
 #DEBUG		:= 1
+#USE_USTL	:= 1
 
 ################ Programs ############################################
 
@@ -30,10 +31,14 @@ WARNOPTS	:= -Wall -Wextra -Woverloaded-virtual -Wpointer-arith\
 CXXFLAGS	:= ${WARNOPTS} -std=c++11 @CUSTOMINCDIR@
 LDFLAGS		:= @CUSTOMLIBDIR@
 LIBS		:= @libGL@ @libX11@ @libpng@ @libz@
+ifdef USE_USTL
+    LD		:= @CC@
+    LIBS	+= @libustl@ @libsupc++@
+endif
 ifdef DEBUG
     CXXFLAGS	+= -O0 -g
 else
-    CXXFLAGS	+= -Os -g0 -DNDEBUG=1 -fno-rtti -ffunction-sections \
+    CXXFLAGS	+= -Os -g0 -DNDEBUG=1 -ffunction-sections \
 		   -fdata-sections @INLINE_OPTS@
     LDFLAGS	+= -s -Wl,-gc-sections
 endif

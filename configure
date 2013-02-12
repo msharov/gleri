@@ -20,16 +20,20 @@ COMPONENTS='
 name=[with-debug]
 desc=[	Compile for debugging]
 seds=[s/^#\(DEBUG\)/\1/]
+}{
+name=[with-ustl]
+desc=[	Use the uSTL library]
+seds=[s/^#\(USE_USTL\)/\1/;s/#undef \(USE_USTL\)/#define \1 1/]
 }';
 
 # Header files
 HEADERS="ustl.h zlib.h png.h GL/gl.h sys/sendfile.h"
 
 # Libraries
-LIBS="GL X11 png z ustl"
+LIBS="GL X11 png z ustl supc++"
 
 # First pair is used if nothing matches
-PROGS="CXX=g++ CXX=c++ INSTALL=install"
+PROGS="CXX=g++ CXX=c++ CXX=clang++ CC=gcc CC=cc CC=clang INSTALL=install"
 
 # Automatic vars
 [ -d .git ] && PKG_VERSTR=`git describe`

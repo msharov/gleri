@@ -64,7 +64,7 @@ inline CApp::CApp (void)
 ,_quitting(false)
 {
     assert (!gs_pApp && "Application object must be a singleton");
-    set_terminate (TerminateHandler);
+    std::set_terminate (TerminateHandler);
     for (uint32_t i = NSIG; --i;)
 	if (SigInSet (i, sigset_Quit| sigset_Fatal| sigset_Msg))
 	    signal (i, SignalHandler);

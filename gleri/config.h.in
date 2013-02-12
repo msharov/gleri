@@ -20,16 +20,6 @@
 #define @PKG_UNAME@S_SOCKET	"%s/.config/" @PKG_UNAME@S_NAME ".socket"
 #define @PKG_UNAME@S_PORT	6540
 
-// Global macros turning on library features
-#define __STDC_LIMIT_MACROS
-// Standard includes
-#include <stdint.h>
-#include <limits.h>
-#include <string.h>
-#include <assert.h>
-#include <stdlib.h>
-#include <unistd.h>
-
 // Tweak gcc
 #if __GNUC__
     #define inline	inline __attribute__((always_inline))
@@ -45,18 +35,40 @@
 // Define to 1 if you have sys/sendfile.h
 #undef HAVE_SYS_SENDFILE_H
 
-// Initialize libstdc++
-#include <algorithm>
-#include <vector>
-#include <set>
-using namespace std;
+// Define to 1 if you have the uSTL library
+#undef HAVE_USTL_H
+
+// Define to 1 if you want to use the uSTL library
+#undef USE_USTL
+
+#if HAVE_USTL_H && USE_USTL
+    #include <ustl.h>
+    using namespace ustl;
+#else
+    #include <algorithm>
+    #include <vector>
+    #include <set>
+    using namespace std;
+
+    /// Rounds \p n up to be divisible by \p grain
+    template <typename T>
+    inline constexpr T Align (T n, size_t grain)
+	{ return ((n+(grain-1))-(n+(grain-1))%grain); }
+#endif
+
+// Global macros turning on library features
+#define __STDC_LIMIT_MACROS
+// Standard includes
+#include <stdint.h>
+#include <limits.h>
+#include <string.h>
+#include <assert.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <errno.h>
 
 namespace {
-
-/// Rounds \p n up to be divisible by \p grain
-template <typename T>
-inline constexpr T Align (T n, size_t grain)
-    { return ((n+(grain-1))-(n+(grain-1))%grain); }
 
 /// Returns the number of elements in a static vector
 template <typename T, size_t N> constexpr inline size_t ArraySize (T(&)[N]) { return (N); }

@@ -8,6 +8,9 @@ test/LIBS	:= ${LIBA}
 ifdef DEBUG
 test/LIBS	+= -lz
 endif
+ifdef USE_USTL
+test/LIBS	+= -lustl -lsupc++
+endif
 
 ################ Compilation ###########################################
 
