@@ -22,7 +22,6 @@
 
 // Tweak gcc
 #if __GNUC__
-    #define inline	inline __attribute__((always_inline))
     #define NORETURN	__attribute((noreturn))
 #else
     #define NORETURN
@@ -44,6 +43,9 @@
 #if HAVE_USTL_H && USE_USTL
     #include <ustl.h>
     using namespace ustl;
+    #if USTL_VERSION < 0x200
+	#error "uSTL version 2.0 is required for this project"
+    #endif
 #else
     #include <algorithm>
     #include <vector>
@@ -54,6 +56,8 @@
     template <typename T>
     inline constexpr T Align (T n, size_t grain)
 	{ return ((n+(grain-1))-(n+(grain-1))%grain); }
+
+    #define inline	inline __attribute__((always_inline))
 #endif
 
 // Global macros turning on library features

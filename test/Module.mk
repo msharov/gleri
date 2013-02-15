@@ -1,6 +1,6 @@
 ################ Source files ##########################################
 
-test/EXE		:= test/gltest
+test/EXE	:= test/gltest
 test/SRCS	:= $(wildcard test/*.cc)
 test/OBJS	:= $(addprefix $O,$(test/SRCS:.cc=.o))
 test/DEPS	:= $(test/OBJS:.o=.d)

@@ -20,7 +20,6 @@ private:
 	    };
 	    uint64_t	_key;
 	};
-	inline		SIdMap (void)				:_sid(0),_cid(0) {}
 	inline		SIdMap (goid_t c, GLuint s)		:_sid(s),_cid(c) {}
 	inline bool	operator< (const SIdMap& v) const	{ return (_key < v._key); }
 	inline bool	operator== (const SIdMap& v) const	{ return (_key == v._key); }
