@@ -7,18 +7,20 @@
 #pragma once
 
 // Define to the one symbol short name of this package.
-#define @PKG_UNAME@_NAME	"@PKG_NAME@"
-// Define to the version of this package.
-#define @PKG_UNAME@_VERSION	@PKG_VERSION@
+#define GLERI_NAME	"@PKG_NAME@"
 // Define to the version string of this package.
-#define @PKG_UNAME@_VERSTRING	"@PKG_VERSTR@"
+#define GLERI_VERSTRING	"@PKG_VERSTR@"
 // Define to the address where bug reports for this package should be sent.
-#define @PKG_UNAME@_BUGREPORT	"@PKG_BUGREPORT@"
+#define GLERI_BUGREPORT	"@PKG_BUGREPORT@"
 
 // Define to the name of the service executable
-#define @PKG_UNAME@S_NAME	"@PKG_NAME@s"
-#define @PKG_UNAME@S_SOCKET	"%s/.config/" @PKG_UNAME@S_NAME ".socket"
-#define @PKG_UNAME@S_PORT	6540
+#define GLERIS_NAME	"@PKG_NAME@s"
+#define GLERIS_SOCKET	"%s/.config/" GLERIS_NAME ".socket"
+enum {
+    GLERI_VERSION = @PKG_VERSION@,
+    GLERI_PROTOCOL_VERSION = 0,
+    GLERIS_PORT = 6540
+};
 
 // Tweak gcc
 #if __GNUC__
@@ -34,11 +36,12 @@
 // Define to 1 if you have sys/sendfile.h
 #undef HAVE_SYS_SENDFILE_H
 
-// Define to 1 if you have the uSTL library
-#undef HAVE_USTL_H
-
 // Define to 1 if you want to use the uSTL library
 #undef USE_USTL
+#if USE_USTL
+    // Define to 1 if you have the uSTL library
+    #undef HAVE_USTL_H
+#endif
 
 #if HAVE_USTL_H && USE_USTL
     #include <ustl.h>

@@ -12,7 +12,11 @@ DCCDEPS	:= ${DCC:.cc=.d} ${MKDCC}.d
 
 ${MKDCC}:	${MKDCC}.o
 	@echo "Linking $@ ..."
+ifdef USE_USTL
+	@${LD} ${LDFLAGS} -o $@ $< -lustl
+else
 	@${LD} ${LDFLAGS} -o $@ $<
+endif
 
 ${PAK}:	${DSRC} ${MKDCC}.o
 	@echo "    Collecting data files ..."

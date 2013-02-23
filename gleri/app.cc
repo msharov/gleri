@@ -76,6 +76,11 @@ void hexdump (const void* pv, size_t n)
     static bool doubleSignal = false;
     bool bFirst = AtomicSet (&doubleSignal);
     fprintf (stderr, "%s: signal: %s\n", Name(), strsignal(sig));
+    #if HAVE_USTL_H && !defined(NDEBUG)
+	CBacktrace bkt;
+	cerr << bkt;
+	cerr.flush();
+    #endif
     if (bFirst)
 	exit (qc_ShellSignalQuitOffset+sig);
     _exit (qc_ShellSignalQuitOffset+sig);

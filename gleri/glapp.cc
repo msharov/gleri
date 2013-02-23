@@ -108,7 +108,7 @@ void CGLApp::OnFd (int fd)
     CApp::OnFd (fd);
     if (fd != _srvbuf.Fd()) return;
     _srvbuf.ReadCmds();
-    PRGLR::Parse (*this, _srvbuf);
+    _srvbuf.ProcessMessages (*this, PRGLR::Parse<CGLApp>);
     for (auto w : _wins)
 	w->WriteCmds();
 }

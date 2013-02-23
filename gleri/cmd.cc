@@ -79,12 +79,18 @@ inline CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
 
 bstro CCmdBuf::CreateCmd (const char* m, size_type msz, size_type sz) noexcept
 {
-    uint16_t fdoffset = m[msz-2] == 'h' ? sz-sizeof(int) : UINT16_MAX;
-    uint8_t hsz = Align(sizeof(sz)+sizeof(_iid)+sizeof(fdoffset)+sizeof(hsz)+sizeof(RGLObject)+msz,8);
-    const size_type cmdsz = hsz+(sz=Align(sz,8));
+    SMsgHeader h = {
+	Align(sz,8),
+	_iid,
+	(uint16_t) (m[msz-2] == 'h' ? sz-sizeof(int) : UINT16_MAX),
+	(uint8_t) Align(sizeof(SMsgHeader)+msz,8),
+	GLERI_PROTOCOL_VERSION,
+	RGLObject
+    };
+    const size_type cmdsz = h.hsz+h.sz;
     pointer pip = addspace (cmdsz);
     bstro os (pip,cmdsz);
-    os << sz << _iid << fdoffset << hsz << RGLObject;
+    os << h;
     os.write (m, msz);
     os.align (8);
     _used += cmdsz;

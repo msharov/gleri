@@ -365,7 +365,7 @@ void CGleris::OnFd (int fd)
 	AddConnection (cfd, fd == _localSocket.Fd());
     } else if ((pic = LookupConnection(fd))) {
 	pic->ReadCmds();
-	PRGL::Parse (*this, *pic);
+	pic->ProcessMessages (*this, PRGL::Parse<CGleris>);
     }
     OnXEvent();
     for (auto c : _cli)

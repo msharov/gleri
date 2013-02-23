@@ -18,6 +18,14 @@ public:
     typedef uint32_t		cmd_t;
     typedef value_type*		pointer;
     typedef const value_type*	const_pointer;
+    struct SMsgHeader {
+	size_type	sz;
+	iid_t		iid;
+	uint16_t	fdoffset;
+	uint8_t		hsz;
+	uint8_t		protover;
+	uint32_t	objname;
+    };
     struct SDataBlock {
 	const void*	_p;
 	size_type	_sz;
@@ -69,6 +77,8 @@ public:
     void			ReceiveFileClose (void);
     inline size_t		ReceiveTotalSize (void) const	{ return (_recvSize); }
     inline bool			ReceiveComplete (void) const	{ return (_recvf.MMSize() == ReceiveTotalSize()); }
+    template <typename T, typename MProc>
+    inline void			ProcessMessages (T& o, MProc f);
 protected:
     bstro			CreateCmd (const char* m, size_type msz, size_type sz) noexcept;
     static const char*		LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept;
@@ -119,4 +129,26 @@ inline bstri& operator>> (bstri& is, CCmd::SDataBlock& b)
     return (is);
 }
 
+//----------------------------------------------------------------------
+
+template <typename T, typename MProc>
+inline void CCmdBuf::ProcessMessages (T& o, MProc f)
+{
+    bstri is = BeginRead();
+    while (is.remaining() >sizeof(SMsgHeader)) {// While have commands
+	auto ihdr = is.ipos();			// Save header start for return
+	SMsgHeader h;
+	is >> h;
+	if (is.remaining() < (h.hsz-=sizeof(SMsgHeader))+h.sz) {
+	    is.iseek (ihdr);			// Restart at header
+	    break;
+	}
+	const char* cmdname = (const char*) is.ipos();
+	bstri cmdis (is.ipos()+h.hsz, h.sz);	// Command data stream
+	is.skip (h.hsz+h.sz);			// Skip to next command
+
+	f (o, h, cmdname, *this, is, cmdis);
+    }
+    EndRead(is);
+}
 //----------------------------------------------------------------------

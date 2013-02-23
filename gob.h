@@ -42,6 +42,7 @@ public:
 			~CDatapak (void) noexcept;
     const GLubyte*	File (const char* filename, GLuint& sz) const noexcept;
     inline GLuint	Size (void) const	{ return (_sz); }
+    static GLubyte*	DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz);
 private:
     inline GLuint	GenId (void) const	{ GLuint id; glGenBuffers (1, &id); return (id); }
 private:

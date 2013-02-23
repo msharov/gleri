@@ -34,7 +34,7 @@ public:
     inline void			SetFd (int fd, bool pfd=false)	{ CCmdBuf::SetFd(fd,pfd); }
 				// Reading interface
     template <typename F>
-    static inline void		Parse (F& f, CCmdBuf& cmdbuf);
+    static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri& is, bstri cmdis);
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
     static inline void		Error (void)			{ CCmdBuf::Error(); }
@@ -74,38 +74,18 @@ template <typename... Arg>
 //{{{ Read parser
 
 template <typename F>
-/*static*/ inline void PRGLR::Parse (F& f, CCmdBuf& cmdbuf)
+/*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri&, bstri cmdis)
 {
-    size_type sz; iid_t iid; uint16_t fdoffset; uint8_t hsz; uint32_t objn;	// All commands start with these
-    const size_type chsz = sizeof(sz)+sizeof(iid)+sizeof(fdoffset)+sizeof(hsz)+sizeof(objn);
-
-    bstri is = cmdbuf.BeginRead();
-    const int fd = cmdbuf.Fd();
-
-    while (is.remaining() > chsz) {	// While have commands
-	auto ihdr = is.ipos();		// Save header start for return
-	is >> sz >> iid >> fdoffset >> hsz >> objn;
-	if (is.remaining() < (hsz-=chsz)+sz) {
-	    is.iseek (ihdr);		// Restart at header
-	    break;
-	}
-	auto clir = f.ClientRecord (fd, iid);
-	if (objn != RGLObject || !clir)	// Not for me
-	    Error();
-
-	bstri cmdis (is.ipos()+hsz, sz);	// Command data stream
-	const char* cmdname = (const char*) is.ipos();
-	is.skip (hsz+sz);			// Skip to next command
-
-	switch (LookupCmd (cmdname, hsz)) {
-	    case ECmd::Error:	{ const char* m = nullptr; Args(cmdis,m); clir->OnError(m); } break;
-	    case ECmd::Restate:	{ SWinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;
-	    case ECmd::Draw:	clir->OnExpose(); break;
-	    case ECmd::Event:	{ CEvent e; Args(cmdis,e); clir->OnEvent(e); } break;
-	    default: Error();
-	}
+    auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);
+    if (h.objname != RGLObject || !clir)	// Not for me
+	Error();
+    switch (LookupCmd (cmdname, h.hsz)) {
+	case ECmd::Error:	{ const char* m = nullptr; Args(cmdis,m); clir->OnError(m); } break;
+	case ECmd::Restate:	{ SWinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;
+	case ECmd::Draw:	clir->OnExpose(); break;
+	case ECmd::Event:	{ CEvent e; Args(cmdis,e); clir->OnEvent(e); } break;
+	default:		Error();
     }
-    cmdbuf.EndRead(is);
 }
 
 //}}}-------------------------------------------------------------------

@@ -4,8 +4,10 @@
 // This file is free software, distributed under the MIT License.
 
 #include "gob.h"
+#include "gleri/mmfile.h"
+#include <zlib.h>
 
-//{{{ CPIO file format definitions
+//{{{ CPIO file format definitions -------------------------------------
 namespace {
 
 // CPIO file format header copied from the spec
@@ -34,7 +36,7 @@ protected:
 };
 
 } // namespace
-//}}}
+//}}}-------------------------------------------------------------------
 
 CDatapak::CDatapak (GLXContext ctx, GLubyte* p, GLuint psz) noexcept
 : CGObject(ctx, GenId())
@@ -65,3 +67,44 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
     }
     return (nullptr);
 }
+
+//----------------------------------------------------------------------
+
+/*static*/ GLubyte* CDatapak::DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz)
+{
+    z_stream zs;
+    memset (&zs, 0, sizeof(zs));
+
+    zs.avail_in = isz;
+    zs.next_in = const_cast<Bytef*>(p);
+    unsigned bufsz = 4096, bread = 0;
+    unsigned chunksz = bufsz;
+    GLubyte* out = (GLubyte*) malloc (bufsz);
+    zs.avail_out = bufsz;
+    zs.next_out = out;
+
+    enum { USE_GZIP_FORMAT = 16 };	// zlib fairy dust
+    if (Z_OK != inflateInit2 (&zs, USE_GZIP_FORMAT+MAX_WBITS))
+	CFile::Error ("gzip");
+
+    for (;;) {
+	int r = inflate (&zs, Z_NO_FLUSH);
+	if (r == Z_STREAM_END)
+	    break;
+	else if (r == Z_OK) {
+	    bread += chunksz-zs.avail_out;
+	    out = (GLubyte*) realloc (out, bufsz*2);
+	    bufsz *= 2;
+	    zs.next_out = out+bread;
+	    zs.avail_out = chunksz = bufsz-bread;
+	} else {
+	    inflateEnd (&zs);
+	    CFile::Error ("gzip");
+	}
+    }
+    osz = bread + chunksz-zs.avail_out;
+    inflateEnd (&zs);
+    return (out);
+}
+
+//----------------------------------------------------------------------

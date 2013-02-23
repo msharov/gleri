@@ -68,7 +68,7 @@ public:
     inline void			FreeShader (goid_t id);
 				// Buffer reading for serialization
     template <typename F>
-    static inline void		Parse (F& f, CCmdBuf& cmdbuf);
+    static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri& is, bstri cmdis);
     static inline void		Error (void)			{ CCmdBuf::Error(); }
 private:
     template <typename... Arg>
@@ -151,92 +151,72 @@ template <typename... Arg>
 }
 
 template <typename F>
-/*static*/ inline void PRGL::Parse (F& f, CCmdBuf& cmdbuf)
+/*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri& is, bstri cmdis)
 {
-    size_type sz; iid_t iid; uint16_t fdoffset; uint8_t hsz; uint32_t objn;	// All commands start with these
-    const size_type chsz = sizeof(sz)+sizeof(iid)+sizeof(fdoffset)+sizeof(hsz)+sizeof(objn);
+    auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
+    try {
+	ECmd cmd = LookupCmd (cmdname, h.hsz);
+	if (h.objname != RGLObject || (!clir ^ (cmd == ECmd::Open)))
+	    Error();
 
-    bstri is = cmdbuf.BeginRead();
-    const int fd = cmdbuf.Fd();
-
-    while (is.remaining() > chsz) {	// While have commands
-	auto ihdr = is.ipos();		// Save header start for return
-
-	is >> sz >> iid >> fdoffset >> hsz >> objn;
-	if (is.remaining() < (hsz-=chsz)+sz) {
-	    is.iseek (ihdr);		// Restart at header
-	    break;
-	}
-	auto clir = f.ClientRecord(fd, iid);
-	const char* cmdname = "protocol";
-	bstri cmdis (is.ipos()+hsz, sz);	// Command data stream
-	try {
-	    cmdname = (const char*) is.ipos();
-	    is.skip (hsz+sz);			// Skip to next command
-
-	    ECmd cmd = LookupCmd (cmdname, hsz);
-	    if (objn != RGLObject || (!clir ^ (cmd == ECmd::Open)))
-		Error();
-
-	    switch (cmd) {
-		case ECmd::Open: {
-		    SWinInfo winfo;
-		    Args (cmdis, winfo);
-		    f.CreateClient (iid, winfo, &cmdbuf);
-		    } break;
-		case ECmd::Draw: {
-		    SDataBlock b;
-		    Args (cmdis, b);
-		    f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz));
-		    } break;
-		case ECmd::LoadResource: {
-		    goid_t id; G::EBufferHint hint; G::EResource dtype; SDataBlock d;
-		    Args (cmdis, id, dtype, hint, d);
+	switch (cmd) {
+	    case ECmd::Open: {
+		SWinInfo winfo;
+		Args (cmdis, winfo);
+		f.CreateClient (h.iid, winfo, &cmdbuf);
+		} break;
+	    case ECmd::Draw: {
+		SDataBlock b;
+		Args (cmdis, b);
+		f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz));
+		} break;
+	    case ECmd::LoadResource: {
+		goid_t id; G::EBufferHint hint; G::EResource dtype; SDataBlock d;
+		Args (cmdis, id, dtype, hint, d);
+		uint32_t sid = clir->LookupId (id);
+		if (sid != UINT32_MAX)
+		    clir->FreeResource (dtype, sid);
+		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
+		clir->MapId (id, sid);
+		} break;
+	    case ECmd::LoadFile: {
+		goid_t id; uint32_t dsz; G::EBufferHint hint; G::EResource dtype;
+		Args (cmdis, id, dtype, hint, dsz);
+		bstri dfis = cmdbuf.ReceiveFileOpen (is);
+		if (cmdbuf.ReceiveComplete()) {
 		    uint32_t sid = clir->LookupId (id);
 		    if (sid != UINT32_MAX)
 			clir->FreeResource (dtype, sid);
-		    sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
+		    sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
 		    clir->MapId (id, sid);
-		    } break;
-		case ECmd::LoadFile: {
-		    goid_t id; uint32_t dsz; G::EBufferHint hint; G::EResource dtype;
-		    Args (cmdis, id, dtype, hint, dsz);
-		    bstri dfis = cmdbuf.ReceiveFileOpen (is);
-		    if (cmdbuf.ReceiveComplete()) {
-			uint32_t sid = clir->LookupId (id);
-			if (sid != UINT32_MAX)
-			    clir->FreeResource (dtype, sid);
-			sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
-			clir->MapId (id, sid);
-		    }
-		    cmdbuf.ReceiveFileClose();
-		    } break;
-		case ECmd::FreeResource: {
-		    goid_t id; G::EResource dtype;
-		    Args (cmdis, id, dtype);
-		    clir->FreeResource (dtype, clir->LookupId(id));
-		    clir->UnmapId (id);
-		    } break;
-		case ECmd::BufferSubData: {
-		    goid_t id; uint32_t offset; G::EBufferType btype; G::EBufferHint hint; SDataBlock d;
-		    Args (cmdis, id, btype, hint, offset, d);
-		    clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
-		    } break;
-		default:
-		    Error();
-		    break;
-	    }
-	} catch (XError& e) {
-	    f.ForwardError (clir, cmdname, e, cmdbuf.Fd(), iid);
-	    #ifndef NDEBUG
-	        hsz = 8+Align(hsz,8);
-		printf ("Failing command (hsz=0x%x,sz=0x%x):\n", hsz,sz); fflush(stdout);
-		hexdump (ihdr, hsz+sz);
-		printf ("Error at offset 0x%lx:\n", cmdis.ipos()-(is.ipos()-sz)); fflush(stdout);
-		hexdump (cmdis.ipos(), cmdis.remaining());
-	    #endif
+		}
+		cmdbuf.ReceiveFileClose();
+		} break;
+	    case ECmd::FreeResource: {
+		goid_t id; G::EResource dtype;
+		Args (cmdis, id, dtype);
+		clir->FreeResource (dtype, clir->LookupId(id));
+		clir->UnmapId (id);
+		} break;
+	    case ECmd::BufferSubData: {
+		goid_t id; uint32_t offset; G::EBufferType btype; G::EBufferHint hint; SDataBlock d;
+		Args (cmdis, id, btype, hint, offset, d);
+		clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
+		} break;
+	    default:
+		Error();
+		break;
 	}
+    } catch (XError& e) {
+	f.ForwardError (clir, cmdname, e, cmdbuf.Fd(), h.iid);
+	#ifndef NDEBUG
+	    uint16_t hsz = sizeof(SMsgHeader)+h.hsz;
+	    printf ("Failing command (hsz=0x%x,sz=0x%x):\n", hsz,h.sz); fflush(stdout);
+	    hexdump (is.ipos()-(hsz+h.sz), hsz+h.sz);
+	    printf ("Error at offset 0x%lx:\n", cmdis.ipos()-(is.ipos()-h.sz)); fflush(stdout);
+	    hexdump (cmdis.ipos(), cmdis.remaining());
+	#endif
     }
-    cmdbuf.EndRead(is);
 }
+
 //}}}-------------------------------------------------------------------

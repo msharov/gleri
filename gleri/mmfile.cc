@@ -9,7 +9,6 @@
 #if HAVE_SYS_SENDFILE_H
     #include <sys/sendfile.h>
 #endif
-#include <zlib.h>
 
 //----------------------------------------------------------------------
 
@@ -125,19 +124,16 @@ void CFile::SendFd (CFile& f)
     msghdr msg;
 
     // Allocate a control message to hold one int
-    union {
-	cmsghdr cm;				// Header
-	char control [CMSG_SPACE(sizeof(int))];	// Header+Payload
-    } control_un;
+    fdpassheader control_un;
     msg.msg_control = control_un.control;
     msg.msg_controllen = sizeof(control_un.control);
 
     // Get a pointer to the cm field and set as a SCM_RIGHTS message
     cmsghdr* cmptr = CMSG_FIRSTHDR(&msg);
-    cmptr->cmsg_len = CMSG_LEN(sizeof(int));
+    cmptr->cmsg_len = CMSG_LEN(sizeof(fdpasspayload_t));
     cmptr->cmsg_level = SOL_SOCKET;
     cmptr->cmsg_type = SCM_RIGHTS;
-    *((int*) CMSG_DATA (cmptr)) = f.Fd();
+    *((fdpasspayload_t*) CMSG_DATA (cmptr)) = f.Fd();
     msg.msg_name = nullptr;
     msg.msg_namelen = 0;
 
@@ -158,10 +154,7 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
     msghdr msg;
 
     // Set up control message buffer with space for one int
-    union {
-	cmsghdr cm;				// Header
-	char control [CMSG_SPACE(sizeof(int))];	// Header+Payload
-    } control_un;
+    fdpassheader control_un;
     msg.msg_control = control_un.control;
     msg.msg_controllen = sizeof(control_un.control);
     msg.msg_name = nullptr;
@@ -188,8 +181,8 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
     }
 
     cmsghdr* cmptr = CMSG_FIRSTHDR(&msg);
-    if (cmptr && cmptr->cmsg_len == CMSG_LEN(sizeof(int))) {
-	int fd = *((int*) CMSG_DATA (cmptr));
+    if (cmptr && cmptr->cmsg_len == CMSG_LEN(sizeof(fdpasspayload_t))) {
+	int fd = *((fdpasspayload_t*) CMSG_DATA (cmptr));
 	if (fd < 0)
 	    Error ("fdpass");
 	*(int*)((char*)p+br-sizeof(int)) = fd;
@@ -200,45 +193,6 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
 /*static*/ void CFile::Error (const char* op)
 {
     throw XError ("%s: %s", op, strerror(errno));
-}
-
-//----------------------------------------------------------------------
-
-/*static*/ CMMFile::pointer CMMFile::DecompressBlock (const_pointer p, size_type isz, size_type& osz)
-{
-    z_stream zs;
-    memset (&zs, 0, sizeof(zs));
-
-    zs.avail_in = isz;
-    zs.next_in = const_cast<Bytef*>(p);
-    unsigned bufsz = 4096, bread = 0;
-    unsigned chunksz = bufsz;
-    pointer out = (pointer) malloc (bufsz);
-    zs.avail_out = bufsz;
-    zs.next_out = out;
-
-    enum { USE_GZIP_FORMAT = 16 };	// zlib fairy dust
-    if (Z_OK != inflateInit2 (&zs, USE_GZIP_FORMAT+MAX_WBITS))
-	Error ("gzip");
-
-    for (;;) {
-	int r = inflate (&zs, Z_NO_FLUSH);
-	if (r == Z_STREAM_END)
-	    break;
-	else if (r == Z_OK) {
-	    bread += chunksz-zs.avail_out;
-	    out = (pointer) realloc (out, bufsz*2);
-	    bufsz *= 2;
-	    zs.next_out = out+bread;
-	    zs.avail_out = chunksz = bufsz-bread;
-	} else {
-	    inflateEnd (&zs);
-	    Error ("gzip");
-	}
-    }
-    osz = bread + chunksz-zs.avail_out;
-    inflateEnd (&zs);
-    return (out);
 }
 
 //----------------------------------------------------------------------

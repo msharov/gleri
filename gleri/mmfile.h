@@ -54,6 +54,12 @@ protected:
     void		BindStream (const sockaddr* sa, socklen_t sasz, unsigned backlog = c_DefaultBacklog);
     bool		ConnectStream (const sockaddr* sa, socklen_t sasz);
 private:
+    typedef long	fdpasspayload_t;
+    union fdpassheader {
+	cmsghdr cm;						// Header
+	char control [CMSG_SPACE(sizeof(fdpasspayload_t))];	// Header+Payload
+    };
+private:
     int			_fd;
 };
 
@@ -75,7 +81,6 @@ public:
     inline void			Unmap (void) noexcept		{ CFile::Unmap (_p, _sz); }
     inline const_pointer	MMData (void) const		{ return (_p); }
     inline size_type		MMSize (void) const		{ return (_sz); }
-    static pointer		DecompressBlock (const_pointer p, size_type isz, size_type& osz);
 private:
     size_type			_sz;
     pointer			_p;

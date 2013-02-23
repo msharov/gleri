@@ -103,7 +103,7 @@ uint64_t CGLClient::DrawFrameNoWait (bstri cmdis, Display* dpy)
 
 uint64_t CGLClient::DrawPendingFrame (Display* dpy)
 {
-    uint64_t nf = DrawFrame (bstri (&_pendingFrame[0], _pendingFrame.size()), dpy);
+    uint64_t nf = DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy);
     _pendingFrame.clear();
     return (nf);
 }
@@ -190,7 +190,7 @@ void CGLClient::FreeResource (G::EResource dtype, GLuint id)
 GLuint CGLClient::LoadDatapak (const GLubyte* pi, GLuint isz)
 {
     GLuint osz = 0;
-    GLubyte* po = CMMFile::DecompressBlock (pi, isz, osz);
+    GLubyte* po = CDatapak::DecompressBlock (pi, isz, osz);
     if (!po) return (-1);
     _pak.emplace_back (ContextId(), po, osz);
     return (_pak.back().Id());
@@ -437,7 +437,7 @@ GLuint CGLClient::LoadFont (const char* filename)
 {
     CMMFile f (filename);
     GLuint sz = 0;
-    GLubyte* p = CMMFile::DecompressBlock (f.MMData(), f.MMSize(), sz);
+    GLubyte* p = CDatapak::DecompressBlock (f.MMData(), f.MMSize(), sz);
     if (!p) return (-1);
     GLuint id = LoadFont (p, sz);
     free (p);
