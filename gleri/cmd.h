@@ -33,7 +33,6 @@ public:
 	inline		SDataBlock (const void* p, size_type sz):_p(p),_sz(sz) {}
     };
 protected:
-    enum : uint32_t { RGLObject = RGBA('R','G','L',0) };
     enum : cmd_t { InvalidCmd = UINT_MAX };
 protected:
     static inline bstrs& variadic_arg_size (bstrs& ss)
@@ -80,7 +79,7 @@ public:
     template <typename T, typename MProc>
     inline void			ProcessMessages (T& o, MProc f);
 protected:
-    bstro			CreateCmd (const char* m, size_type msz, size_type sz) noexcept;
+    bstro			CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz) noexcept;
     static const char*		LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept;
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
     static void			Error (void)			{ throw XError ("protocol error"); }
@@ -139,13 +138,15 @@ inline void CCmdBuf::ProcessMessages (T& o, MProc f)
 	auto ihdr = is.ipos();			// Save header start for return
 	SMsgHeader h;
 	is >> h;
-	if (is.remaining() < (h.hsz-=sizeof(SMsgHeader))+h.sz) {
+	unsigned btodata = h.hsz-sizeof(SMsgHeader);
+	if (is.remaining() < btodata+h.sz) {
 	    is.iseek (ihdr);			// Restart at header
 	    break;
 	}
 	const char* cmdname = (const char*) is.ipos();
-	bstri cmdis (is.ipos()+h.hsz, h.sz);	// Command data stream
-	is.skip (h.hsz+h.sz);			// Skip to next command
+	is.skip (btodata);
+	bstri cmdis (is.ipos(), h.sz);		// Command data stream
+	is.skip (h.sz);				// Skip to next command
 
 	f (o, h, cmdname, *this, is, cmdis);
     }

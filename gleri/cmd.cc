@@ -77,7 +77,7 @@ inline CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
     return (end());
 }
 
-bstro CCmdBuf::CreateCmd (const char* m, size_type msz, size_type sz) noexcept
+bstro CCmdBuf::CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz) noexcept
 {
     SMsgHeader h = {
 	Align(sz,8),
@@ -85,7 +85,7 @@ bstro CCmdBuf::CreateCmd (const char* m, size_type msz, size_type sz) noexcept
 	(uint16_t) (m[msz-2] == 'h' ? sz-sizeof(int) : UINT16_MAX),
 	(uint8_t) Align(sizeof(SMsgHeader)+msz,8),
 	GLERI_PROTOCOL_VERSION,
-	RGLObject
+	o
     };
     const size_type cmdsz = h.hsz+h.sz;
     pointer pip = addspace (cmdsz);

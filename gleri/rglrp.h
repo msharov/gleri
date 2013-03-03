@@ -17,6 +17,7 @@ public:
     typedef PRGL::color_t	color_t;
     typedef const SWinInfo&	rcwininfo_t;
 private:
+    enum : uint32_t { RGLRObject = RGBA('R','G','L','R') };
     enum class ECmd : cmd_t {
 	Error,
 	Restate,
@@ -77,7 +78,7 @@ template <typename F>
 /*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri&, bstri cmdis)
 {
     auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);
-    if (h.objname != RGLObject || !clir)	// Not for me
+    if (h.objname != RGLRObject || !clir)	// Not for me
 	Error();
     switch (LookupCmd (cmdname, h.hsz)) {
 	case ECmd::Error:	{ const char* m = nullptr; Args(cmdis,m); clir->OnError(m); } break;

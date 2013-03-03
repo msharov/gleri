@@ -34,7 +34,7 @@ bstro PRGL::CreateCmd (ECmd cmd, size_type sz) noexcept
 {
     size_type msz;
     const char* m = LookupCmdName (cmd, msz);
-    return (CCmdBuf::CreateCmd (m, msz, sz));
+    return (CCmdBuf::CreateCmd (RGLObject, m, msz, sz));
 }
 
 uint32_t PRGL::LoadTexture (const char* filename)

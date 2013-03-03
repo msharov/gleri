@@ -5,11 +5,11 @@
 
 #include "rglrp.h"
 
-#define N(n,s)	#n "\0" #s "\0"
+#define N(n,s)	"\0" #n "\0" #s "\0"
 /*static*/ const char PRGLR::_cmdNames[] =
      N(Error,s)
      N(Restate,(qqqqbbbb))
-     N(Draw,)
+     N(Expose,)
      N(Event,(uqquqq))
 ;
 #undef N
@@ -28,5 +28,5 @@ bstro PRGLR::CreateCmd (ECmd cmd, size_type sz) noexcept
 {
     size_type msz;
     const char* m = LookupCmdName (cmd, msz);
-    return (CCmdBuf::CreateCmd (m, msz, sz));
+    return (CCmdBuf::CreateCmd (RGLRObject, m, msz, sz));
 }
