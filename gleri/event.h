@@ -24,21 +24,13 @@ public:
     inline	CEvent (void) noexcept { memset (this, 0, sizeof(*this)); }
 };
 
-enum : uint32_t {
-    KeyModShift = 24,
-    ModShiftShift = KeyModShift,
-    ModCtrlShift,
-    ModAltShift,
-    ModBannerShift,
-    ModLeftShift,
-    ModMiddleShift,
-    ModRightShift,
-    ModMask = (UINT32_MAX<<KeyModShift),
-    KeyMask = ~ModMask,
-    UnicodePrivateRegionStart = 0xe000
-};
-
 namespace Key {
+    enum : uint32_t {
+	ModShift = 24,
+	ModMask = (UINT32_MAX<<ModShift),
+	KeyMask = ~ModMask,
+	UnicodePrivateRegionStart = 0xe000
+    };
     enum : uint32_t {
 	Null, Menu, PageUp, Copy, Break,
 	Insert, Delete, Pause, Backspace, Tab,
@@ -75,12 +67,21 @@ namespace Button {
 
 namespace KMod {
     enum : uint32_t {
-	Shift	= (1<<ModShiftShift),
-	Ctrl	= (1<<ModCtrlShift),
-	Alt	= (1<<ModAltShift),
-	Banner	= (1<<ModBannerShift),
-	Left	= (1<<ModLeftShift),
-	Middle	= (1<<ModMiddleShift),
-	Right	= (1<<ModRightShift)
+	ShiftShift = Key::ModShift,
+	CtrlShift,
+	AltShift,
+	BannerShift,
+	LeftShift,
+	MiddleShift,
+	RightShift,
+    };
+    enum : uint32_t {
+	Shift	= (1<<ShiftShift),
+	Ctrl	= (1<<CtrlShift),
+	Alt	= (1<<AltShift),
+	Banner	= (1<<BannerShift),
+	Left	= (1<<LeftShift),
+	Middle	= (1<<MiddleShift),
+	Right	= (1<<RightShift)
     };
 } // namespace KMod

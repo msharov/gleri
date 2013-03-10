@@ -268,13 +268,13 @@ void CGleris::OnXEvent (void)
 /*static*/ uint32_t CGleris::ModsFromXState (uint32_t state) noexcept
 {
     static const uint8_t c_Modmap[] = {
-	ShiftMapIndex,	ModShiftShift,
-	ControlMapIndex,ModCtrlShift,
-	Mod1MapIndex,	ModAltShift,
-	Mod4MapIndex,	ModBannerShift,
-	8,		ModLeftShift,
-	9,		ModMiddleShift,
-	10,		ModRightShift
+	ShiftMapIndex,	KMod::ShiftShift,
+	ControlMapIndex,KMod::CtrlShift,
+	Mod1MapIndex,	KMod::AltShift,
+	Mod4MapIndex,	KMod::BannerShift,
+	8,		KMod::LeftShift,
+	9,		KMod::MiddleShift,
+	10,		KMod::RightShift
     };
     uint32_t mods = 0;
     for (unsigned i = 0; i < ArraySize(c_Modmap); i+=2)
