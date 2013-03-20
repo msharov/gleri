@@ -55,8 +55,13 @@ void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
     if (_winfo.w == w && _winfo.h == h)
 	return;
     _winfo.w = w; _winfo.h = h;
+    Viewport (0, 0, w, h);
+    PRGLR::Restate (_winfo);
+}
 
-    glViewport (0, 0, w, h);
+void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
+{
+    glViewport (x,_winfo.h-y-h,w,h);
     memset (_proj, 0, sizeof(_proj));
     _proj[0][0] = 2.f/w;
     _proj[1][1] = -2.f/h;
@@ -64,8 +69,6 @@ void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
     _proj[3][0] = -float(w-1)/w;
     _proj[3][1] = float(h-1)/h;
     UniformMatrix ("Transform", Proj());
-
-    PRGLR::Restate (_winfo);
 }
 
 uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
