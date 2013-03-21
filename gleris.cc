@@ -446,6 +446,15 @@ inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
     glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
 }
 
+void CGleris::CloseClient (CGLClient* pcli) noexcept
+{
+    auto ic = find (_cli.begin(), _cli.end(), pcli);
+    if (ic < _cli.end()) {
+	DestroyClient (*ic);
+	_cli.erase (ic);
+    }
+}
+
 void CGleris::DestroyClient (CGLClient*& pc) noexcept
 {
     ActivateClient (*pc);

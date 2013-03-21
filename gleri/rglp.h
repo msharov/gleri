@@ -39,6 +39,7 @@ private:
     enum : uint32_t { RGLObject = RGBA('R','G','L',0) };
     enum class ECmd : cmd_t {
 	Open,
+	Close,
 	Draw,
 	LoadResource,
 	LoadFile,
@@ -56,6 +57,7 @@ public:
 				// Commands
     inline void			Open (const SWinInfo& winfo)	{ Cmd(ECmd::Open,winfo); }
     inline void			Open (dim_t w, dim_t h, uint8_t glver = 0x33)	{ SWinInfo winfo = { 0,0,w,h,glver,0,SWinInfo::wt_Normal,0 }; Open(winfo); }
+    inline void			Close (void)			{ Cmd(ECmd::Close); }
     inline draww_t		Draw (size_type sz);
     inline goid_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline void			BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0, G::EBufferType btype = G::ARRAY_BUFFER, G::EBufferHint hint = G::STATIC_DRAW);
@@ -166,6 +168,9 @@ template <typename F>
 		Args (cmdis, winfo);
 		f.CreateClient (h.iid, winfo, &cmdbuf);
 		} break;
+	    case ECmd::Close:
+		f.CloseClient (clir);
+		break;
 	    case ECmd::Draw: {
 		SDataBlock b;
 		Args (cmdis, b);

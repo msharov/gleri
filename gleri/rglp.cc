@@ -12,6 +12,7 @@
 #define N(n,s)	#n "\0" #s "\0"
 /*static*/ const char PRGL::_cmdNames[] =
      N(Open,(qqqqyyyy))
+     N(Close,)
      N(Draw,ay)
      N(LoadResource,uqqay)
      N(LoadFile,uqqh)
