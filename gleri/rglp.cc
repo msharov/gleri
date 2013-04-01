@@ -17,7 +17,7 @@
      N(LoadResource,uqqay)
      N(LoadFile,uqqh)
      N(FreeResource,uq)
-     N(BufferSubData,uqqay)
+     N(BufferSubData,uqquay)
 ;
 #undef N
 
