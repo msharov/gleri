@@ -11,7 +11,7 @@
      N(GLError,s)
      N(Restate,(qqqqyyyy))
      N(Expose,)
-     N(Event,(uqquqq))
+     N(Event,(uqquu))
 ;
 #undef N
 
