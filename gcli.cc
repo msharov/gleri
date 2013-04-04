@@ -39,6 +39,7 @@ void CGLClient::Init (void)
 {
     glEnable (GL_BLEND);
     glEnable (GL_CULL_FACE);
+    glEnable (GL_SCISSOR_TEST);
     glDisable (GL_DEPTH_TEST);
     glDepthMask (GL_FALSE);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -62,6 +63,7 @@ void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 {
     glViewport (x,_winfo.h-y-h,w,h);
+    glScissor (x,_winfo.h-y-h,w,h);
     memset (_proj, 0, sizeof(_proj));
     _proj[0][0] = 2.f/w;
     _proj[1][1] = -2.f/h;
