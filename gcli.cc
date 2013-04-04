@@ -122,7 +122,7 @@ void CGLClient::MapId (uint32_t cid, GLuint sid) noexcept
 GLuint CGLClient::LookupId (uint32_t cid) const noexcept
 {
     auto fi = _cidmap.lower_bound (SIdMap(cid,0));
-    return (fi == _cidmap.end() ? UINT32_MAX : fi->_sid);
+    return (fi == _cidmap.end() || fi->_cid != cid ? UINT32_MAX : fi->_sid);
 }
 
 uint32_t CGLClient::LookupSid (GLuint sid) const noexcept
