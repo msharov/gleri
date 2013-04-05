@@ -9,9 +9,9 @@
 class CTexture : public CGObject {
 public:
 			CTexture (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept;
-    inline explicit	CTexture (CTexture&& v)	: CGObject(move(v)),_width(v._width),_height(v._height) {}
 			~CTexture (void) noexcept;
-    inline CTexture&	operator= (CTexture&& v)	{ CGObject::operator= (move(v)); _width = v._width; _height = v._height; return (*this); }
+    inline explicit	CTexture (CTexture&& v)	: CGObject(forward<CTexture>(v)),_width(v._width),_height(v._height) {}
+    inline CTexture&	operator= (CTexture&& v){ CGObject::operator= (forward<CTexture>(v)); _width = v._width; _height = v._height; return (*this); }
     inline GLushort	Width (void) const	{ return (_width); }
     inline GLushort	Height (void) const	{ return (_height); }
 private:

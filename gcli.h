@@ -125,6 +125,7 @@ private:
 private:
     CContext			_ctx;
     set<SIdMap>			_cidmap;
+    vector<CBuffer>		_buffer;
     vector<CShader>		_shader;
     vector<CTexture>		_texture;
     vector<CFont>		_font;

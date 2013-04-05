@@ -34,12 +34,24 @@ public:
 
 //----------------------------------------------------------------------
 
+class CBuffer : public CGObject {
+public:
+			CBuffer (GLXContext ctx) noexcept;
+			~CBuffer (void) noexcept;
+    inline explicit	CBuffer (CBuffer&& v)	: CGObject(forward<CBuffer>(v)) {}
+    inline CBuffer&	operator= (CBuffer&& v)	{ CGObject::operator= (forward<CBuffer>(v)); return (*this); }
+private:
+    inline GLuint	GenId (void) const	{ GLuint id; glGenBuffers (1, &id); return (id); }
+};
+
+//----------------------------------------------------------------------
+
 class CDatapak : public CGObject {
 public:
 			CDatapak (GLXContext ctx, GLubyte* p, GLuint psz) noexcept;
-    inline explicit	CDatapak (CDatapak&& v)	: CGObject(move(v)), _sz(v._sz), _p(v._p) { v._sz = 0; v._p = nullptr; }
-    inline CDatapak&	operator= (CDatapak&& v){ CGObject::operator= (move(v)); swap(_sz,v._sz); swap(_p,v._p); return (*this); }
 			~CDatapak (void) noexcept;
+    inline explicit	CDatapak (CDatapak&& v)	: CGObject(forward<CDatapak>(v)), _sz(v._sz), _p(v._p) { v._sz = 0; v._p = nullptr; }
+    inline CDatapak&	operator= (CDatapak&& v){ CGObject::operator= (forward<CDatapak>(v)); swap(_sz,v._sz); swap(_p,v._p); return (*this); }
     const GLubyte*	File (const char* filename, GLuint& sz) const noexcept;
     inline GLuint	Size (void) const	{ return (_sz); }
     static GLubyte*	DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz);

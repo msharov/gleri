@@ -60,8 +60,8 @@ public:
 public:
     inline		CShader (GLXContext ctx, const Sources& src)
 			    : CGObject(ctx,glCreateProgram())	{ Load(src); }
-    inline		CShader (CShader&& v)			: CGObject(move(v)) {}
-    inline CShader&	operator= (CShader&& v)			{ CGObject::operator= (move(v)); return (*this); }
+    inline		CShader (CShader&& v)			: CGObject(forward<CShader>(v)) {}
+    inline CShader&	operator= (CShader&& v)			{ CGObject::operator= (forward<CShader>(v)); return (*this); }
 			~CShader (void) noexcept;
 private:
     void		Load (const Sources& src);

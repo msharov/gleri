@@ -197,8 +197,7 @@ GLuint CGLClient::LoadDatapak (const GLubyte* pi, GLuint isz)
     GLuint osz = 0;
     GLubyte* po = CDatapak::DecompressBlock (pi, isz, osz);
     if (!po) return (-1);
-    _pak.emplace_back (ContextId(), po, osz);
-    return (_pak.back().Id());
+    return (_pak.emplace (_pak.end(), ContextId(), po, osz)->Id());
 }
 
 GLuint CGLClient::LoadDatapak (const char* filename)
@@ -222,16 +221,14 @@ const CDatapak* CGLClient::Datapak (GLuint id) const
 
 GLuint CGLClient::CreateBuffer (void) noexcept
 {
-    GLuint id;
-    glGenBuffers (1, &id);
-    return (id);
+    return (_buffer.emplace (_buffer.end(), ContextId())->Id());
 }
 
 void CGLClient::FreeBuffer (GLuint buf) noexcept
 {
     if (Buffer() == buf)
 	SetBuffer (CGObject::NoObject);
-    glDeleteBuffers (1, &buf);
+    EraseGObject (_buffer, buf);
 }
 
 void CGLClient::BindBuffer (GLuint id) noexcept
@@ -244,6 +241,7 @@ void CGLClient::BindBuffer (GLuint id) noexcept
 
 void CGLClient::BufferData (GLuint buf, const void* data, GLuint dsz, GLushort mode, GLushort btype)
 {
+    printf ("BufferData %u\n", buf);
     BindBuffer (buf);
     glBufferData (btype, dsz, data, mode);
 }

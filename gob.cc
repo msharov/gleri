@@ -7,6 +7,12 @@
 #include "gleri/mmfile.h"
 #include <zlib.h>
 
+//----------------------------------------------------------------------
+
+CBuffer::CBuffer (GLXContext ctx) noexcept : CGObject(ctx, GenId()) {}
+CBuffer::~CBuffer (void) noexcept
+    { GLuint id = Id(); if (id != NoObject) glDeleteBuffers (1, &id); }
+
 //{{{ CPIO file format definitions -------------------------------------
 namespace {
 

@@ -9,9 +9,9 @@
 class CFont : public CGObject {
 public:
 			CFont (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept;
-    inline explicit	CFont (CFont&& v)		: CGObject(move(v)),_width(v._width),_height(v._height),_rowwidth(v._rowwidth) {}
 			~CFont (void) noexcept;
-    inline CFont&	operator= (CFont&& v)		{ CGObject::operator= (move(v)); _width = v._width; _height = v._height; _rowwidth = v._rowwidth; return (*this); }
+    inline explicit	CFont (CFont&& v)		: CGObject(forward<CFont>(v)),_width(v._width),_height(v._height),_rowwidth(v._rowwidth) {}
+    inline CFont&	operator= (CFont&& v)		{ CGObject::operator= (forward<CFont>(v)); _width = v._width; _height = v._height; _rowwidth = v._rowwidth; return (*this); }
     inline GLubyte	Width (void) const		{ return (_width); }
     inline GLubyte	Height (void) const		{ return (_height); }
     inline GLushort	LetterX (GLubyte c) const	{ return ((c%_rowwidth)*_width); }
