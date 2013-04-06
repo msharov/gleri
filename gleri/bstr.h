@@ -100,16 +100,15 @@ private:
 
 inline bstrs& bstrs::operator<< (const char* s)
 {
-    skip (sizeof(size_type)+wrstrlen(s)+1);
-    align(4);
+    skip (sizeof(size_type)+Align(wrstrlen(s)+1,4));
     return (*this);
 }
 
 inline bstro& bstro::operator<< (const char* s)
 {
-    size_type sl = strlen(s);
+    size_type sl = strlen(s)+1;
     operator<< (sl);
-    write (s,sl+1);
+    write (s,sl);
     align (4);
     return (*this);
 }
@@ -118,7 +117,7 @@ inline bstri& bstri::operator>> (const char*& s)
 {
     size_type sl;
     operator>> (sl);
-    sl += align_size (++sl,4);
+    sl += align_size (sl,4);
     s = iptr<char>();
     if (sl > remaining())
 	s = nullptr;
