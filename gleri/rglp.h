@@ -174,7 +174,7 @@ template <typename F>
 	    case ECmd::Draw: {
 		SDataBlock b;
 		Args (cmdis, b);
-		f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz));
+		f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz), h.iid);
 		} break;
 	    case ECmd::LoadResource: {
 		goid_t id; G::EBufferHint hint; G::EResource dtype; SDataBlock d;
@@ -214,7 +214,7 @@ template <typename F>
 		break;
 	}
     } catch (XError& e) {
-	f.ForwardError (clir, cmdname, e, cmdbuf.Fd(), h.iid);
+	clir->ForwardError (cmdname, e, cmdbuf.Fd(), h.iid);	// ok if clir == nullptr
 	#ifndef NDEBUG
 	    uint16_t hsz = sizeof(SMsgHeader)+h.hsz;
 	    printf ("Failing command (hsz=0x%x,sz=0x%x):\n", hsz,h.sz); fflush(stdout);

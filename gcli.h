@@ -45,9 +45,10 @@ public:
     goid_t			LookupSid (GLuint sid) const noexcept;
     void			UnmapId (goid_t cid) noexcept;
     uint64_t			DrawFrame (bstri cmdis, Display* dpy);
-    uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy);
-    uint64_t			DrawPendingFrame (Display* dpy);
+    uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid);
+    uint64_t			DrawPendingFrame (Display* dpy) noexcept;
     uint64_t			NextFrameTime (void) const	{ return (_nextVSync); }
+    void			ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept;
 				// State variables
     inline const float*		Proj (void) const	{ return (&_proj[0][0]); }
     inline GLuint		Color (void) const	{ return (_color); }
@@ -141,5 +142,6 @@ private:
     GLuint			_curTexture;
     GLuint			_curFont;
     SWinInfo			_winfo;
+    iid_t			_pendingFrameIId;
     static const CGLClient*	s_RootClient;
 };

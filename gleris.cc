@@ -487,25 +487,9 @@ CGLClient* CGleris::ClientRecordForWindow (Window w) noexcept
     return (nullptr);
 }
 
-void CGleris::ClientDraw (CGLClient& cli, bstri cmdis)
+void CGleris::ClientDraw (CGLClient& cli, bstri cmdis, iid_t iid)
 {
-    WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy));
-}
-
-void CGleris::ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, int fd, iid_t iid) const noexcept
-{
-    try {
-	PRGLR errbuf (iid);
-	if (!pcli) {
-	    errbuf.SetFd (fd);
-	    pcli = &errbuf;
-	}
-	size_t bufsz = strlen(cmdname)+2+strlen(e.what())+1;
-	char buf [bufsz];
-	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
-	pcli->ForwardError (buf);
-	pcli->WriteCmds();
-    } catch (...) {}	// fd errors will be caught by poll
+    WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy, iid));
 }
 
 GLERI_APP (CGleris)

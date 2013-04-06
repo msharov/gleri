@@ -26,6 +26,7 @@ CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
 ,_curBuffer (CGObject::NoObject)
 ,_curTexture (CGObject::NoObject)
 ,_curFont (CGObject::NoObject)
+,_pendingFrameIId (0)
 {
     memset (&_winfo, 0, sizeof(_winfo));
     if (!s_RootClient)
@@ -97,20 +98,43 @@ uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
     return (_nextVSync);
 }
 
-uint64_t CGLClient::DrawFrameNoWait (bstri cmdis, Display* dpy)
+uint64_t CGLClient::DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid)
 {
     if (_nextVSync != NotWaitingForVSync) {
+	_pendingFrameIId = iid;
 	_pendingFrame.assign (cmdis.ipos(), cmdis.end());
 	return (_nextVSync);
     }
     return (DrawFrame (cmdis, dpy));
 }
 
-uint64_t CGLClient::DrawPendingFrame (Display* dpy)
+uint64_t CGLClient::DrawPendingFrame (Display* dpy) noexcept
 {
-    uint64_t nf = DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy);
+    uint64_t nf = 0;
+    try {
+	DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy);
+    } catch (XError& e) {
+	ForwardError ("Draw", e, -1, _pendingFrameIId);
+    }
     _pendingFrame.clear();
     return (nf);
+}
+
+void CGLClient::ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept
+{
+    PRGLR* pcli = this;
+    try {
+	PRGLR errbuf (iid);
+	if (!pcli) {
+	    errbuf.SetFd (fd);
+	    pcli = &errbuf;
+	}
+	size_t bufsz = 16+strlen(cmdname)+2+strlen(e.what())+1;
+	char buf [bufsz];
+	snprintf (buf, bufsz, "%x %s: %s", iid, cmdname, e.what());
+	pcli->ForwardError (buf);
+	pcli->WriteCmds();
+    } catch (...) {}	// fd errors will be caught by poll
 }
 
 //----------------------------------------------------------------------
@@ -241,7 +265,6 @@ void CGLClient::BindBuffer (GLuint id) noexcept
 
 void CGLClient::BufferData (GLuint buf, const void* data, GLuint dsz, GLushort mode, GLushort btype)
 {
-    printf ("BufferData %u\n", buf);
     BindBuffer (buf);
     glBufferData (btype, dsz, data, mode);
 }

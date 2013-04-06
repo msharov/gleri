@@ -32,8 +32,7 @@ public:
     CGLClient*		ClientRecordForWindow (Window w) noexcept;
     void		CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn = nullptr);
     void		CloseClient (CGLClient* pcli) noexcept;
-    void		ClientDraw (CGLClient& cli, bstri cmdis);
-    void		ForwardError (PRGLR* pcli, const char* cmdname, const XError& e, int fd, iid_t iid) const noexcept;
+    void		ClientDraw (CGLClient& cli, bstri cmdis, iid_t iid);
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     Window		CreateWindow (rcwininfo_t winfo);

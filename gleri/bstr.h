@@ -119,7 +119,10 @@ inline bstri& bstri::operator>> (const char*& s)
     size_type sl;
     operator>> (sl);
     sl += align_size (++sl,4);
-    s = remaining() < sl ? nullptr : iptr<char>();
-    skip (sl);
+    s = iptr<char>();
+    if (sl > remaining())
+	s = nullptr;
+    else
+	skip (sl);
     return (*this);
 }

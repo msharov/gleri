@@ -79,10 +79,8 @@ namespace {
 
 /// Returns the number of elements in a static vector
 template <typename T, size_t N> constexpr inline size_t ArraySize (T(&)[N]) { return (N); }
-template <typename T> constexpr inline size_t ArraySize (T[0]) { return (0); }
 /// Returns the end() for a static vector
 template <typename T, size_t N> constexpr inline T* ArrayEnd (T(&a)[N]) { return (&a[N]); }
-template <typename T> constexpr inline T* ArrayEnd (T(&a)[0]) { return (a); }
 /// Expands into a ptr,size expression for the given static vector; useful as link arguments.
 #define ArrayBlock(v)	&(v)[0], ArraySize(v)
 /// Expands into a begin,end expression for the given static vector; useful for algorithm arguments.
