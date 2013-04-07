@@ -117,7 +117,7 @@ void CGLApp::OnFdError (int fd)
 {
     CApp::OnFdError (fd);
     if (fd != _srvbuf.Fd()) return;
-    printf ("gleris connection terminated\n");
+    syslog (LOG_NOTICE, GLERIS_NAME " connection terminated");
     Quit();
 }
 

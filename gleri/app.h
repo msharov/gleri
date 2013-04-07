@@ -8,6 +8,7 @@
 #include "rglrp.h"
 #include <sys/poll.h>
 #include <signal.h>
+#include <syslog.h>
 
 class CApp {
 public:
@@ -16,10 +17,9 @@ public:
 public:
     inline		CApp (void);
     static inline CApp&	Instance (void)		{ assert (gs_pApp); return (*gs_pApp); }
-    static inline const char* Name (void)	{ return (gs_Name); }
     static uint64_t	NowMS (void) noexcept;
     void		WaitForTime (uint64_t tms);
-    inline void		Init (argc_t, argv_t argv)	{ gs_Name = argv[0]; }
+    inline void		Init (argc_t, argv_t argv, int logfac = LOG_USER, int logopt = LOG_CONS| LOG_PERROR)	{ openlog (argv[0], logopt, logfac); }
     inline void		Quit (void) noexcept	{ _quitting = true; }
     int			Run (void);
 protected:
@@ -52,7 +52,6 @@ private:
     vector<uint64_t>	_timer;
     bool		_quitting;
     static CApp*	gs_pApp;
-    static const char*	gs_Name;
     static int		s_LastSignal;
 };
 
@@ -83,8 +82,7 @@ inline int Tmain (typename App::argc_t argc, typename App::argv_t argv)
 	app.Init (argc, argv);
 	ec = app.Run();
     } catch (XError& e) {
-	fflush (stdout);
-	fprintf (stderr, "%s: error: %s\n", argv[0], e.what());
+	syslog (LOG_ERR, e.what());
     }
     return (ec);
 }

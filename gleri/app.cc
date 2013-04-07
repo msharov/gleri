@@ -57,13 +57,12 @@ void hexdump (const void* pv, size_t n)
 //}}}-------------------------------------------------------------------
 
 /*static*/ CApp* CApp::gs_pApp = nullptr;
-/*static*/ const char* CApp::gs_Name = nullptr;
 /*static*/ int CApp::s_LastSignal = 0;
 
 /*static*/ void CApp::TerminateHandler (void) noexcept
 {
     alarm (1);
-    fprintf (stderr, "%s exiting on unexpected fatal error\n", Name());
+    syslog (LOG_ERR, "exiting on unexpected fatal error\n");
     exit (EXIT_FAILURE);
 }
 
@@ -75,11 +74,13 @@ void hexdump (const void* pv, size_t n)
 	return;
     static bool doubleSignal = false;
     bool bFirst = AtomicSet (&doubleSignal);
-    fprintf (stderr, "%s: signal: %s\n", Name(), strsignal(sig));
+    syslog (LOG_ERR, "signal: %s", strsignal(sig));
     #if HAVE_USTL_H && !defined(NDEBUG)
+    if (isatty(STDERR_FILENO)) {
 	CBacktrace bkt;
 	cerr << bkt;
 	cerr.flush();
+    }
     #endif
     if (bFirst)
 	exit (qc_ShellSignalQuitOffset+sig);

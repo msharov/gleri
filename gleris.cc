@@ -31,6 +31,7 @@ CGleris::CGleris (void) noexcept
 ,_glversion (0)
 ,_options (0)
 {
+    syslog (LOG_INFO, "gleris " GLERI_VERSTRING " started");
     XSetErrorHandler (XlibErrorHandler);
     XSetIOErrorHandler (XlibIOErrorHandler);
     snprintf (ArrayBlock(s_SocketPath), GLERIS_SOCKET, getenv("HOME"));
@@ -38,16 +39,16 @@ CGleris::CGleris (void) noexcept
 
 CGleris::~CGleris (void) noexcept
 {
+    if (_localSocket.IsOpen()) {
+	_localSocket.ForceClose();
+	unlink (s_SocketPath);
+    }
     for (auto& c : _cli)
 	DestroyClient (c);
     _cli.clear();
     if (_dpy) {
 	XSync (_dpy, True);
 	XCloseDisplay (_dpy);
-    }
-    if (_localSocket.IsOpen()) {
-	_localSocket.ForceClose();
-	unlink (s_SocketPath);
     }
 }
 
@@ -115,7 +116,8 @@ CCmdBuf* CGleris::LookupConnection (int fd) noexcept
 
 /*static*/ int CGleris::XlibIOErrorHandler (Display*) noexcept
 {
-    fprintf (stderr, "Error: connection to X server abnormally terminated\n");
+    syslog (LOG_ERR, "X server connection terminated");
+    Instance().OnXlibIOError();
     exit (EXIT_FAILURE);
 }
 
@@ -126,7 +128,7 @@ CCmdBuf* CGleris::LookupConnection (int fd) noexcept
 
 void CGleris::Init (argc_t argc, argv_t argv)
 {
-    CApp::Init (argc, argv);
+    CApp::Init (argc, argv, LOG_DAEMON, LOG_CONS);
     OnArgs (argc, argv);
     //
     // Connect to X display and get server information
@@ -209,6 +211,8 @@ void CGleris::Init (argc_t argc, argv_t argv)
     if (Option (opt_SingleClient))
 	AddConnection (STDIN_FILENO, true);
     else {
+	if (0 == access (s_SocketPath, F_OK))
+	    throw XError ("gleris is already running on socket %s", s_SocketPath);
 	_localSocket.Bind (s_SocketPath, GLERIS_LISTEN_QUEUE_SIZE);
 	WatchFd (_localSocket.Fd());
 	if (Option (opt_TCPSocket)) {
@@ -457,15 +461,16 @@ void CGleris::CloseClient (CGLClient* pcli) noexcept
 
 void CGleris::DestroyClient (CGLClient*& pc) noexcept
 {
-    ActivateClient (*pc);
-    _curCli = nullptr;
-    GLXContext ctx = pc->ContextId();
-    Window w = pc->Drawable();
+    if (_dpy) {
+	if (_curCli == pc) {
+	    glXMakeCurrent (_dpy, None, nullptr);
+	    _curCli = nullptr;
+	}
+	glXDestroyContext (_dpy, pc->ContextId());
+	XDestroyWindow (_dpy, pc->Drawable());
+    }
     delete pc;
     pc = nullptr;
-    glXMakeCurrent (_dpy, None, nullptr);
-    glXDestroyContext (_dpy, ctx);
-    XDestroyWindow (_dpy, w);
 }
 
 CGLClient* CGleris::ClientRecord (int fd, iid_t iid) noexcept

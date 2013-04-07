@@ -53,6 +53,7 @@ private:
     virtual void	OnTimer (uint64_t tms);
     static int		XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept;
     static int		XlibIOErrorHandler (Display*) noexcept NORETURN;
+    inline void		OnXlibIOError (void) { _dpy = nullptr; }
     static void		Error (const char* m) NORETURN;
 private:
     GLXFBConfig		_fbconfig;

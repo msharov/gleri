@@ -216,11 +216,13 @@ template <typename F>
     } catch (XError& e) {
 	clir->ForwardError (cmdname, e, cmdbuf.Fd(), h.iid);	// ok if clir == nullptr
 	#ifndef NDEBUG
+	if (isatty(STDIN_FILENO)) {
 	    uint16_t hsz = sizeof(SMsgHeader)+h.hsz;
 	    printf ("Failing command (hsz=0x%x,sz=0x%x):\n", hsz,h.sz); fflush(stdout);
 	    hexdump (is.ipos()-(hsz+h.sz), hsz+h.sz);
 	    printf ("Error at offset 0x%lx:\n", cmdis.ipos()-(is.ipos()-h.sz)); fflush(stdout);
 	    hexdump (cmdis.ipos(), cmdis.remaining());
+	}
 	#endif
     }
 }
