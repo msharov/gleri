@@ -440,6 +440,10 @@ void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn)
 	rcli.SetFd (piconn->Fd(), piconn->CanPassFd());
     ActivateClient (rcli);
     rcli.Init();
+
+    // Check for X errors in all of the above
+    XSync (_dpy, False);
+    OnXEvent();
 }
 
 inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
