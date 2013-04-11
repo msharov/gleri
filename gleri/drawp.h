@@ -27,6 +27,7 @@ private:
 	DefaultShader,
 	Clear,
 	Viewport,
+	Offset,
 	Shader,
 	Parameter,
 	Uniformf,
@@ -49,6 +50,7 @@ public:
     inline void		Color (color_t c)					{ Cmd (ECmd::Color, c); }
     inline void		Clear (color_t c = 0)					{ Cmd (ECmd::Clear, c); }
     inline void		Viewport (coord_t x, coord_t y, dim_t w, dim_t h)	{ Cmd (ECmd::Viewport, x,y,w,h); }
+    inline void		Offset (coord_t x, coord_t y)				{ Cmd (ECmd::Offset, x,y); }
     inline void		Shader (goid_t id)					{ Cmd (ECmd::Shader, id); }
     inline void		Text (coord_t x, coord_t y, const char* s)		{ Cmd (ECmd::Text, x, y, s); }
     inline void		Shape (G::EShape type, uint32_t start, uint32_t sz)	{ Cmd (ECmd::Shape, type, start, sz); }
@@ -142,6 +144,7 @@ template <typename F>
 	    case ECmd::Color: { color_t c; Args(is,c); f.Color(c); } break;
 	    case ECmd::Clear: { color_t c; Args(is,c); f.Clear(c); } break;
 	    case ECmd::Viewport: { coord_t x,y; dim_t w,h; Args(is,x,y,w,h); f.Viewport(x,y,w,h); } break;
+	    case ECmd::Offset: { coord_t x,y; Args(is,x,y); f.Offset(x,y); } break;
 	    case ECmd::Shader: { goid_t id; Args(is,id); f.Shader(f.LookupId(id)); } break;
 	    case ECmd::Text: { coord_t x,y; const char* s = nullptr; Args(is,x,y,s); if (s) f.Text(x,y,s); } break;
 	    case ECmd::Image: { coord_t x,y; goid_t s; Args(is,x,y,s); f.Sprite(x,y,f.LookupId(s)); } break;

@@ -163,7 +163,9 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.LineStrip (vb_BrokenLineOffset, vb_BrokenLineSize);
 
     drw.Image (200, 75, _walk);
-    drw.Sprite (_wx, _wy, _walk, _wsx, _wsy, walk_SpriteW, walk_SpriteH);
+    drw.Offset (_wx, _wy);
+    drw.Sprite (0, 0, _walk, _wsx, _wsy, walk_SpriteW, walk_SpriteH);
+    drw.Offset (0, 0);
 
     drw.Color (ARGB(0xc0804040));
     drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);

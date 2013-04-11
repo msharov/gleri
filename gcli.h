@@ -99,6 +99,7 @@ public:
     inline void			Color (GLubyte r, GLubyte g, GLubyte b, GLubyte a =255)	{ Color (RGBA(r,g,b,a)); }
     void			Clear (GLuint c) noexcept;
     void			Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept;
+    void			Offset (GLint x, GLint y) noexcept;
     void			Shape (GLenum mode, GLuint first, GLuint count) noexcept;
 				// Texture
     GLuint			LoadTexture (const GLubyte* d, GLuint dsz);

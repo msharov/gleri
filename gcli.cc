@@ -69,8 +69,13 @@ void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
     _proj[0][0] = 2.f/w;
     _proj[1][1] = -2.f/h;
     _proj[3][3] = 1.f;
-    _proj[3][0] = -float(w-1)/w;
-    _proj[3][1] = float(h-1)/h;
+    Offset (0, 0);
+}
+
+void CGLClient::Offset (GLint x, GLint y) noexcept
+{
+    _proj[3][0] = -float(_winfo.w-2*x-1)/_winfo.w;
+    _proj[3][1] = float(_winfo.h-2*y-1)/_winfo.h;
     UniformMatrix ("Transform", Proj());
 }
 
