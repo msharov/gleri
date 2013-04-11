@@ -143,6 +143,7 @@ private:
     GLuint			_curTexture;
     GLuint			_curFont;
     SWinInfo			_winfo;
+    struct { coord_t x,y,w,h; }	_viewport;
     iid_t			_pendingFrameIId;
     static const CGLClient*	s_RootClient;
 };

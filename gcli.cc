@@ -63,6 +63,10 @@ void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 
 void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 {
+    _viewport.x = x;
+    _viewport.y = y;
+    _viewport.w = w;
+    _viewport.h = h;
     glViewport (x,_winfo.h-y-h,w,h);
     glScissor (x,_winfo.h-y-h,w,h);
     memset (_proj, 0, sizeof(_proj));
@@ -74,8 +78,8 @@ void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 
 void CGLClient::Offset (GLint x, GLint y) noexcept
 {
-    _proj[3][0] = -float(_winfo.w-2*x-1)/_winfo.w;
-    _proj[3][1] = float(_winfo.h-2*y-1)/_winfo.h;
+    _proj[3][0] = -float(_viewport.w-2*x-1)/_viewport.w;
+    _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;
     UniformMatrix ("Transform", Proj());
 }
 
