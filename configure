@@ -88,11 +88,8 @@ int main (void)
     static const short bov=1;
     static const char boNames[2][8]={"BIG","LITTLE"};
     printf ("s/ \\?@INLINE_OPTS@/"
-#if __GNUC__ > 4 || (__GNUC__ == 4 && __GNUC_MINOR__ >= 2)
-    " -march=native"
-#endif
 #if __GNUC__ >= 4
-    " -fvisibility-inlines-hidden -fno-threadsafe-statics"
+    " -fvisibility-inlines-hidden -fno-threadsafe-statics -fno-enforce-eh-specs"
 #endif
     "/g\n");
 #if __GNUC__ || defined(__GLIBC_HAVE_LONG_LONG)
