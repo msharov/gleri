@@ -249,7 +249,7 @@ void CGleris::OnXEvent (void)
 	XNextEvent(_dpy,&xev);
 
 	CGLClient* icli = ClientRecordForWindow (xev.xany.window);
-	if (!icli) break;
+	if (!icli) continue;
 
 	if (xev.type == Expose)
 	    icli->Draw();

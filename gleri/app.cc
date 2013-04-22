@@ -160,11 +160,7 @@ inline void CApp::WaitForFdsAndTimers (void)
 
 int CApp::Run (void)
 {
-    // Run until Quit()
-    while (!_quitting) {
-	if (CheckForQuitSignal())
-	    break;
+    while (!_quitting && !CheckForQuitSignal())
 	WaitForFdsAndTimers();
-    }
     return (EXIT_SUCCESS);
 }
