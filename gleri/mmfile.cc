@@ -130,16 +130,16 @@ void CFile::SendFd (CFile& f)
 
     // Get a pointer to the cm field and set as a SCM_RIGHTS message
     cmsghdr* cmptr = CMSG_FIRSTHDR(&msg);
-    cmptr->cmsg_len = CMSG_LEN(sizeof(fdpasspayload_t));
+    cmptr->cmsg_len = CMSG_LEN(sizeof(int));
     cmptr->cmsg_level = SOL_SOCKET;
     cmptr->cmsg_type = SCM_RIGHTS;
-    *((fdpasspayload_t*) CMSG_DATA (cmptr)) = f.Fd();
+    *((int*) CMSG_DATA (cmptr)) = f.Fd();
     msg.msg_name = nullptr;
     msg.msg_namelen = 0;
 
     // File descriptors must be sent with some data, so send a zero int
     iovec iov;
-    int zerodata = 0;
+    uint64_t zerodata = 0;
     iov.iov_base = &zerodata;
     iov.iov_len = sizeof(zerodata);
     msg.msg_iov = &iov;
@@ -181,11 +181,11 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
     }
 
     cmsghdr* cmptr = CMSG_FIRSTHDR(&msg);
-    if (cmptr && cmptr->cmsg_len == CMSG_LEN(sizeof(fdpasspayload_t))) {
-	int fd = *((fdpasspayload_t*) CMSG_DATA (cmptr));
+    if (cmptr && cmptr->cmsg_len == CMSG_LEN(sizeof(int))) {
+	int fd = *((int*) CMSG_DATA (cmptr));
 	if (fd < 0)
 	    Error ("fdpass");
-	*(int*)((char*)p+br-sizeof(int)) = fd;
+	*(int*)((char*)p+br-8) = fd;
     }
     return (br);
 }

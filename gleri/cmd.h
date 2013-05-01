@@ -34,6 +34,7 @@ public:
     };
 protected:
     enum : cmd_t { InvalidCmd = UINT_MAX };
+    enum { c_MsgAlignment = 8 };
 protected:
     static inline bstrs& variadic_arg_size (bstrs& ss)
 	{ return (ss); }
@@ -59,7 +60,7 @@ protected:
 
 class CCmdBuf : public CCmd {
 public:
-    inline explicit		CCmdBuf (iid_t iid=0) noexcept	:_buf(nullptr),_sz(0),_used(0),_outf(),_recvf(),_recvSize(0),_iid(iid),_bFdPass(false) {}
+    inline explicit		CCmdBuf (iid_t iid=0) noexcept	:_buf(nullptr),_sz(0),_used(0),_outf(),_iid(iid),_bFdPass(false) {}
     inline			~CCmdBuf (void) noexcept	{ if(_buf) free(_buf); _outf.Detach(); }
     inline iid_t		IId (void) const		{ return (_iid); }
     inline int			Fd (void) const			{ return (_outf.Fd()); }
@@ -71,24 +72,14 @@ public:
     void			WriteCmds (void);
     inline bstri		BeginRead (void) const		{ return (bstri(_buf,_used)); }
     inline void			EndRead (const bstri& is)	{ EndRead(is.ipos()); }
-    void			SendFile (CFile& f);
-    bstri			ReceiveFileOpen (bstri& is);
-    void			ReceiveFileClose (void);
-    inline size_t		ReceiveTotalSize (void) const	{ return (_recvSize); }
-    inline bool			ReceiveComplete (void) const	{ return (_recvf.MMSize() == ReceiveTotalSize()); }
     template <typename T, typename MProc>
     inline void			ProcessMessages (T& o, MProc f);
 protected:
-    bstro			CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz) noexcept;
+    bstro			CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz, size_type unwritten = 0) noexcept;
+    void			SendFile (CFile& f, uint32_t fsz);
     static const char*		LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept;
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
     static void			Error (void)			{ throw XError ("protocol error"); }
-private:
-    struct SSendFileHeader {
-	uint64_t		totalSize;
-	uint64_t		sizeInThisPacket;
-        uint64_t		startOffset;
-    };
 private:
     static inline const char*	nextname (const char* n, size_type& sz) noexcept;
     static inline bool		namecmp (const void* s1, const void* s2, size_type n) noexcept;
@@ -103,8 +94,6 @@ private:
     size_type			_sz;
     size_type			_used;
     CFile			_outf;
-    CTmpfile			_recvf;
-    size_t			_recvSize;
     iid_t			_iid;
     bool			_bFdPass;
 };
@@ -135,20 +124,16 @@ inline void CCmdBuf::ProcessMessages (T& o, MProc f)
 {
     bstri is = BeginRead();
     while (is.remaining() >sizeof(SMsgHeader)) {// While have commands
-	auto ihdr = is.ipos();			// Save header start for return
-	SMsgHeader h;
-	is >> h;
+	const SMsgHeader& h = *is.iptr<SMsgHeader>();
 	unsigned btodata = h.hsz-sizeof(SMsgHeader);
-	if (is.remaining() < btodata+h.sz) {
-	    is.iseek (ihdr);			// Restart at header
+	if (is.remaining() < btodata+h.sz)
 	    break;
-	}
+	is.skip (sizeof(SMsgHeader));
 	const char* cmdname = (const char*) is.ipos();
 	is.skip (btodata);
 	bstri cmdis (is.ipos(), h.sz);		// Command data stream
 	is.skip (h.sz);				// Skip to next command
-
-	f (o, h, cmdname, *this, is, cmdis);
+	f (o, h, cmdname, *this, cmdis);
     }
     EndRead(is);
 }

@@ -77,22 +77,23 @@ inline CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
     return (end());
 }
 
-bstro CCmdBuf::CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz) noexcept
+bstro CCmdBuf::CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz, size_type unwritten) noexcept
 {
+    assert (!unwritten || sz-unwritten == Align(sz-unwritten,c_MsgAlignment));
     SMsgHeader h = {
-	Align(sz,8),
+	Align(sz,c_MsgAlignment),
 	_iid,
 	(uint16_t) (m[msz-2] == 'h' ? sz-sizeof(int) : UINT16_MAX),
-	(uint8_t) Align(sizeof(SMsgHeader)+msz,8),
+	(uint8_t) Align(sizeof(SMsgHeader)+msz,c_MsgAlignment),
 	GLERI_PROTOCOL_VERSION,
 	o
     };
-    const size_type cmdsz = h.hsz+h.sz;
+    const size_type cmdsz = h.hsz+Align(sz-unwritten,c_MsgAlignment);
     pointer pip = addspace (cmdsz);
     bstro os (pip,cmdsz);
     os << h;
     os.write (m, msz);
-    os.align (8);
+    os.align (c_MsgAlignment);
     _used += cmdsz;
     return (os);
 }
@@ -124,58 +125,16 @@ void CCmdBuf::WriteCmds (void)
     EndRead (is);
 }
 
-void CCmdBuf::SendFile (CFile& f)
+void CCmdBuf::SendFile (CFile& f, uint32_t fsz)
 {
     WriteCmds();
     if (CanPassFd())
 	_outf.SendFd (f);
     else {
-	SSendFileHeader header;
-	header.totalSize = header.sizeInThisPacket = f.Size(); header.startOffset = 0;
-	_outf.Write (&header, sizeof(header));
-	f.SendfileTo (_outf, header.sizeInThisPacket);
+	_outf.Write (&fsz, sizeof(fsz));
+	f.SendfileTo (_outf, fsz);
+	uint64_t zeropad = 0;
+	uint32_t alignedSize = Align(sizeof(fsz)+fsz, c_MsgAlignment);
+	_outf.Write (&zeropad, alignedSize-(sizeof(fsz)+fsz));
     }
-}
-
-bstri CCmdBuf::ReceiveFileOpen (bstri& is)
-{
-    const size_t hsize = CanPassFd() ? sizeof(int) : sizeof(SSendFileHeader);
-    for (; is.remaining() < hsize; is = BeginRead()) {
-	EndRead (is);
-	ReadCmds();
-    }
-    if (CanPassFd()) {
-	int fd;
-	is >> fd;
-	_recvf.Attach (fd);
-    } else {
-	SSendFileHeader header;
-	is.read (&header, sizeof(header));
-	if (header.totalSize <= is.remaining()) {
-	    bstri fis (is.ipos(), header.totalSize);
-	    is.skip (header.totalSize);
-	    return (fis);
-	}
-	if (!_recvf.IsOpen()) {
-	    _recvf.Open();
-	    _recvSize = header.totalSize;
-	}
-	_recvf.Write (is.ipos(), is.remaining());
-	loff_t fsz = header.sizeInThisPacket-is.remaining();
-	is.skip (is.remaining());
-	_outf.CopyTo (_recvf, fsz);
-    }
-    _recvf.Map();
-    if (CanPassFd())
-	_recvSize = _recvf.MMSize();
-    return (bstri (_recvf.MMData(), _recvf.MMSize()));
-}
-
-void CCmdBuf::ReceiveFileClose (void)
-{
-    if (ReceiveComplete()) {
-	_recvf.Close();
-	_recvSize = 0;
-    } else
-	_recvf.Unmap();
 }

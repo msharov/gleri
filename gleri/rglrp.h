@@ -35,7 +35,7 @@ public:
     inline void			SetFd (int fd, bool pfd=false)	{ CCmdBuf::SetFd(fd,pfd); }
 				// Reading interface
     template <typename F>
-    static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri& is, bstri cmdis);
+    static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis);
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
     static inline void		Error (void)			{ CCmdBuf::Error(); }
@@ -75,7 +75,7 @@ template <typename... Arg>
 //{{{ Read parser
 
 template <typename F>
-/*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri&, bstri cmdis)
+/*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis)
 {
     auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);
     if (h.objname != RGLRObject || !clir)	// Not for me

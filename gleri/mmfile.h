@@ -54,10 +54,9 @@ protected:
     void		BindStream (const sockaddr* sa, socklen_t sasz, unsigned backlog = c_DefaultBacklog);
     bool		ConnectStream (const sockaddr* sa, socklen_t sasz);
 private:
-    typedef long	fdpasspayload_t;
     union fdpassheader {
-	cmsghdr cm;						// Header
-	char control [CMSG_SPACE(sizeof(fdpasspayload_t))];	// Header+Payload
+	cmsghdr cm;				// Header
+	char control [CMSG_SPACE(sizeof(int))];	// Header+Payload
     };
 private:
     int			_fd;
@@ -73,6 +72,7 @@ public:
     typedef const value_type*	const_pointer;
 public:
     inline			CMMFile (void) noexcept		: CFile(),_sz(0),_p(nullptr) { }
+    inline			CMMFile (int fd)		: CFile(fd),_sz(Size()),_p((pointer) CFile::Map(_sz)) { }
     inline explicit		CMMFile (const char* filename)	: CFile(),_sz(0),_p(nullptr) { Open (filename); }
     inline			~CMMFile (void) noexcept	{ Unmap(); }
     inline void			Open (const char* filename)	{ CFile::Open (filename, O_RDONLY); Map(); }

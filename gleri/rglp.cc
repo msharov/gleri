@@ -14,8 +14,8 @@
      N(Open,(nnqqyyyy))
      N(Close,)
      N(Draw,ay)
-     N(LoadResource,uqqay)
-     N(LoadFile,uqqh)
+     N(LoadResource,uqquuay)
+     N(LoadResource,uqquuh)
      N(FreeResource,uq)
      N(BufferSubData,uqquay)
 ;
@@ -31,19 +31,24 @@
     return (ECmd(CCmdBuf::LookupCmd(name,bleft,ArrayBlock(_cmdNames)-1)));
 }
 
-bstro PRGL::CreateCmd (ECmd cmd, size_type sz) noexcept
+bstro PRGL::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
 {
     size_type msz;
     const char* m = LookupCmdName (cmd, msz);
-    return (CCmdBuf::CreateCmd (RGLObject, m, msz, sz));
+    return (CCmdBuf::CreateCmd (RGLObject, m, msz, sz, unwritten));
 }
 
-uint32_t PRGL::LoadTexture (const char* filename)
+PRGL::goid_t PRGL::LoadFile (const char* filename, G::EResource dtype, G::EBufferHint hint)
 {
-    uint32_t id = GenId();
+    goid_t id = GenId();
     CFile f (filename, O_RDONLY);
-    Cmd (ECmd::LoadFile, id, G::EResource::TEXTURE, G::STATIC_DRAW, f.Fd());
-    SendFile (f);
+    uint32_t dsz = f.Size(), fsz = sizeof(int);
+    ECmd cmd = ECmd::LoadFile;
+    if (!CanPassFd()) {
+	fsz = Align(sizeof(dsz)+dsz,c_MsgAlignment);
+	cmd = ECmd::LoadResource;
+    }
+    CmdU (cmd, fsz, id, dtype, hint, dsz, uint32_t(0));
+    SendFile (f, dsz);
     return (id);
 }
-

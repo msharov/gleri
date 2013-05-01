@@ -62,7 +62,7 @@ public:
     inline goid_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline void			BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0, G::EBufferType btype = G::ARRAY_BUFFER, G::EBufferHint hint = G::STATIC_DRAW);
     inline void			FreeBuffer (goid_t id);
-    goid_t			LoadTexture (const char* f);
+    inline goid_t		LoadTexture (const char* f);
     inline void			FreeTexture (goid_t id);
     inline goid_t		LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f);
     inline goid_t		LoadShader (const char* v, const char* tc, const char* te, const char* f);
@@ -71,19 +71,22 @@ public:
     inline void			FreeShader (goid_t id);
 				// Buffer reading for serialization
     template <typename F>
-    static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri& is, bstri cmdis);
+    static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis);
     static inline void		Error (void)			{ CCmdBuf::Error(); }
 private:
     template <typename... Arg>
     inline void			Cmd (ECmd cmd, const Arg&... args);
     template <typename... Arg>
+    inline void			CmdU (ECmd cmd, size_type unwritten, const Arg&... args);
+    template <typename... Arg>
     static inline void		Args (bstri& is, Arg&... args);
-    bstro			CreateCmd (ECmd cmd, size_type sz) noexcept;
+    bstro			CreateCmd (ECmd cmd, size_type sz, size_type unwritten = 0) noexcept;
     inline goid_t		GenId (void)			{ return (++_nextid); }
     static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
     static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
 				// Generic loader interface
     inline goid_t		LoadResource (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW);
+    goid_t			LoadFile (const char* filename, G::EResource dtype, G::EBufferHint hint = G::STATIC_DRAW);
     inline void			FreeResource (goid_t id, G::EResource dtype);
 private:
     goid_t			_nextid;
@@ -101,12 +104,21 @@ inline void PRGL::Cmd (ECmd cmd, const Arg&... args)
     variadic_arg_write (os, args...);
 }
 
+template <typename... Arg>
+inline void PRGL::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
+{
+    bstrs ss;
+    variadic_arg_size (ss, args...);
+    bstro os = CreateCmd (cmd, ss.size()+unwritten, unwritten);
+    variadic_arg_write (os, args...);
+}
+
 inline PRGL::draww_t PRGL::Draw (size_type sz)
     { bstro os = CreateCmd (ECmd::Draw,sz+sizeof(size_type)); os << sz; return (draww_t(os)); }
 inline void PRGL::BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset, G::EBufferType btype, G::EBufferHint hint)
     { Cmd (ECmd::BufferSubData, id, btype, hint, offset, SDataBlock (data, dsz)); }
 inline PRGL::goid_t PRGL::LoadResource (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint)
-    { goid_t id = GenId(); Cmd (ECmd::LoadResource, id, dtype, hint, SDataBlock (data, dsz)); return (id); }
+    { goid_t id = GenId(); Cmd (ECmd::LoadResource, id, dtype, hint, uint32_t(0), uint32_t(0), SDataBlock (data, dsz)); return (id); }
 inline void PRGL::FreeResource (goid_t id, G::EResource dtype)
     { Cmd (ECmd::FreeResource, id, dtype); }
 
@@ -114,6 +126,8 @@ inline PRGL::goid_t PRGL::BufferData (const void* data, uint32_t dsz, G::EBuffer
     { return (LoadResource (G::EResource(btype-unsigned(G::ARRAY_BUFFER)), data, dsz, hint)); }
 inline void PRGL::FreeBuffer (goid_t id)
     { FreeResource (id, G::EResource::VERTEX_ARRAY); }
+inline uint32_t PRGL::LoadTexture (const char* filename)
+    { return (LoadFile (filename, G::EResource::TEXTURE)); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, G::EResource::TEXTURE); }
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
@@ -125,10 +139,10 @@ inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* tc, const char*
     G::EBufferHint hint = G::STATIC_DRAW;
     bstrs ss;
     const uint32_t shdsz = strlen(v)+1+strlen(tc)+1+strlen(te)+1+strlen(g)+1+strlen(f)+1;
-    ss << id << dtype << hint << shdsz;
+    ss << id << dtype << hint << uint32_t(0) << uint32_t(0) << shdsz;
     ss.write_strz (v); ss.write_strz (tc); ss.write_strz (te); ss.write_strz (g); ss.write_strz (f);
     bstro os = CreateCmd (ECmd::LoadResource, ss.size());
-    os << id << dtype << hint << shdsz;
+    os << id << dtype << hint << uint32_t(0) << uint32_t(0) << shdsz;
     os.write_strz (v); os.write_strz (tc); os.write_strz (te); os.write_strz (g); os.write_strz (f);
     return (id);
 }
@@ -154,7 +168,7 @@ template <typename... Arg>
 }
 
 template <typename F>
-/*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri& is, bstri cmdis)
+/*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis)
 {
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
     try {
@@ -177,8 +191,8 @@ template <typename F>
 		f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz), h.iid);
 		} break;
 	    case ECmd::LoadResource: {
-		goid_t id; G::EBufferHint hint; G::EResource dtype; SDataBlock d;
-		Args (cmdis, id, dtype, hint, d);
+		goid_t id; G::EBufferHint hint; G::EResource dtype; uint32_t tsz, toff; SDataBlock d;
+		Args (cmdis, id, dtype, hint, tsz, toff, d);
 		uint32_t sid = clir->LookupId (id);
 		if (sid != UINT32_MAX)
 		    clir->FreeResource (dtype, sid);
@@ -186,17 +200,15 @@ template <typename F>
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::LoadFile: {
-		goid_t id; uint32_t dsz; G::EBufferHint hint; G::EResource dtype;
-		Args (cmdis, id, dtype, hint, dsz);
-		bstri dfis = cmdbuf.ReceiveFileOpen (is);
-		if (cmdbuf.ReceiveComplete()) {
-		    uint32_t sid = clir->LookupId (id);
-		    if (sid != UINT32_MAX)
-			clir->FreeResource (dtype, sid);
-		    sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
-		    clir->MapId (id, sid);
-		}
-		cmdbuf.ReceiveFileClose();
+		goid_t id; G::EBufferHint hint; G::EResource dtype; uint32_t tsz, toff; int fd;
+		Args (cmdis, id, dtype, hint, tsz, toff, fd);
+		CMMFile recvf (fd);
+		bstri dfis (recvf.MMData(), recvf.MMSize());
+		uint32_t sid = clir->LookupId (id);
+		if (sid != UINT32_MAX)
+		    clir->FreeResource (dtype, sid);
+		sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
+		clir->MapId (id, sid);
 		} break;
 	    case ECmd::FreeResource: {
 		goid_t id; G::EResource dtype;
