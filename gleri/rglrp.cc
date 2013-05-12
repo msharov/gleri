@@ -7,8 +7,7 @@
 
 #define N(n,s)	#n "\0" #s "\0"
 /*static*/ const char PRGLR::_cmdNames[] =
-     "\0"	// Dirty trick: object name is 4 bytes, but must be zero terminated
-     N(GLError,s)
+     N(Error,s)
      N(Restate,(nnqqyyyy))
      N(Expose,)
      N(Event,(unnuu))
