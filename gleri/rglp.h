@@ -236,6 +236,7 @@ template <typename F>
 	    hexdump (cmdis.ipos(), cmdis.remaining());
 	}
 	#endif
+	f.CloseClient (clir);
     }
 }
 
