@@ -137,3 +137,12 @@ void CCmdBuf::SendFile (CFile& f, uint32_t fsz)
 	_outf.Write (&zeropad, alignedSize-(sizeof(fsz)+fsz));
     }
 }
+
+void CCmdBuf::ForwardError (const char* m)
+{
+    static const char c_ErrorMethod[] = "Error\0s";
+    bstrs ss;
+    variadic_arg_size (ss, m);
+    bstro os = CreateCmd (COMObject, ArrayBlock(c_ErrorMethod), ss.size());
+    variadic_arg_write (os, m);
+}

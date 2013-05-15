@@ -231,8 +231,8 @@ template <typename F>
 	if (isatty(STDIN_FILENO)) {
 	    uint16_t hsz = sizeof(SMsgHeader)+h.hsz;
 	    printf ("Failing command (hsz=0x%x,sz=0x%x):\n", hsz,h.sz); fflush(stdout);
-	    hexdump (is.ipos()-(hsz+h.sz), hsz+h.sz);
-	    printf ("Error at offset 0x%lx:\n", cmdis.ipos()-(is.ipos()-h.sz)); fflush(stdout);
+	    hexdump (cmdis.ipos()-(hsz+h.sz), hsz+h.sz);
+	    printf ("Error at offset 0x%lx:\n", cmdis.ipos()-(cmdis.ipos()-h.sz)); fflush(stdout);
 	    hexdump (cmdis.ipos(), cmdis.remaining());
 	}
 	#endif

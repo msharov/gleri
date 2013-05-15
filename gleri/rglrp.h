@@ -30,7 +30,7 @@ public:
     inline void			Restate (rcwininfo_t winfo)	{ Cmd(ECmd::Restate,winfo); }
     inline void			Draw (void)			{ Cmd(ECmd::Draw); }
     inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }
-    inline void			ForwardError (const char* m)	{ Cmd(ECmd::Error,m); }
+    inline void			ForwardError (const char* m)	{ CCmdBuf::ForwardError(m); }
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool pfd=false)	{ CCmdBuf::SetFd(fd,pfd); }
 				// Reading interface
@@ -78,7 +78,7 @@ template <typename F>
 /*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis)
 {
     auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);
-    if (h.objname != RGLRObject || !clir)	// Not for me
+    if ((h.objname != RGLRObject && h.objname != COMObject) || !clir)	// Not for me
 	Error();
     switch (LookupCmd (cmdname, h.hsz)) {
 	case ECmd::Error:	{ const char* m = nullptr; Args(cmdis,m); clir->OnError(m); } break;

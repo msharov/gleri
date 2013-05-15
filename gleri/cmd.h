@@ -32,6 +32,7 @@ public:
 	inline		SDataBlock (const void* p, size_type sz):_p(p),_sz(sz) {}
     };
 protected:
+    enum : uint32_t { COMObject = RGBA('C','O','M',0) };
     enum : cmd_t { InvalidCmd = UINT_MAX };
     enum { c_MsgAlignment = 8 };
 protected:
@@ -67,6 +68,7 @@ public:
     inline bool			CanPassFd (void) const		{ return (_bFdPass); }
     inline size_type		size (void) const		{ return (_used); }
     inline size_type		capacity (void) const		{ return (_sz); }
+    void			ForwardError (const char* m);
     void			ReadCmds (void);
     void			WriteCmds (void);
     inline bstri		BeginRead (void) const		{ return (bstri(_buf,_used)); }
