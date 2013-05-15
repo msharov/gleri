@@ -140,7 +140,7 @@ void CGLClient::ForwardError (const char* cmdname, const XError& e, int fd, iid_
 	}
 	size_t bufsz = 16+strlen(cmdname)+2+strlen(e.what())+1;
 	char buf [bufsz];
-	snprintf (buf, bufsz, "%x %s: %s", iid, cmdname, e.what());
+	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
 	pcli->ForwardError (buf);
 	pcli->WriteCmds();
     } catch (...) {}	// fd errors will be caught by poll
