@@ -21,9 +21,8 @@ public:
     struct SMsgHeader {
 	size_type	sz;
 	iid_t		iid;
-	uint16_t	fdoffset;
+	uint8_t		fdoffset;
 	uint8_t		hsz;
-	uint8_t		protover;
 	uint32_t	objname;
     };
     struct SDataBlock {

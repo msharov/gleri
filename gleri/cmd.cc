@@ -83,9 +83,8 @@ bstro CCmdBuf::CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz
     SMsgHeader h = {
 	Align(sz,c_MsgAlignment),
 	_iid,
-	(uint16_t) (m[msz-2] == 'h' ? sz-sizeof(int) : UINT16_MAX),
+	(uint8_t) (m[msz-2] == 'h' ? sz-sizeof(int) : UINT8_MAX),
 	(uint8_t) Align(sizeof(SMsgHeader)+msz,c_MsgAlignment),
-	GLERI_PROTOCOL_VERSION,
 	o
     };
     const size_type cmdsz = h.hsz+Align(sz-unwritten,c_MsgAlignment);
