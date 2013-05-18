@@ -322,14 +322,14 @@ void CGLClient::Shader (GLuint id) noexcept
     Color (Color());
 }
 
-void CGLClient::Parameter (const char* varname, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride)
+void CGLClient::Parameter (const char* varname, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
     Parameter (glGetAttribLocation (Shader(), varname), buf, type, nels, offset, stride);
 }
 
-void CGLClient::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride)
+void CGLClient::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
-    BindBuffer (buf);
+    BindBuffer (buf, G::ARRAY_BUFFER);
     if (slot >= 16) return;
     glEnableVertexAttribArray (slot);
     glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));

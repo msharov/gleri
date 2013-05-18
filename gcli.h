@@ -89,8 +89,8 @@ public:
     inline void			SetTextureShader (void) noexcept	{ assert (s_RootClient); Shader (s_RootClient->TextureShader()); }
     inline void			SetFontShader (void) noexcept		{ assert (s_RootClient); Shader (s_RootClient->FontShader()); }
     void			Shader (GLuint id) noexcept;
-    void			Parameter (const char* name, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0);
-    void			Parameter (GLuint slot, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0);
+    void			Parameter (const char* name, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
+    void			Parameter (GLuint slot, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
     void			Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept;
     inline void			Uniform4fv (const char* varname, const GLfloat* v) const noexcept	{ Uniform4f(varname,v[0],v[1],v[2],v[3]); }
     void			Uniform4iv (const char* varname, const GLint* v) const noexcept;
