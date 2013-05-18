@@ -72,11 +72,12 @@ public:
     void			FreeDatapak (GLuint id);
     const CDatapak*		Datapak (GLuint id) const;
 				// Buffer
-    GLuint			CreateBuffer (void) noexcept;
-    void			BindBuffer (GLuint id) noexcept;
+    GLuint			CreateBuffer (G::EBufferType btype = G::ARRAY_BUFFER) noexcept;
+    void			BindBuffer (GLuint id);
+    void			BindBuffer (GLuint id, G::EBufferType btype) noexcept;
     void			FreeBuffer (GLuint buf) noexcept;
-    void			BufferSubData (GLuint buf, const void* data, GLuint size, GLuint offset = 0, GLushort btype = GL_ARRAY_BUFFER);
-    void			BufferData (GLuint buf, const void* data, GLuint size, GLushort mode = GL_STATIC_DRAW, GLushort btype = GL_ARRAY_BUFFER);
+    void			BufferSubData (GLuint buf, const void* data, GLuint size, GLuint offset = 0, G::EBufferType btype = G::ARRAY_BUFFER);
+    void			BufferData (GLuint buf, const void* data, GLuint size, G::EBufferHint mode = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
 				// Shader
     GLuint			LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f);
     GLuint			LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f);
@@ -88,8 +89,8 @@ public:
     inline void			SetTextureShader (void) noexcept	{ assert (s_RootClient); Shader (s_RootClient->TextureShader()); }
     inline void			SetFontShader (void) noexcept		{ assert (s_RootClient); Shader (s_RootClient->FontShader()); }
     void			Shader (GLuint id) noexcept;
-    void			Parameter (const char* name, GLuint buf, GLenum type = GL_SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
-    void			Parameter (GLuint slot, GLuint buf, GLenum type = GL_SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
+    void			Parameter (const char* name, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0);
+    void			Parameter (GLuint slot, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0);
     void			Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept;
     inline void			Uniform4fv (const char* varname, const GLfloat* v) const noexcept	{ Uniform4f(varname,v[0],v[1],v[2],v[3]); }
     void			Uniform4iv (const char* varname, const GLint* v) const noexcept;
@@ -100,7 +101,40 @@ public:
     void			Clear (GLuint c) noexcept;
     void			Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept;
     void			Offset (GLint x, GLint y) noexcept;
-    void			Shape (GLenum mode, GLuint first, GLuint count) noexcept;
+				// DrawArrays and friends
+    void			DrawCmdInit (void) noexcept;
+    void			DrawArrays (G::EShape mode, GLuint first, GLuint count) noexcept	{ glDrawArrays (mode,first,count); }
+    inline void			DrawArraysIndirect (G::EShape type, uint32_t offset = 0) noexcept	{ glDrawArraysIndirect (type, BufferOffset(offset)); }
+    inline void			DrawArraysInstanced (G::EShape type, uint32_t start, uint32_t sz, uint32_t nInstances, uint32_t baseInstance = 0) noexcept {
+				    if (baseInstance)
+					glDrawArraysInstancedBaseInstance (type, start, sz, nInstances, baseInstance);
+				    else
+					glDrawArraysInstanced (type, start, sz, nInstances);
+				}
+    inline void			DrawElements (G::EShape type, uint16_t n, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0) noexcept {
+				    if (baseVertex)
+					glDrawElementsBaseVertex (type, n, itype, BufferOffset(offset), baseVertex);
+				    else
+					glDrawElements (type, n, itype, BufferOffset(offset));
+				}
+    inline void			DrawElementsIndirect (G::EShape type, G::EType itype = G::UNSIGNED_SHORT, uint16_t offset = 0) noexcept
+				    { glDrawElementsIndirect (type, itype, BufferOffset(offset)); }
+    inline void			DrawElementsInstanced (G::EShape type, uint16_t n, uint32_t nInstances, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0, uint32_t baseInstance = 0) noexcept {
+				    if (baseVertex && baseInstance)
+					glDrawElementsInstancedBaseVertexBaseInstance (type, n, itype, BufferOffset(offset), nInstances, baseVertex, baseInstance);
+				    else if (baseVertex)
+					glDrawElementsInstancedBaseVertex (type, n, itype, BufferOffset(offset), nInstances, baseVertex);
+				    else if (baseInstance)
+					glDrawElementsInstancedBaseInstance (type, n, itype, BufferOffset(offset), nInstances, baseInstance);
+				    else
+					glDrawElementsInstanced (type, n, itype, BufferOffset(offset), nInstances);
+				}
+    inline void			DrawRangeElements (G::EShape type, uint16_t minel, uint16_t maxel, uint16_t n, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0) noexcept {
+				    if (baseVertex)
+					glDrawRangeElementsBaseVertex (type, minel, maxel, n, itype, BufferOffset(offset), baseVertex);
+				    else
+					glDrawRangeElements (type, minel, maxel, n, itype, BufferOffset(offset));
+				}
 				// Texture
     GLuint			LoadTexture (const GLubyte* d, GLuint dsz);
     GLuint			LoadTexture (const char* filename);
@@ -116,6 +150,7 @@ public:
     const CFont*		Font (GLuint id) const noexcept;
     void			Text (coord_t x, coord_t y, const char* s);
 private:
+    static inline const void*	BufferOffset (unsigned o)	{ return ((const void*)(uintptr_t(o))); }
 				// Shared resources
     inline GLuint		DefaultShader (void) const	{ assert (s_RootClient == this && _shader.size() > 0); return (_shader[0].Id()); }
     inline GLuint		TextureShader (void) const	{ assert (s_RootClient == this && _shader.size() > 1); return (_shader[1].Id()); }

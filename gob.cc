@@ -9,7 +9,7 @@
 
 //----------------------------------------------------------------------
 
-CBuffer::CBuffer (GLXContext ctx) noexcept : CGObject(ctx, GenId()) {}
+CBuffer::CBuffer (GLXContext ctx, G::EBufferType btype) noexcept : CGObject(ctx, GenId()), _btype(btype) {}
 CBuffer::~CBuffer (void) noexcept
     { GLuint id = Id(); if (id != NoObject) glDeleteBuffers (1, &id); }
 

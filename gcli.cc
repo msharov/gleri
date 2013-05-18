@@ -180,10 +180,6 @@ GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
 {
     GLuint sid = UINT_MAX;
     switch (dtype) {
-	case G::EResource::VERTEX_ARRAY:
-	case G::EResource::INDEX_ARRAY:
-	    BufferData (sid = CreateBuffer(), d, dsz, hint, G::ARRAY_BUFFER+unsigned(dtype)); break;
-	    break;
 	case G::EResource::DATAPAK:
 	    sid = LoadDatapak (d, dsz);
 	    break;
@@ -204,7 +200,8 @@ GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
 	    sid = LoadFont (d, dsz);
 	    break;
 	default:
-	    Error();
+	    BufferData (sid = CreateBuffer(G::EBufferType(dtype)), d, dsz, hint, G::EBufferType(dtype)); break;
+	    break;
     }
     return (sid);
 }
@@ -212,13 +209,11 @@ GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
 void CGLClient::FreeResource (G::EResource dtype, GLuint id)
 {
     switch (dtype) {
-	case G::EResource::VERTEX_ARRAY:
-	case G::EResource::INDEX_ARRAY:	FreeBuffer (id);	break;
 	case G::EResource::DATAPAK:	FreeDatapak (id);	break;
 	case G::EResource::SHADER:	FreeShader (id);	break;
 	case G::EResource::TEXTURE:	FreeTexture (id);	break;
 	case G::EResource::FONT:	FreeFont (id);		break;
-	default:			Error();
+	default:			FreeBuffer (id);	break;
     }
 }
 
@@ -252,9 +247,9 @@ const CDatapak* CGLClient::Datapak (GLuint id) const
 //----------------------------------------------------------------------
 // Buffer
 
-GLuint CGLClient::CreateBuffer (void) noexcept
+GLuint CGLClient::CreateBuffer (G::EBufferType btype) noexcept
 {
-    return (_buffer.emplace (_buffer.end(), ContextId())->Id());
+    return (_buffer.emplace (_buffer.end(), ContextId(), btype)->Id());
 }
 
 void CGLClient::FreeBuffer (GLuint buf) noexcept
@@ -264,23 +259,32 @@ void CGLClient::FreeBuffer (GLuint buf) noexcept
     EraseGObject (_buffer, buf);
 }
 
-void CGLClient::BindBuffer (GLuint id) noexcept
+void CGLClient::BindBuffer (GLuint id)
+{
+    if (Buffer() == id)
+	return;
+    const CBuffer* pbo = FindGObject (_buffer, id);
+    if (!pbo) Error();
+    BindBuffer (id, pbo->Type());
+}
+
+void CGLClient::BindBuffer (GLuint id, G::EBufferType btype) noexcept
 {
     if (Buffer() == id)
 	return;
     SetBuffer (id);
-    glBindBuffer (GL_ARRAY_BUFFER, id);
+    glBindBuffer (btype, id);
 }
 
-void CGLClient::BufferData (GLuint buf, const void* data, GLuint dsz, GLushort mode, GLushort btype)
+void CGLClient::BufferData (GLuint buf, const void* data, GLuint dsz, G::EBufferHint mode, G::EBufferType btype)
 {
-    BindBuffer (buf);
+    BindBuffer (buf, btype);
     glBufferData (btype, dsz, data, mode);
 }
 
-void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint offset, GLushort btype)
+void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint offset, G::EBufferType btype)
 {
-    BindBuffer (buf);
+    BindBuffer (buf, btype);
     glBufferSubData (btype, offset, dsz, data);
 }
 
@@ -318,17 +322,17 @@ void CGLClient::Shader (GLuint id) noexcept
     Color (Color());
 }
 
-void CGLClient::Parameter (const char* varname, GLuint buf, GLenum type, GLuint nels, GLuint offset, GLuint stride) noexcept
+void CGLClient::Parameter (const char* varname, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride)
 {
     Parameter (glGetAttribLocation (Shader(), varname), buf, type, nels, offset, stride);
 }
 
-void CGLClient::Parameter (GLuint slot, GLuint buf, GLenum type, GLuint nels, GLuint offset, GLuint stride) noexcept
+void CGLClient::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride)
 {
     BindBuffer (buf);
     if (slot >= 16) return;
     glEnableVertexAttribArray (slot);
-    glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, (const void*)(long) offset);
+    glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));
 }
 
 void CGLClient::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept
@@ -404,11 +408,10 @@ void CGLClient::Clear (GLuint c) noexcept
     glClear (GL_COLOR_BUFFER_BIT);
 }
 
-void CGLClient::Shape (GLenum mode, GLuint first, GLuint count) noexcept
+void CGLClient::DrawCmdInit (void) noexcept
 {
     if (_curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader())
 	SetDefaultShader();
-    glDrawArrays (mode,first,count);
 }
 
 //----------------------------------------------------------------------
@@ -516,12 +519,12 @@ void CGLClient::Text (coord_t x, coord_t y, const char* s)
     }
 
     GLuint buf = CreateBuffer();
-    BufferData (buf, v, sizeof(v), GL_STATIC_DRAW);
+    BufferData (buf, v, sizeof(v), G::STATIC_DRAW);
 
     SetFontShader();
     UniformTexture ("Texture", pfont->Id());
     Uniform4f ("FontSize", fw,fh, 256,256);
-    Parameter (G::TEXT_DATA, buf, GL_SHORT, 4);
+    Parameter (G::TEXT_DATA, buf, G::SHORT, 4);
 
     glDrawArrays (GL_POINTS, 0, nChars);
 

@@ -36,12 +36,15 @@ public:
 
 class CBuffer : public CGObject {
 public:
-			CBuffer (GLXContext ctx) noexcept;
+			CBuffer (GLXContext ctx, G::EBufferType btype) noexcept;
 			~CBuffer (void) noexcept;
     inline explicit	CBuffer (CBuffer&& v)	: CGObject(forward<CBuffer>(v)) {}
     inline CBuffer&	operator= (CBuffer&& v)	{ CGObject::operator= (forward<CBuffer>(v)); return (*this); }
+  inline G::EBufferType	Type (void) const	{ return (_btype); }
 private:
     inline GLuint	GenId (void) const	{ GLuint id; glGenBuffers (1, &id); return (id); }
+private:
+    G::EBufferType	_btype;
 };
 
 //----------------------------------------------------------------------
@@ -67,15 +70,15 @@ private:
 template <typename Ctr>
 inline typename Ctr::const_pointer FindGObject (const Ctr& ctr, GLuint id)
 {
-    for (const auto& i : ctr)
-	if (i.Id() == id)
-	    return (&i);
+    foreach (auto, i, ctr)
+	if (i->Id() == id)
+	    return (&*i);
     return (nullptr);
 }
 
 template <typename Ctr>
 inline typename Ctr::pointer FindGObject (Ctr& ctr, GLuint id)
-    { return (const_cast<typename Ctr::pointer>(FindGObject (ctr, id))); }
+    { return (const_cast<typename Ctr::pointer>(FindGObject (const_cast<const Ctr&>(ctr), id))); }
 
 template <typename Ctr>
 inline void EraseGObject (Ctr& ctr, GLuint id)

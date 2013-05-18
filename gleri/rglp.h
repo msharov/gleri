@@ -123,9 +123,9 @@ inline void PRGL::FreeResource (goid_t id, G::EResource dtype)
     { Cmd (ECmd::FreeResource, id, dtype); }
 
 inline PRGL::goid_t PRGL::BufferData (const void* data, uint32_t dsz, G::EBufferHint hint, G::EBufferType btype)
-    { return (LoadResource (G::EResource(btype-unsigned(G::ARRAY_BUFFER)), data, dsz, hint)); }
+    { return (LoadResource (G::EResource(btype), data, dsz, hint)); }
 inline void PRGL::FreeBuffer (goid_t id)
-    { FreeResource (id, G::EResource::VERTEX_ARRAY); }
+    { FreeResource (id, G::EResource::BUFFER_VERTEX); }
 inline uint32_t PRGL::LoadTexture (const char* filename)
     { return (LoadFile (filename, G::EResource::TEXTURE)); }
 inline void PRGL::FreeTexture (goid_t id)
@@ -217,7 +217,7 @@ template <typename F>
 		clir->UnmapId (id);
 		} break;
 	    case ECmd::BufferSubData: {
-		goid_t id; uint32_t offset; G::EBufferType btype; G::EBufferHint hint; SDataBlock d;
+		goid_t id; G::EBufferType btype; G::EBufferHint hint; uint32_t offset; SDataBlock d;
 		Args (cmdis, id, btype, hint, offset, d);
 		clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
 		} break;
