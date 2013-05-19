@@ -83,6 +83,8 @@ public:
     inline void		DrawElementsInstanced (G::EShape type, uint16_t n, uint32_t nInstances, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0, uint32_t baseInstance = 0);
     inline void		DrawRangeElements (G::EShape type, uint16_t minel, uint16_t maxel, uint16_t n, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0);
 			// Forwarding drawing commands
+    template <typename... Args>
+    inline void		Textf (coord_t x, coord_t y, const char* fmt, Args... args)	{ char buf[256]; snprintf (ArrayBlock(buf), fmt, args...); Text (x,y,buf); }
     inline void		Color (uint8_t r, uint8_t g, uint8_t b, uint8_t a = UINT8_MAX)	{ Color(RGBA(r,g,b,a)); }
     inline void		Points (uint32_t start, uint32_t sz)			{ DrawArrays (G::POINTS, start, sz); }
     inline void		Lines (uint32_t start, uint32_t sz)			{ DrawArrays (G::LINES, start, sz); }
