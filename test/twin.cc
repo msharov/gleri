@@ -138,15 +138,18 @@ void CTestWindow::OnTimer (uint64_t tms)
     if (tms != _wtimer)
 	return;
 
-    if (++_wx > Info().w-walk_SpriteW)
-	_wx = Info().w-walk_SpriteW;
+    if (++_wx >= Info().w)
+	_wx = -walk_SpriteW;
     _wsy = walk_StripRight;
     _wsx += walk_SpriteW;
     if (_wsx >= walk_StripLength)
 	_wsx = 0;
     Draw();
 
-    WaitForTime (_wtimer += 1000/30);
+    uint32_t wt = 1000/60;
+    if (RefreshTimeNS())
+	wt = RefreshTimeNS()/1000000;
+    WaitForTime (_wtimer += wt);
 }
 
 ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
@@ -178,7 +181,8 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Color (255,255,255);
     drw.Text (300, 420, "A quick brown fox jumps over the lazy dog");
     uint32_t lrt = LastRenderTimeNS();
-    drw.Textf (10,10, "FPS %u", 1000000000/(lrt ? lrt : 1));
+    uint32_t lft = RefreshTimeNS();
+    drw.Textf (10,10, "FPS %u, VSync %u", 1000000000/(lrt?lrt:1), 1000000000/(lft?lft:1));
 
     drw.Color (128,90,150,220);
     drw.TriangleFan (vb_PurpleQuadOffset, vb_PurpleQuadSize);
