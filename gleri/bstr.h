@@ -5,6 +5,7 @@
 
 #pragma once
 #include "config.h"
+#include <type_traits>
 
 //----------------------------------------------------------------------
 
@@ -15,9 +16,25 @@ public:
     typedef value_type*		pointer;
     typedef const value_type*	const_pointer;
     enum { is_sizing = false, is_reading = false, is_writing = false };
+private:
+    template <typename Stm, typename T, bool pod>
+    struct object_streamer {
+	static inline void	read (Stm& is, T& v) 		{ v.read(is); }
+	static inline void	write (Stm& os, const T& v) 	{ v.write(os); }
+    };
 protected:
     inline constexpr size_type	align_size (size_type sz, size_type g) const	{ return ((g-1)-((sz+(g-1))%g)); }
     inline constexpr size_type	align_size (const_pointer p, size_type g) const	{ return (align_size(p-(pointer)nullptr,g)); }
+    template <typename Stm, typename T>
+    inline Stm&	read_object (Stm& is, T& v) { object_streamer<Stm,T,std::is_pod<T>::value>::read(is,v); return (is); }
+    template <typename Stm, typename T>
+    inline Stm&	write_object (Stm& os, const T& v) { object_streamer<Stm,T,std::is_pod<T>::value>::write(os,v); return (os); }
+};
+
+template <typename Stm, typename T>
+struct bstrb::object_streamer<Stm,T,true> {
+    static inline void	read (Stm& is, T& v) 		{ is.iread(v); }
+    static inline void	write (Stm& os, const T& v) 	{ os.iwrite(v); }
 };
 
 //----------------------------------------------------------------------
@@ -36,10 +53,12 @@ public:
     inline void		skip (size_type n)	{ _sz += n; }
     inline void		align (size_type g)	{ skip (align_size(size(),g)); }
     template <typename T>
-    inline bstrs&	operator<< (const T& v)	{ skip(sizeof(v)); return (*this); }
-    inline bstrs&	operator<< (const char* s);
+    inline void		iwrite (const T& v)	{ skip(sizeof(v)); }
     inline void		write (const void*, size_type sz)	{ skip(sz); }
     inline void		write_strz (const char* v)		{ skip(wrstrlen(v)+1); }
+    template <typename T>
+    inline bstrs&	operator<< (const T& v)	{ return (write_object (*this, v)); }
+    inline bstrs&	operator<< (const char* s);
 private:
     size_type		_sz;
 };
@@ -61,9 +80,11 @@ public:
     inline void		skip (size_type n)	{ assert(remaining()>=n && "stream overflow");  _p += n; }
     inline void		align (size_type g)	{ const size_type nz = align_size(ipos(),g); memset(ipos(),0,nz); skip(nz); }
     template <typename T>
-    inline bstro&	operator<< (const T& v)	{ *iptr<T>() = v; skip(sizeof(v)); return (*this); }
+    inline void		iwrite (const T& v)	{ *iptr<T>() = v; skip(sizeof(v)); }
     inline void		write (const void* v, size_type sz)	{ pointer o = _p; skip(sz); memcpy (o,v,sz); }
     inline void		write_strz (const char* v)		{ write (v, strlen(v)+1); }
+    template <typename T>
+    inline bstro&	operator<< (const T& v)	{ return (write_object (*this, v)); }
     inline bstro&	operator<< (const char* s);
 private:
     pointer		_p;
@@ -87,9 +108,12 @@ public:
     inline void		skip (size_type n)	{ iseek (ipos()+n); }
     inline void		align (size_type g)	{ skip (align_size(ipos(),g)); }
     template <typename T>
-    inline bstri&	operator>> (T& v)		{ v = *iptr<T>(); skip(sizeof(v)); return (*this); }
+    inline void		iread (T& v)		{ v = *iptr<T>(); skip(sizeof(v)); }
     inline void		read (void* v, size_type sz)	{ assert(remaining()>=sz && "read overflow"); memcpy (v,ipos(),sz); skip(sz); }
-    inline const char*	read_strz (void)		{ const char* v = iptr<char>(); skip(strlen(v)+1); return (ipos() <= end() ? v : nullptr); }
+    inline const char*	read_strz (void)	{ const char* v = iptr<char>(); skip(strlen(v)+1); return (ipos() <= end() ? v : nullptr); }
+public:
+    template <typename T>
+    inline bstri&	operator>> (T& v)	{ return (read_object (*this, v)); }
     inline bstri&	operator>> (const char*& s);
 private:
     const_pointer	_p;

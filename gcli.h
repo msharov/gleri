@@ -65,6 +65,7 @@ public:
     inline GLuint		LastFrameTime (void) const	{ return (_syncEvent.key); }
 				// Resource loader by enum
     GLuint			LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz);
+    GLuint			LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLuint pak, const char* filename, GLuint flnsz);
     void			FreeResource (G::EResource dtype, GLuint id);
 				// Datapak
     GLuint			LoadDatapak (const char* filename);
@@ -151,6 +152,7 @@ public:
     void			Text (coord_t x, coord_t y, const char* s);
 private:
     static inline const void*	BufferOffset (unsigned o)	{ return ((const void*)(uintptr_t(o))); }
+    static void			ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept;
 				// Shared resources
     inline GLuint		DefaultShader (void) const	{ assert (s_RootClient == this && _shader.size() > 0); return (_shader[0].Id()); }
     inline GLuint		TextureShader (void) const	{ assert (s_RootClient == this && _shader.size() > 1); return (_shader[1].Id()); }

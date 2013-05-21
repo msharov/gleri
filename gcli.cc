@@ -176,6 +176,16 @@ void CGLClient::UnmapId (uint32_t cid) noexcept
 //----------------------------------------------------------------------
 // Resource loader by enum
 
+/*static*/ void CGLClient::ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept
+{
+    bstri shis (s, ssz);
+    for (unsigned i = 0; i < 5; ++i) {
+	shs[i] = shis.read_strz();
+	if (!*shs[i])
+	    shs[i] = nullptr;
+    }
+}
+
 GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz)
 {
     GLuint sid = UINT_MAX;
@@ -184,13 +194,8 @@ GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
 	    sid = LoadDatapak (d, dsz);
 	    break;
 	case G::EResource::SHADER: {
-	    bstri shis (d, dsz);
 	    const char* shs[5];
-	    for (unsigned i = 0; i < ArraySize(shs); ++i) {
-		shs[i] = shis.read_strz();
-		if (!*shs[i])
-		    shs[i] = nullptr;
-	    }
+	    ShaderUnpack (d, dsz, shs);
 	    sid = LoadShader (shs[0],shs[1],shs[2],shs[3],shs[4]);
 	    } break;
 	case G::EResource::TEXTURE:
@@ -204,6 +209,22 @@ GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
 	    break;
     }
     return (sid);
+}
+
+GLuint CGLClient::LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLuint pak, const char* filename, GLuint flnsz)
+{
+    if (dtype == G::EResource::SHADER) {
+	const char* shs[5];
+	ShaderUnpack ((const uint8_t*) filename, flnsz, shs);
+	return (LoadShader (pak, shs[0],shs[1],shs[2],shs[3],shs[4]));
+    } else {
+	const CDatapak* p = Datapak (pak);
+	if (!p) Error();
+	GLuint fsz;
+	const GLubyte* pf = p->File (filename, fsz);
+	if (!pf) Error();
+	return (LoadResource (dtype, hint, pf, fsz));
+    }
 }
 
 void CGLClient::FreeResource (G::EResource dtype, GLuint id)

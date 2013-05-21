@@ -16,6 +16,7 @@
      N(Draw,ay)
      N(LoadResource,uqquuay)
      N(LoadResource,uqquuh)
+     N(LoadResource,uqqus)
      N(FreeResource,uq)
      N(BufferSubData,uqquay)
 ;
@@ -38,7 +39,7 @@ bstro PRGL::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
     return (CCmdBuf::CreateCmd (RGLObject, m, msz, sz, unwritten));
 }
 
-PRGL::goid_t PRGL::LoadFile (const char* filename, G::EResource dtype, G::EBufferHint hint)
+PRGL::goid_t PRGL::LoadFile (G::EResource dtype, const char* filename, G::EBufferHint hint)
 {
     goid_t id = GenId();
     CFile f (filename, O_RDONLY);

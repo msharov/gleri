@@ -30,6 +30,14 @@ public:
 	size_type	_sz;
 	inline		SDataBlock (void)			:_p(nullptr),_sz(0) {}
 	inline		SDataBlock (const void* p, size_type sz):_p(p),_sz(sz) {}
+	template <typename Stm>
+	inline void write (Stm& os) const
+	    { os << _sz; os.write(_p,_sz); os.align(sizeof(_sz)); }
+	inline void read (bstri& is) {
+	    is >> _sz; _p = is.ipos();
+	    if (is.remaining() < _sz) _sz = 0;
+	    is.skip (Align(_sz,sizeof(_sz)));
+	}
     };
 protected:
     enum : uint32_t { COMObject = RGBA('C','O','M',0) };
@@ -98,25 +106,6 @@ private:
     iid_t			_iid;
     bool			_bFdPass;
 };
-
-//----------------------------------------------------------------------
-
-inline bstrs& operator<< (bstrs& ss, const CCmd::SDataBlock& b)
-    { ss << b._sz; ss.write(b._p,b._sz); ss.align(sizeof(b._sz)); return(ss); }
-inline bstro& operator<< (bstro& os, const CCmd::SDataBlock& b)
-    { os << b._sz; os.write(b._p,b._sz); os.align(sizeof(b._sz)); return(os); }
-inline bstri& operator>> (bstri& is, CCmd::SDataBlock& b)
-{
-    uint32_t sz;
-    const void* p;
-    is >> sz;
-    p = is.ipos();
-    if (is.remaining() < sz)
-	sz = 0;
-    is.skip (Align(sz,sizeof(sz)));
-    b._sz = sz; b._p = p;
-    return (is);
-}
 
 //----------------------------------------------------------------------
 

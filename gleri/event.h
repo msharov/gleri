@@ -6,8 +6,7 @@
 #pragma once
 #include "config.h"
 
-class CEvent {
-public:
+struct CEvent {
     uint32_t	key;
     int16_t	x;
     int16_t	y;
@@ -20,8 +19,6 @@ public:
 	FrameSync
     }		type;
     uint32_t	time;
-public:
-    inline	CEvent (void) noexcept { memset (this, 0, sizeof(*this)); }
 };
 
 namespace Key {

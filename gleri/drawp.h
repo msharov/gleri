@@ -20,7 +20,10 @@ public:
     typedef uint32_t		color_t;
 private:
     template <typename T, unsigned N> struct ArrayArg {
-	inline constexpr ArrayArg (const T* v = nullptr):_v(v) {}
+	inline constexpr ArrayArg (const T* v = nullptr) :_v(v) {}
+	template <typename AAStm>
+	inline void write (AAStm& os) const { os.write (_v, N*sizeof(T)); }
+	inline void read (bstri& is) { _v = is.iptr<T>(); is.skip (N*sizeof(T)); }
 	const T* _v;
     };
     enum class ECmd : uint16_t {
@@ -119,13 +122,6 @@ inline void PDraw<Stm>::Cmd (ECmd cmd, const Arg&... args)
     variadic_arg_size (ss, args...);
     variadic_arg_write (_os, Header(cmd,ss.size()), args...);
 }
-
-template <typename Stm, typename T, unsigned N>
-inline Stm& operator<< (Stm& stm, const typename PDraw<Stm>::template ArrayArg<T,N>& aa)
-    { stm.write (aa._v, N*sizeof(T)); return (stm); }
-template <typename T, unsigned N>
-inline bstri& operator>> (bstri& stm, typename PDraw<bstri>::ArrayArg<T,N>& aa)
-    { aa._v = stm.iptr<T>(); stm.skip (N*sizeof(T)); return (stm); }
 
 template <typename Stm>
 inline void PDraw<Stm>::Uniformv (const char* name, const float* v)

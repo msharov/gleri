@@ -43,9 +43,20 @@ private:
 	Draw,
 	LoadResource,
 	LoadFile,
+	LoadPakResource,
 	FreeResource,
 	BufferSubData,
 	NCmds,
+    };
+    struct SShader {
+	inline SShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
+	    :_v(v),_tc(tc),_te(te),_g(g),_f(f),_sz(strlen(v)+1+strlen(tc)+1+strlen(te)+1+strlen(g)+1+strlen(f)+1) {}
+	template <typename Stm>
+	inline void write (Stm& os) const
+	    { os << _sz; os.write_strz (_v); os.write_strz (_tc); os.write_strz (_te); os.write_strz (_g); os.write_strz (_f); }
+    private:
+	const char *_v, *_tc, *_te, *_g, *_f;
+	uint32_t _sz;
     };
 public:
     inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_nextid(0) {}
@@ -60,14 +71,30 @@ public:
     inline void			Close (void)			{ Cmd(ECmd::Close); }
     inline draww_t		Draw (size_type sz);
     inline goid_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
+    inline goid_t		BufferData (const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
+    inline goid_t		BufferData (goid_t pak, const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline void			BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0, G::EBufferType btype = G::ARRAY_BUFFER, G::EBufferHint hint = G::STATIC_DRAW);
     inline void			FreeBuffer (goid_t id);
+    inline goid_t		LoadDatapak (const void* d, uint32_t dsz);
+    inline goid_t		LoadDatapak (const char* f);
+    inline goid_t		LoadDatapak (goid_t pak, const char* f);
+    inline void			FreeDatapak (goid_t id);
+    inline goid_t		LoadTexture (const void* d, uint32_t dsz);
     inline goid_t		LoadTexture (const char* f);
+    inline goid_t		LoadTexture (goid_t pak, const char* f);
     inline void			FreeTexture (goid_t id);
+    inline goid_t		LoadFont (const void* d, uint32_t dsz);
+    inline goid_t		LoadFont (const char* f);
+    inline goid_t		LoadFont (goid_t pak, const char* f);
+    inline void			FreeFont (goid_t id);
     inline goid_t		LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f);
     inline goid_t		LoadShader (const char* v, const char* tc, const char* te, const char* f);
     inline goid_t		LoadShader (const char* v, const char* g, const char* f);
     inline goid_t		LoadShader (const char* v, const char* f);
+    inline goid_t		LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* g, const char* f);
+    inline goid_t		LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* f);
+    inline goid_t		LoadShader (goid_t pak, const char* v, const char* g, const char* f);
+    inline goid_t		LoadShader (goid_t pak, const char* v, const char* f);
     inline void			FreeShader (goid_t id);
 				// Buffer reading for serialization
     template <typename F>
@@ -86,7 +113,8 @@ private:
     static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
 				// Generic loader interface
     inline goid_t		LoadResource (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW);
-    goid_t			LoadFile (const char* filename, G::EResource dtype, G::EBufferHint hint = G::STATIC_DRAW);
+    inline goid_t		LoadPakResource (G::EResource dtype, goid_t pak, const char* filename, G::EBufferHint hint = G::STATIC_DRAW);
+    goid_t			LoadFile (G::EResource dtype, const char* filename, G::EBufferHint hint = G::STATIC_DRAW);
     inline void			FreeResource (goid_t id, G::EResource dtype);
 private:
     goid_t			_nextid;
@@ -115,43 +143,67 @@ inline void PRGL::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
 
 inline PRGL::draww_t PRGL::Draw (size_type sz)
     { bstro os = CreateCmd (ECmd::Draw,sz+sizeof(size_type)); os << sz; return (draww_t(os)); }
-inline void PRGL::BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset, G::EBufferType btype, G::EBufferHint hint)
-    { Cmd (ECmd::BufferSubData, id, btype, hint, offset, SDataBlock (data, dsz)); }
 inline PRGL::goid_t PRGL::LoadResource (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint)
     { goid_t id = GenId(); Cmd (ECmd::LoadResource, id, dtype, hint, uint32_t(0), uint32_t(0), SDataBlock (data, dsz)); return (id); }
+inline PRGL::goid_t PRGL::LoadPakResource (G::EResource dtype, goid_t pak, const char* filename, G::EBufferHint hint)
+    { goid_t id = GenId(); Cmd (ECmd::LoadPakResource, id, dtype, hint, pak, filename); return (id); }
 inline void PRGL::FreeResource (goid_t id, G::EResource dtype)
     { Cmd (ECmd::FreeResource, id, dtype); }
 
 inline PRGL::goid_t PRGL::BufferData (const void* data, uint32_t dsz, G::EBufferHint hint, G::EBufferType btype)
     { return (LoadResource (G::EResource(btype), data, dsz, hint)); }
+inline PRGL::goid_t PRGL::BufferData (const char* f, G::EBufferHint hint, G::EBufferType btype)
+    { return (LoadFile (G::EResource(btype), f, hint)); }
+inline PRGL::goid_t PRGL::BufferData (goid_t pak, const char* f, G::EBufferHint hint, G::EBufferType btype)
+    { return (LoadPakResource (G::EResource(btype), pak, f, hint)); }
+inline void PRGL::BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset, G::EBufferType btype, G::EBufferHint hint)
+    { Cmd (ECmd::BufferSubData, id, btype, hint, offset, SDataBlock (data, dsz)); }
 inline void PRGL::FreeBuffer (goid_t id)
     { FreeResource (id, G::EResource::BUFFER_VERTEX); }
-inline uint32_t PRGL::LoadTexture (const char* filename)
-    { return (LoadFile (filename, G::EResource::TEXTURE)); }
+
+inline PRGL::goid_t PRGL::LoadDatapak (const void* d, uint32_t dsz)
+    { return (LoadResource (G::EResource::DATAPAK, d, dsz)); }
+inline PRGL::goid_t PRGL::LoadDatapak (const char* f)
+    { return (LoadFile (G::EResource::DATAPAK, f)); }
+inline PRGL::goid_t PRGL::LoadDatapak (goid_t pak, const char* f)
+    { return (LoadPakResource (G::EResource::DATAPAK, pak, f)); }
+inline void PRGL::FreeDatapak (goid_t id)
+    { FreeResource (id, G::EResource::DATAPAK); }
+
+inline PRGL::goid_t PRGL::LoadTexture (const void* d, uint32_t dsz)
+    { return (LoadResource (G::EResource::TEXTURE, d, dsz)); }
+inline PRGL::goid_t PRGL::LoadTexture (const char* filename)
+    { return (LoadFile (G::EResource::TEXTURE, filename)); }
+inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, const char* f)
+    { return (LoadPakResource (G::EResource::TEXTURE, pak, f)); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, G::EResource::TEXTURE); }
+
+inline PRGL::goid_t PRGL::LoadFont (const void* d, uint32_t dsz)
+    { return (LoadResource (G::EResource::FONT, d, dsz)); }
+inline PRGL::goid_t PRGL::LoadFont (const char* f)
+    { return (LoadFile (G::EResource::FONT, f)); }
+inline PRGL::goid_t PRGL::LoadFont (goid_t pak, const char* f)
+    { return (LoadPakResource (G::EResource::FONT, pak, f)); }
+inline void PRGL::FreeFont (goid_t id)
+    { FreeResource (id, G::EResource::FONT); }
+
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
-{
-    // Inline LoadResource call here because the compiler knows all about
-    // the passed in strings and can crush this code very well
-    goid_t id = GenId();
-    G::EResource dtype = G::EResource::SHADER;
-    G::EBufferHint hint = G::STATIC_DRAW;
-    bstrs ss;
-    const uint32_t shdsz = strlen(v)+1+strlen(tc)+1+strlen(te)+1+strlen(g)+1+strlen(f)+1;
-    ss << id << dtype << hint << uint32_t(0) << uint32_t(0) << shdsz;
-    ss.write_strz (v); ss.write_strz (tc); ss.write_strz (te); ss.write_strz (g); ss.write_strz (f);
-    bstro os = CreateCmd (ECmd::LoadResource, ss.size());
-    os << id << dtype << hint << uint32_t(0) << uint32_t(0) << shdsz;
-    os.write_strz (v); os.write_strz (tc); os.write_strz (te); os.write_strz (g); os.write_strz (f);
-    return (id);
-}
+    { goid_t id = GenId(); Cmd (ECmd::LoadResource, id, G::EResource::SHADER, G::STATIC_DRAW, uint32_t(0), uint32_t(0), SShader(v,tc,te,g,f)); return (id); }
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* tc, const char* te, const char* f)
     { return (LoadShader (v, tc, te, "", f)); }
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* g, const char* f)
     { return (LoadShader (v, "", "", g, f)); }
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* f)
     { return (LoadShader (v, "", "", "", f)); }
+inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
+    { goid_t id = GenId(); Cmd (ECmd::LoadPakResource, id, G::EResource::SHADER, G::STATIC_DRAW, pak, SShader(v,tc,te,g,f)); return (id); }
+inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* f)
+    { return (LoadShader (pak, v, tc, te, "", f)); }
+inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* g, const char* f)
+    { return (LoadShader (pak, v, "", "", g, f)); }
+inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* f)
+    { return (LoadShader (pak, v, "", "", "", f)); }
 inline void PRGL::FreeShader (goid_t id)
     { FreeResource (id, G::EResource::SHADER); }
 
@@ -197,6 +249,15 @@ template <typename F>
 		if (sid != UINT32_MAX)
 		    clir->FreeResource (dtype, sid);
 		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
+		clir->MapId (id, sid);
+		} break;
+	    case ECmd::LoadPakResource: {
+		goid_t id,pak; const char* filename; G::EResource dtype; G::EBufferHint hint;
+		Args (cmdis, id, dtype, hint, pak, filename);
+		uint32_t sid = clir->LookupId (id), flnsz = cmdis.ipos()-(const uint8_t*)filename;
+		if (sid != UINT32_MAX)
+		    clir->FreeResource (dtype, sid);
+		sid = clir->LoadPakResource (dtype, hint, pak, filename, flnsz);
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::LoadFile: {
