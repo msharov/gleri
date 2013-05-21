@@ -14,9 +14,9 @@
      N(Open,(nnqqyyyy))
      N(Close,)
      N(Draw,ay)
-     N(LoadResource,uqquuay)
-     N(LoadResource,uqquuh)
-     N(LoadResource,uqqus)
+     N(LoadData,uqquuay)
+     N(LoadFile,uqqh)
+     N(LoadPakFile,uqqus)
      N(FreeResource,uq)
      N(BufferSubData,uqquay)
 ;
@@ -44,12 +44,11 @@ PRGL::goid_t PRGL::LoadFile (G::EResource dtype, const char* filename, G::EBuffe
     goid_t id = GenId();
     CFile f (filename, O_RDONLY);
     uint32_t dsz = f.Size(), fsz = sizeof(int);
-    ECmd cmd = ECmd::LoadFile;
     if (!CanPassFd()) {
 	fsz = Align(sizeof(dsz)+dsz,c_MsgAlignment);
-	cmd = ECmd::LoadResource;
-    }
-    CmdU (cmd, fsz, id, dtype, hint, dsz, uint32_t(0));
+	CmdU (ECmd::LoadData, fsz, id, dtype, hint, dsz, uint32_t(0));
+    } else
+	CmdU (ECmd::LoadFile, fsz, id, dtype, hint);
     SendFile (f, dsz);
     return (id);
 }
