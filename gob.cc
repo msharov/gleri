@@ -8,6 +8,10 @@
 #include <zlib.h>
 
 //----------------------------------------------------------------------
+#ifndef NDEBUG
+bool g_bDebugTrace = false;
+#endif
+//----------------------------------------------------------------------
 
 CBuffer::CBuffer (GLXContext ctx, G::EBufferType btype) noexcept : CGObject(ctx, GenId()), _btype(btype) {}
 CBuffer::~CBuffer (void) noexcept

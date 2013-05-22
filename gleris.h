@@ -12,21 +12,22 @@
 class CGleris : public CApp {
 			CGleris (void) noexcept;
 public:
-    static CGleris&	Instance (void) noexcept { static CGleris app; return (app); }
-    virtual		~CGleris (void) noexcept;
-    void		Init (argc_t argc, argv_t argv);
-protected:
     enum EOption {
 	opt_SingleClient,
 	opt_TCPSocket,
 	opt_Last
     };
+public:
+    static CGleris&	Instance (void) noexcept { static CGleris app; return (app); }
+    virtual		~CGleris (void) noexcept;
+    void		Init (argc_t argc, argv_t argv);
+    inline bool		Option (EOption o) const	{ return (_options & (1<<o)); }
+private:
     enum { c_SocketPathLen = sizeof(sockaddr_un::sun_path) };
     typedef CGLClient::iid_t	iid_t;
     typedef PRGL::SWinInfo	SWinInfo;
     typedef const SWinInfo&	rcwininfo_t;
 public:
-    inline bool		Option (EOption o) const	{ return (_options & (1<<o)); }
 			// Client id translation
     CGLClient*		ClientRecord (int fd, iid_t iid) noexcept;
     CGLClient*		ClientRecordForWindow (Window w) noexcept;

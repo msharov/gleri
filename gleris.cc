@@ -31,6 +31,7 @@ CGleris::CGleris (void) noexcept
 ,_glversion (0)
 ,_options (0)
 {
+    DTRACE ("gleris " GLERI_VERSTRING " started\n");
     syslog (LOG_INFO, "gleris " GLERI_VERSTRING " started");
     XSetErrorHandler (XlibErrorHandler);
     XSetIOErrorHandler (XlibIOErrorHandler);
@@ -39,7 +40,9 @@ CGleris::CGleris (void) noexcept
 
 CGleris::~CGleris (void) noexcept
 {
+    DTRACE ("gleris " GLERI_VERSTRING " exiting\n");
     if (_localSocket.IsOpen()) {
+	DTRACE ("Closing gleris socket\n");
 	_localSocket.ForceClose();
 	unlink (s_SocketPath);
     }
@@ -47,25 +50,36 @@ CGleris::~CGleris (void) noexcept
 	DestroyClient (c);
     _cli.clear();
     if (_dpy) {
-	XSync (_dpy, True);
-	XCloseDisplay (_dpy);
+	DTRACE ("Flushing X connection\n");
+	XFlush (_dpy);
+	// Do not close the connection here to allow OpenGL to cleanup
     }
 }
 
 void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
 {
     for (;;) {
-	switch (getopt(argc, argv, "?st")) {
+	switch (getopt(argc, argv, "?std")) {
 	    case -1:	return;
 	    case 's':	SetOption (opt_SingleClient); break;
 	    case 't':	SetOption (opt_TCPSocket); break;
+	#ifndef NDEBUG
+	    case 'd':	{ extern bool g_bDebugTrace; g_bDebugTrace = true; } break;
+	#endif
 	    default:
 		printf (
 		    GLERIS_NAME " " GLERI_VERSTRING "\n"
 		    "An OpenGL interface service\n\n"
-		    "Usage:\t" GLERIS_NAME " [-st]\n\n"
+		    "Usage:\t" GLERIS_NAME
+		#ifndef NDEBUG
+		    " [-dst]\n\n"
+		    "\t-d\toutput debugging information to stdout\n"
+		#else
+		    " [-st]\n\n"
+		#endif
 		    "\t-s\tsingle client mode, command socket on stdin\n"
-		    "\t-t\tcreate tcp socket on localhost:" PP_STRINGIFY_I(GLERIS_PORT) "+display\n");
+		    "\t-t\tcreate tcp socket on localhost:" PP_STRINGIFY_I(GLERIS_PORT) "+display\n"
+		);
 		exit (EXIT_SUCCESS);
 	}
     }
@@ -73,6 +87,7 @@ void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
 
 void CGleris::AddConnection (int fd, bool canPassFd)
 {
+    DTRACE("Incoming connection on %d, %s pass fds\n", fd, canPassFd ? "can" : "can't");
     _iconn.emplace_back (GenIId());
     _iconn.back().SetFd (fd, canPassFd);
     WatchFd (fd);
@@ -80,6 +95,7 @@ void CGleris::AddConnection (int fd, bool canPassFd)
 
 void CGleris::RemoveConnection (int fd) noexcept
 {
+    DTRACE("Removing connection on %d\n", fd);
     for (auto i = _iconn.begin(); i < _iconn.end(); ++i) {
 	if (i->Fd() != fd) continue;
 	--(i = _iconn.erase(i));
@@ -90,8 +106,10 @@ void CGleris::RemoveConnection (int fd) noexcept
 	    }
 	}
     }
-    if (_iconn.empty() && Option (opt_SingleClient))
+    if (_iconn.empty() && Option (opt_SingleClient)) {
+	DTRACE("Last connection terminated in single-client mode; quitting\n");
 	Quit();
+    }
 }
 
 CCmdBuf* CGleris::LookupConnection (int fd) noexcept
@@ -141,6 +159,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
     int glx_major = 0, glx_minor = 0;
     if (!glXQueryVersion (_dpy, &glx_major, &glx_minor) || (glx_major<<4|glx_minor) < 0x14)
 	Error ("X server does not support GLX 1.4");
+    DTRACE("Opened X server connection. GLX %d.%d available\n", glx_major, glx_minor);
 
     static const int fbconfattr[] = {
 	GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT,
@@ -200,6 +219,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
     CreateClient (0, rootinfo);
 
     // Load shared resources into the root context
+    DTRACE ("Loading shared resources\n");
     GLuint pak = _curCli->LoadDatapak (ArrayBlock (File_resource));
     _curCli->LoadFont (pak, "ter-d18b.psf");
     _curCli->LoadShader (pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
@@ -208,14 +228,17 @@ void CGleris::Init (argc_t argc, argv_t argv)
     _curCli->FreeDatapak (pak);
 
     // Start listening on server sockets
-    if (Option (opt_SingleClient))
+    if (Option (opt_SingleClient)) {
+	DTRACE ("Single client mode. Listening on stdin.\n");
 	AddConnection (STDIN_FILENO, true);
-    else {
+    } else {
 	if (0 == access (s_SocketPath, F_OK))
 	    throw XError ("gleris is already running on socket %s", s_SocketPath);
+	DTRACE ("Listening on local socket %s\n", s_SocketPath);
 	_localSocket.Bind (s_SocketPath, GLERIS_LISTEN_QUEUE_SIZE);
 	WatchFd (_localSocket.Fd());
 	if (Option (opt_TCPSocket)) {
+	    DTRACE ("Listening on TCP socket localhost:%hu\n", GLERIS_PORT);
 	    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT, GLERIS_LISTEN_QUEUE_SIZE);
 	    WatchFd (_tcpSocket.Fd());
 	}
@@ -236,6 +259,7 @@ Window CGleris::CreateWindow (const SWinInfo& winfo)
     Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
 				_visinfo->depth, InputOutput, _visinfo->visual,
 				CWBackPixmap| CWBorderPixel| CWColormap| CWEventMask, &swa);
+    DTRACE ("Created window %x, %ux%u+%d+%d\n", winfo.w,winfo.h, winfo.x,winfo.y);
     if (!win)
 	Error ("failed to create window");
     XSync (_dpy, False);
@@ -247,23 +271,34 @@ void CGleris::OnXEvent (void)
 {
     for (XEvent xev; XPending(_dpy);) {
 	XNextEvent(_dpy,&xev);
+	DTRACE ("Received X event type %u\n", xev.type);
 
 	CGLClient* icli = ClientRecordForWindow (xev.xany.window);
-	if (!icli) continue;
+	if (!icli) {
+	    DTRACE ("No window associated with this event\n");
+	    continue;
+	}
 
 	if (xev.type == Expose)
 	    icli->Draw();
 	else if (xev.type == ConfigureNotify) {
 	    ActivateClient (*icli);
+	    DTRACE ("Resizing to %ux%u+%d+%d\n", xev.xconfigure.width, xev.xconfigure.height, xev.xconfigure.x, xev.xconfigure.y);
 	    icli->Resize (xev.xconfigure.x, xev.xconfigure.y, xev.xconfigure.width, xev.xconfigure.height);
-	} else if (xev.type == KeyPress || xev.type == KeyRelease)
+	} else if (xev.type == KeyPress || xev.type == KeyRelease) {
+	    DTRACE ("Receive keypress %u\n", xev.xkey.keycode);
 	    icli->Event (EventFromXKey (xev.xkey));
-	else if (xev.type == ButtonPress || xev.type == ButtonRelease)
+	} else if (xev.type == ButtonPress || xev.type == ButtonRelease) {
+	    DTRACE ("Receive button press %u\n", xev.xbutton.button);
 	    icli->Event (EventFromButton (xev.xbutton));
-	else if (xev.type == MotionNotify)
+	} else if (xev.type == MotionNotify) {
+	    DTRACE ("Receive motion event to %u:%u\n", xev.xmotion.x, xev.xmotion.y);
 	    icli->Event (EventFromMotion (xev.xmotion));
-	else if (xev.type == MappingNotify)
+	} else if (xev.type == MappingNotify) {
+	    DTRACE ("Keyboard mapping updated\n");
 	    XRefreshKeyboardMapping (&xev.xmapping);
+	} else
+	    DTRACE ("Unknown event type %u\n", xev.type);
     }
     if (_xlib_error)
 	throw XError (true, _xlib_error);
@@ -405,6 +440,7 @@ void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn)
     // Parse requested GL version, high byte max version, low byte min version
     uint8_t reqver = min(max(winfo.mingl,winfo.maxgl), _glversion);
     int major = reqver>>4, minor = reqver&0xf;
+    DTRACE ("Creating client window, opengl version %d.%d\n", major, minor);
     if (reqver < winfo.mingl)
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
     winfo.mingl = winfo.maxgl = reqver;
@@ -451,6 +487,7 @@ inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
     if (_curCli == &rcli)
 	return;
     _curCli = &rcli;
+    DTRACE ("Activate client window %x, context %x\n", rcli.Drawable(), rcli.ContextId());
     glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
 }
 
@@ -466,6 +503,7 @@ void CGleris::CloseClient (CGLClient* pcli) noexcept
 void CGleris::DestroyClient (CGLClient*& pc) noexcept
 {
     if (_dpy) {
+	DTRACE ("Destroying client window %x, context %x\n", pc->Drawable(), pc->ContextId());
 	if (_curCli == pc) {
 	    glXMakeCurrent (_dpy, None, nullptr);
 	    _curCli = nullptr;

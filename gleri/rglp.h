@@ -60,6 +60,7 @@ private:
     };
 public:
     inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_nextid(0) {}
+    inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
 				// Command writing
@@ -222,6 +223,9 @@ template <typename... Arg>
 template <typename F>
 /*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis)
 {
+    #ifndef NDEBUG
+	auto icmdstart = cmdis.ipos();
+    #endif
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
     try {
 	ECmd cmd = LookupCmd (cmdname, h.hsz);
@@ -252,12 +256,12 @@ template <typename F>
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::LoadPakFile: {
-		goid_t id,pak; const char* filename; G::EResource dtype; G::EBufferHint hint;
+		goid_t id,pak; const char* filename = nullptr; G::EResource dtype; G::EBufferHint hint;
 		Args (cmdis, id, dtype, hint, pak, filename);
 		uint32_t sid = clir->LookupId (id), flnsz = cmdis.ipos()-(const uint8_t*)filename;
 		if (sid != UINT32_MAX)
 		    clir->FreeResource (dtype, sid);
-		sid = clir->LoadPakResource (dtype, hint, pak, filename, flnsz);
+		sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::LoadFile: {
@@ -290,11 +294,8 @@ template <typename F>
 	clir->ForwardError (cmdname, e, cmdbuf.Fd(), h.iid);	// ok if clir == nullptr
 	#ifndef NDEBUG
 	if (isatty(STDIN_FILENO)) {
-	    uint16_t hsz = sizeof(SMsgHeader)+h.hsz;
-	    printf ("Failing command (hsz=0x%x,sz=0x%x):\n", hsz,h.sz); fflush(stdout);
-	    hexdump (cmdis.ipos()-(hsz+h.sz), hsz+h.sz);
-	    printf ("Error at offset 0x%lx:\n", cmdis.ipos()-(cmdis.ipos()-h.sz)); fflush(stdout);
-	    hexdump (cmdis.ipos(), cmdis.remaining());
+	    printf ("Failing command (hsz=0x%x,sz=0x%x,errorat=0x%lx):\n", h.hsz,h.sz, cmdis.ipos()-icmdstart); fflush(stdout);
+	    hexdump (icmdstart-h.hsz, h.hsz+h.sz);
 	}
 	#endif
 	f.CloseClient (clir);

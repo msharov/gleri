@@ -36,6 +36,7 @@ public:
 				// Reading interface
     template <typename F>
     static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis);
+    inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
     static inline void		Error (void)			{ CCmdBuf::Error(); }

@@ -28,6 +28,7 @@ CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
 ,_curFont (CGObject::NoObject)
 ,_pendingFrameIId (0)
 {
+    DTRACE ("[%x] Create: window %x, context %x\n", iid, win, ctx);
     memset (&_winfo, 0, sizeof(_winfo));
     if (!s_RootClient)
 	s_RootClient = this;
@@ -53,6 +54,7 @@ void CGLClient::Init (void)
 
 void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 {
+    DTRACE ("[%x] Resize %hux%hu+%hd+%hd\n", IId(), w,h,x,y);
     _winfo.x = x; _winfo.y = y;
     if (_winfo.w == w && _winfo.h == h)
 	return;
@@ -63,6 +65,7 @@ void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 
 void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 {
+    DTRACE ("[%x] Viewport %hux%hu+%hd+%hd\n", IId(), w,h,x,y);
     _viewport.x = x;
     _viewport.y = y;
     _viewport.w = w;
@@ -78,6 +81,7 @@ void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 
 void CGLClient::Offset (GLint x, GLint y) noexcept
 {
+    DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
     _proj[3][0] = -float(_viewport.w-2*x-1)/_viewport.w;
     _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;
     UniformMatrix ("Transform", Proj());
@@ -86,6 +90,7 @@ void CGLClient::Offset (GLint x, GLint y) noexcept
 uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
 {
     if (_nextVSync != NotWaitingForVSync) {
+	DTRACE ("[%x] Waiting for vsync\n", IId());
 	while (!QueryResultAvailable(_query[query_FrameEnd]))
 	    usleep(256);
 	uint64_t times[ArraySize(_query)];	// Query times are in ns
@@ -95,9 +100,11 @@ uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
 	_syncEvent.key = times[query_FrameEnd] - times[query_RenderBegin];
 	Event (_syncEvent);
 	_nextVSync = NotWaitingForVSync;
+	DTRACE ("[%x] VSync. Drawing time %u ns, refresh %u ns\n", IId(), _syncEvent.time, _syncEvent.key);
     }
     if (cmdis.remaining()) {
 	_nextVSync = CApp::NowMS() + LastFrameTime()/1000000 + 1;	// Round up to avoid busywait above
+	DTRACE ("[%x] Parsing drawlist\n", IId());
 	PostQuery (_query[query_RenderBegin]);
 	PDraw<bstri>::Parse (*this, cmdis);
 	PostQuery (_query[query_RenderEnd]);
@@ -141,6 +148,7 @@ void CGLClient::ForwardError (const char* cmdname, const XError& e, int fd, iid_
 	size_t bufsz = 16+strlen(cmdname)+2+strlen(e.what())+1;
 	char buf [bufsz];
 	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
+	DTRACE ("[%x] Forwarding error: %s\n", pcli->IId(), buf);
 	pcli->ForwardError (buf);
 	pcli->WriteCmds();
     } catch (...) {}	// fd errors will be caught by poll
@@ -151,6 +159,7 @@ void CGLClient::ForwardError (const char* cmdname, const XError& e, int fd, iid_
 
 void CGLClient::MapId (uint32_t cid, GLuint sid) noexcept
 {
+    DTRACE ("[%x] Map cid %x -> sid %x\n", IId(), cid, sid);
     _cidmap.insert (SIdMap(cid,sid));
 }
 
@@ -170,6 +179,7 @@ uint32_t CGLClient::LookupSid (GLuint sid) const noexcept
 
 void CGLClient::UnmapId (uint32_t cid) noexcept
 {
+    DTRACE ("[%x] Unmapping cid %x\n", IId(), cid);
     erase_if (_cidmap, [cid](const SIdMap& i) { return (i._cid == cid); });
 }
 
@@ -243,20 +253,23 @@ void CGLClient::FreeResource (G::EResource dtype, GLuint id)
 
 GLuint CGLClient::LoadDatapak (const GLubyte* pi, GLuint isz)
 {
+    DTRACE ("[%x] LoadDatapak %u bytes\n", IId(), isz);
     GLuint osz = 0;
     GLubyte* po = CDatapak::DecompressBlock (pi, isz, osz);
-    if (!po) return (-1);
+    if (!po) Error();
     return (_pak.emplace (_pak.end(), ContextId(), po, osz)->Id());
 }
 
 GLuint CGLClient::LoadDatapak (const char* filename)
 {
+    DTRACE ("[%x] LoadDatapak from file %s\n", IId(), filename);
     CMMFile f (filename);
     return (LoadDatapak (f.MMData(), f.MMSize()));
 }
 
 void CGLClient::FreeDatapak (GLuint id)
 {
+    DTRACE ("[%x] FreeDatapak %x\n", IId(), id);
     EraseGObject (_pak, id);
 }
 
@@ -270,11 +283,13 @@ const CDatapak* CGLClient::Datapak (GLuint id) const
 
 GLuint CGLClient::CreateBuffer (G::EBufferType btype) noexcept
 {
+    DTRACE ("[%x] CreateBuffer type %u\n", IId(), btype);
     return (_buffer.emplace (_buffer.end(), ContextId(), btype)->Id());
 }
 
 void CGLClient::FreeBuffer (GLuint buf) noexcept
 {
+    DTRACE ("[%x] FreeBuffer %x\n", IId(), buf);
     if (Buffer() == buf)
 	SetBuffer (CGObject::NoObject);
     EraseGObject (_buffer, buf);
@@ -293,6 +308,7 @@ void CGLClient::BindBuffer (GLuint id, G::EBufferType btype) noexcept
 {
     if (Buffer() == id)
 	return;
+    DTRACE ("[%x] BindBuffer %x\n", IId(), id);
     SetBuffer (id);
     glBindBuffer (btype, id);
 }
@@ -300,12 +316,14 @@ void CGLClient::BindBuffer (GLuint id, G::EBufferType btype) noexcept
 void CGLClient::BufferData (GLuint buf, const void* data, GLuint dsz, G::EBufferHint mode, G::EBufferType btype)
 {
     BindBuffer (buf, btype);
+    DTRACE ("[%x] BufferData %u bytes into %x\n", IId(), dsz, buf);
     glBufferData (btype, dsz, data, mode);
 }
 
 void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint offset, G::EBufferType btype)
 {
     BindBuffer (buf, btype);
+    DTRACE ("[%x] BufferSubData %u bytes at %u into %x\n", IId(), dsz, offset, buf);
     glBufferSubData (btype, offset, dsz, data);
 }
 
@@ -314,20 +332,21 @@ void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint 
 
 GLuint CGLClient::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
-    _shader.emplace_back (ContextId(), CShader::Sources(v,tc,te,g,f));
-    return (_shader.back().Id());
+    DTRACE ("[%x] LoadShader\n", IId());
+    return (_shader.emplace (_shader.end(), ContextId(), CShader::Sources(v,tc,te,g,f))->Id());
 }
 
 GLuint CGLClient::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
+    DTRACE ("[%x] LoadShader from pak %x: %s,%s,%s,%s,%s\n", IId(), pak,v,tc,te,g,f);
     const CDatapak* ppak = Datapak(pak);
-    if (!ppak) return (CGObject::NoObject);
-    _shader.emplace_back (ContextId(), CShader::Sources(*ppak,v,tc,te,g,f));
-    return (_shader.back().Id());
+    if (!ppak) Error();
+    return (_shader.emplace (_shader.end(), ContextId(), CShader::Sources(*ppak,v,tc,te,g,f))->Id());
 }
 
 void CGLClient::FreeShader (GLuint sh) noexcept
 {
+    DTRACE ("[%x] FreeShader %x\n", IId(), sh);
     EraseGObject (_shader, sh);
 }
 
@@ -352,6 +371,7 @@ void CGLClient::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, 
 {
     BindBuffer (buf, G::ARRAY_BUFFER);
     if (slot >= 16) return;
+    DTRACE ("[%x] Parameter %u set to %x, type %ux%u, offset %u, stride %u\n", IId(), slot, buf, type, nels, offset, stride);
     glEnableVertexAttribArray (slot);
     glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));
 }
@@ -360,6 +380,7 @@ void CGLClient::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z,
 {
     GLint slot = glGetUniformLocation (Shader(), varname);
     if (slot < 0) return;
+    DTRACE ("[%x] Uniform4f %s = %g,%g,%g,%g\n", IId(), varname, x,y,z,w);
     glUniform4f (slot, x, y, z, w);
 }
 
@@ -367,6 +388,7 @@ void CGLClient::Uniform4iv (const char* varname, const GLint* v) const noexcept
 {
     GLint slot = glGetUniformLocation (Shader(), varname);
     if (slot < 0) return;
+    DTRACE ("[%x] Uniform4iv %s = %d,%d,%d,%d\n", IId(), varname, v[0],v[1],v[2],v[3]);
     glUniform4iv (slot, 4, v);
 }
 
@@ -374,6 +396,7 @@ void CGLClient::UniformMatrix (const char* varname, const GLfloat* mat) const no
 {
     GLint slot = glGetUniformLocation (Shader(), varname);
     if (slot < 0) return;
+    DTRACE ("[%x] UniformMatrix %s =\n\t%g,%g,%g,%g\n\t%g,%g,%g,%g\n\t%g,%g,%g,%g\n\t%g,%g,%g,%g\n", IId(), varname, mat[0],mat[1],mat[2],mat[3], mat[4],mat[5],mat[6],mat[7], mat[8],mat[9],mat[10],mat[11], mat[12],mat[13],mat[14],mat[15]);
     glUniformMatrix4fv (slot, 1, GL_FALSE, mat);
 }
 
@@ -382,6 +405,7 @@ void CGLClient::UniformTexture (const char* varname, GLuint img, GLuint itex) no
     if (Texture() == img) return;
     GLint slot = glGetUniformLocation (Shader(), varname);
     if (slot < 0) return;
+    DTRACE ("[%x] UniformTexture %s = %x slot %u\n", IId(), varname, img, itex);
     glActiveTexture (GL_TEXTURE0+itex);
     glBindTexture (GL_TEXTURE_2D, img);
     SetTexture (img);
@@ -418,6 +442,7 @@ void CGLClient::Color (GLuint c) noexcept
     SetColor(c);
     float r,g,b,a;
     UnpackColor (c,r,g,b,a);
+    DTRACE ("[%x] Color 0x%02x%02x%02x%02x\n", a,b,g,r);
     Uniform4f ("Color", r, g, b, a);
 }
 
@@ -425,14 +450,17 @@ void CGLClient::Clear (GLuint c) noexcept
 {
     float r,g,b,a;
     UnpackColor (c,r,g,b,a);
+    DTRACE ("[%x] Clear 0x%02x%02x%02x%02x\n", a,b,g,r);
     glClearColor (r,g,b,a);
     glClear (GL_COLOR_BUFFER_BIT);
 }
 
 void CGLClient::DrawCmdInit (void) noexcept
 {
-    if (_curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader())
+    if (_curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader()) {
+	DTRACE ("[%x] Resetting internal shader to default\n", IId());
 	SetDefaultShader();
+    }
 }
 
 //----------------------------------------------------------------------
@@ -440,6 +468,7 @@ void CGLClient::DrawCmdInit (void) noexcept
 
 GLuint CGLClient::LoadTexture (const GLubyte* d, GLuint dsz)
 {
+    DTRACE ("[%x] LoadTexture %u bytes\n", IId(), dsz);
     _texture.emplace_back (ContextId(), d, dsz);
     return (_texture.back().Id());
 }
@@ -447,11 +476,13 @@ GLuint CGLClient::LoadTexture (const GLubyte* d, GLuint dsz)
 GLuint CGLClient::LoadTexture (const char* filename)
 {
     CMMFile f (filename);
+    DTRACE ("[%x] LoadTexture from file %s\n", IId(), filename);
     return (LoadTexture (f.MMData(), f.MMSize()));
 }
 
 void CGLClient::FreeTexture (GLuint id)
 {
+    DTRACE ("[%x] FreeTexture %x\n", IId(), id);
     EraseGObject (_texture, id);
 }
 
@@ -464,6 +495,7 @@ void CGLClient::Sprite (coord_t x, coord_t y, GLuint id)
 {
     const CTexture* pimg = Texture(id);
     if (!pimg) return;
+    DTRACE ("[%x] Sprite %x at %d:%d\n", IId(), id, x,y);
     SetTextureShader();
     UniformTexture ("Texture", pimg->Id());
     Uniform4f ("ImageRect", x, y, pimg->Width(), pimg->Height());
@@ -475,6 +507,7 @@ void CGLClient::Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy,
 {
     const CTexture* pimg = Texture(id);
     if (!pimg) return;
+    DTRACE ("[%x] Sprite %x at %d:%d, src %ux%u+%d+%d\n", IId(), id, x,y, sw,sh,sx,sy);
     SetTextureShader();
     UniformTexture ("Texture", pimg->Id());
     Uniform4f ("ImageRect", x, y, pimg->Width(), pimg->Height());
@@ -487,6 +520,7 @@ void CGLClient::Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy,
 
 GLuint CGLClient::LoadFont (const GLubyte* p, GLuint psz)
 {
+    DTRACE ("[%x] LoadFont %u bytes\n", IId(), psz);
     _font.emplace_back (ContextId(), p, psz);
     SetFont (_font.back().Id());
     return (Font());
@@ -494,10 +528,11 @@ GLuint CGLClient::LoadFont (const GLubyte* p, GLuint psz)
 
 GLuint CGLClient::LoadFont (const char* filename)
 {
+    DTRACE ("[%x] LoadFont from file %s\n", IId(), filename);
     CMMFile f (filename);
     GLuint sz = 0;
     GLubyte* p = CDatapak::DecompressBlock (f.MMData(), f.MMSize(), sz);
-    if (!p) return (-1);
+    if (!p) Error();
     GLuint id = LoadFont (p, sz);
     free (p);
     return (id);
@@ -505,16 +540,18 @@ GLuint CGLClient::LoadFont (const char* filename)
 
 GLuint CGLClient::LoadFont (GLuint pak, const char* filename)
 {
+    DTRACE ("[%x] LoadFont from pak %x file %s\n", IId(), pak, filename);
     const CDatapak* p = Datapak (pak);
-    if (!p) return (-1);
+    if (!p) Error();
     GLuint fsz;
     const GLubyte* pf = p->File (filename, fsz);
-    if (!pf) return (-1);
+    if (!pf) Error();
     return (LoadFont (pf, fsz));
 }
 
 void CGLClient::FreeFont (GLuint id)
 {
+    DTRACE ("[%x] FreeFont %x\n", IId(), id);
     EraseGObject (_font, id);
 }
 
@@ -529,6 +566,7 @@ void CGLClient::Text (coord_t x, coord_t y, const char* s)
     if (!pfont && !(pfont = s_RootClient->DefaultFont()))
 	return;
 
+    DTRACE ("[%x] Text at %d:%d: '%s'\n", x,y,s);
     const unsigned nChars = strlen(s);
     struct SVertex { GLshort x,y,s,t; } v [nChars];
     const unsigned fw = pfont->Width(), fh = pfont->Height();

@@ -9,6 +9,20 @@
 
 //----------------------------------------------------------------------
 
+template <typename... Args>
+#ifndef NDEBUG
+inline void DTRACE (const char* fmt, Args... args) noexcept
+{
+    extern bool g_bDebugTrace;
+    if (g_bDebugTrace)
+	printf (fmt, args...);
+}
+#else
+inline void DTRACE (const char*, Args...) noexcept {}
+#endif
+
+//----------------------------------------------------------------------
+
 class CGObject {
 public:
     enum : GLuint { NoObject = UINT_MAX };

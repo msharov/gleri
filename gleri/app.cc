@@ -43,14 +43,16 @@ void hexdump (const void* pv, size_t n)
     const uint8_t* p = (const uint8_t*) pv;
     uint8_t line[65]; line[64] = '\n';
     for (size_t i = 0; i < n; i += 16) {
+	memset (line, ' ', sizeof(line)-1);
 	for (size_t h = 0; h < 16; ++h) {
-	    uint8_t b = (i+h) < n ? p[i+h] : 0;
-	    line[h*3] = _num_to_digit(b>>4);
-	    line[h*3+1] = _num_to_digit(b);
-	    line[h*3+2] = ' ';
-	    line[h+3*16] = _printable(b) ? b : '.';
+	    if (i+h < n) {
+		uint8_t b = p[i+h];
+		line[h*3] = _num_to_digit(b>>4);
+		line[h*3+1] = _num_to_digit(b);
+		line[h+3*16] = _printable(b) ? b : '.';
+	    }
 	}
-	write (STDOUT_FILENO, ArrayBlock(line));
+	write (STDOUT_FILENO, line, sizeof(line));
     }
 }
 
