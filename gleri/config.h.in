@@ -60,6 +60,8 @@ enum {
     inline constexpr T Align (T n, size_t grain)
 	{ return ((n+(grain-1))-(n+(grain-1))%grain); }
 
+    #define foreach(type,i,ctr)	for (type i = (ctr).begin(); i != (ctr).end(); ++ i)
+
     #define inline	inline __attribute__((always_inline))
 #endif
 
