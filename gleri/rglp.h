@@ -36,7 +36,7 @@ public:
 	uint8_t		flags;
     };
 private:
-    enum : uint32_t { RGLObject = RGBA('R','G','L',0) };
+    enum : uint32_t { RGLObject = vpack4('R','G','L',0) };
     enum class ECmd : cmd_t {
 	Open,
 	Close,

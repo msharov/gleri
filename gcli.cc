@@ -431,7 +431,8 @@ inline void UnpackColor (GLuint c, float& r, float& g, float& b, float& a)
 	"shufps	$3, %3, %3"	// a(a...)
 	:"=x"(r),"=x"(g),"=x"(b),"=x"(a):"r"(c),"3"(convf));
 #else
-    GLubyte rb = c, gb = c>>8, bb = c>>16, ab = c>>24;
+    GLubyte rb, gb, bb, ab;
+    vunpack4(c,rb,gb,bb,ab);
     r = rb*convf; g = gb*convf; b = bb*convf; a = ab*convf;
 #endif
 }

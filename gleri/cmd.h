@@ -40,7 +40,7 @@ public:
 	}
     };
 protected:
-    enum : uint32_t { COMObject = RGBA('C','O','M',0) };
+    enum : uint32_t { COMObject = vpack4('C','O','M',0) };
     enum : cmd_t { InvalidCmd = UINT_MAX };
     enum { c_MsgAlignment = 8 };
 protected:

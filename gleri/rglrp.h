@@ -17,7 +17,7 @@ public:
     typedef PRGL::color_t	color_t;
     typedef const SWinInfo&	rcwininfo_t;
 private:
-    enum : uint32_t { RGLRObject = RGBA('R','G','L','R') };
+    enum : uint32_t { RGLRObject = vpack4('R','G','L','R') };
     enum class ECmd : cmd_t {
 	Error,
 	Restate,

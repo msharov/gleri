@@ -131,7 +131,7 @@ inline bstrs& bstrs::operator<< (const char* s)
 inline bstro& bstro::operator<< (const char* s)
 {
     size_type sl = strlen(s)+1;
-    operator<< (sl);
+    iwrite (sl);
     write (s,sl);
     align (4);
     return (*this);
@@ -140,7 +140,7 @@ inline bstro& bstro::operator<< (const char* s)
 inline bstri& bstri::operator>> (const char*& s)
 {
     size_type sl;
-    operator>> (sl);
+    iread (sl);
     sl += align_size (sl,4);
     s = iptr<char>();
     if (sl > remaining())

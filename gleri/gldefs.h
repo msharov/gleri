@@ -129,7 +129,7 @@ inline void erase_if (Ctr& v, Condition f)
 
 /// Creates uint32_t color value from components
 inline constexpr uint32_t RGBA (uint8_t r, uint8_t g, uint8_t b, uint8_t a)
-    { return ((a<<24)|(b<<16)|(g<<8)|r); }
+    { return (vpack4(r,g,b,a)); }
 
 /// Creates uint32_t color value from components
 inline static uint32_t ARGB (uint32_t c)
@@ -147,4 +147,8 @@ inline constexpr uint32_t RGB (uint8_t r, uint8_t g, uint8_t b)
 
 /// Creates uint32_t color value from components
 inline static uint32_t RGB (uint32_t c)
+#if USTL_BYTE_ORDER == USTL_LITTLE_ENDIAN
     { return (ARGB((UINT8_MAX<<24)|c)); }
+#else
+    { return (ARGB(UINT8_MAX|c)); }
+#endif

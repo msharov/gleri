@@ -106,7 +106,7 @@ private:
     inline void		Cmd (ECmd cmd, const Arg&... args);
     template <typename... Arg>
     static inline void	Args (Stm& is, Arg&... args);
-    constexpr uint32_t	Header (ECmd cmd, uint16_t sz) const	{ return ((uint32_t(sz)<<16)|uint32_t(cmd)); }
+    constexpr uint32_t	Header (ECmd cmd, uint16_t sz) const	{ return (vpack4(uint16_t(cmd),sz)); }
     static inline void	Error (void)				{ throw XError ("RGL parse error"); }
 private:
     Stm			_os;
