@@ -17,6 +17,7 @@ private:
     goid_t		_vbuf;
     goid_t		_gradShader;
     goid_t		_walk;
+    goid_t		_cat;
     coord_t		_wx;
     coord_t		_wy;
     coord_t		_wsx;
@@ -29,10 +30,11 @@ inline CTestWindow::CTestWindow (wid_t wid)
 ,_vbuf(0)
 ,_gradShader(0)
 ,_walk(0)
+,_cat(0)
 ,_wx(0)
 ,_wy(0)
 ,_wsx(0)
 ,_wsy(0)
-,_wtimer(UINT64_MAX)
+,_wtimer(NotWaitingForVSync)
 {
 }

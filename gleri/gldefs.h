@@ -4,7 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #pragma once
-#include "config.h"
+#include "util.h"
 
 //----------------------------------------------------------------------
 // OpenGL constants
@@ -92,6 +92,46 @@ enum class EResource : uint16_t {
     BUFFER_TEXTURE		= TEXTURE_BUFFER,
     BUFFER_TRANSFORM_FEEDBACK	= TRANSFORM_FEEDBACK_BUFFER,
     BUFFER_UNIFORM		= UNIFORM_BUFFER
+};
+
+namespace Pixel {
+enum EComp : uint16_t {
+    RED		= 0x1903,
+    RG		= 0x8227,
+    RGB		= 0x1907,
+    BGR		= 0x80e0,
+    RGBA	= 0x1908,
+    BGRA	= 0x80e1
+};
+enum EFmt : uint16_t {
+    BYTE = 0x1400,
+    UNSIGNED_BYTE,
+    SHORT,
+    UNSIGNED_SHORT,
+    INT,
+    UNSIGNED_INT,
+    FLOAT,
+    UNSIGNED_BYTE_3_3_2 = 0x8032,
+    UNSIGNED_SHORT_4_4_4_4,
+    UNSIGNED_SHORT_5_5_5_1,
+    UNSIGNED_INT_8_8_8_8,
+    UNSIGNED_INT_10_10_10_2,
+    UNSIGNED_BYTE_2_3_3_REV = 0x8362,
+    UNSIGNED_SHORT_5_6_5,
+    UNSIGNED_SHORT_5_6_5_REV,
+    UNSIGNED_SHORT_4_4_4_4_REV,
+    UNSIGNED_SHORT_1_5_5_5_REV,
+    UNSIGNED_INT_8_8_8_8_REV,
+    UNSIGNED_INT_2_10_10_10_REV
+};
+} // namespace G::Pixel
+
+struct alignas(8) STextureHeader {
+    enum { Magic = vpack4('G','L','T','X') };
+    uint32_t		magic,w;
+    uint16_t		h,d;
+    G::Pixel::EComp	comp;
+    G::Pixel::EFmt	fmt;
 };
 
 } // namespace G

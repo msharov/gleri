@@ -3,7 +3,7 @@
 // Copyright (c) 2012 by Mike Sharov <msharov@users.sourceforge.net>
 // This file is free software, distributed under the MIT License.
 
-#include "../gleri/config.h"
+#include "../gleri/util.h"
 #include <stdio.h>
 
 #define OUTDIR	".o/data/"

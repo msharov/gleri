@@ -46,7 +46,7 @@ void CShader::Load (const Sources& src)
     GLuint stages [Sources::shader_NStages];
     for (GLuint i = 0; i < Sources::shader_NStages; ++i) {
 	if (!src.HaveStage(i)) {
-	    stages[i] = UINT_MAX;
+	    stages[i] = NoObject;
 	    continue;
 	}
 	stages[i] = glCreateShader (src.ShaderType(i));
@@ -62,7 +62,7 @@ void CShader::Load (const Sources& src)
     }
 
     for (GLuint i = 0; i < Sources::shader_NStages; ++i)
-	if (stages[i] != UINT_MAX)
+	if (stages[i] != NoObject)
 	    glAttachShader (Id(), stages[i]);
     glLinkProgram (Id());
 
@@ -75,6 +75,6 @@ void CShader::Load (const Sources& src)
     }
 
     for (GLuint i = 0; i < Sources::shader_NStages; ++i)
-	if (stages[i] != UINT_MAX)
+	if (stages[i] != NoObject)
 	    glDeleteShader (stages[i]);
 }

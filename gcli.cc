@@ -166,7 +166,7 @@ void CGLClient::MapId (uint32_t cid, GLuint sid) noexcept
 GLuint CGLClient::LookupId (uint32_t cid) const noexcept
 {
     auto fi = _cidmap.lower_bound (SIdMap(cid,0));
-    return (fi == _cidmap.end() || fi->_cid != cid ? UINT32_MAX : fi->_sid);
+    return (fi == _cidmap.end() || fi->_cid != cid ? CGObject::NoObject : fi->_sid);
 }
 
 uint32_t CGLClient::LookupSid (GLuint sid) const noexcept
@@ -174,7 +174,7 @@ uint32_t CGLClient::LookupSid (GLuint sid) const noexcept
     for (const auto& i : _cidmap)
 	if (i._sid == sid)
 	    return (i._cid);
-    return (UINT32_MAX);
+    return (CGObject::NoObject);
 }
 
 void CGLClient::UnmapId (uint32_t cid) noexcept
@@ -198,7 +198,7 @@ void CGLClient::UnmapId (uint32_t cid) noexcept
 
 GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz)
 {
-    GLuint sid = UINT_MAX;
+    GLuint sid = CGObject::NoObject;
     switch (dtype) {
 	case G::EResource::DATAPAK:
 	    sid = LoadDatapak (d, dsz);
@@ -232,7 +232,7 @@ GLuint CGLClient::LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLui
 	if (!p) Error();
 	GLuint fsz;
 	const GLubyte* pf = p->File (filename, fsz);
-	if (!pf) Error();
+	if (!pf) throw XError ("%s is not in the datapak", filename);
 	return (LoadResource (dtype, hint, pf, fsz));
     }
 }
@@ -256,7 +256,7 @@ GLuint CGLClient::LoadDatapak (const GLubyte* pi, GLuint isz)
     DTRACE ("[%x] LoadDatapak %u bytes\n", IId(), isz);
     GLuint osz = 0;
     GLubyte* po = CDatapak::DecompressBlock (pi, isz, osz);
-    if (!po) Error();
+    if (!po) throw XError ("failed to decompress datapak");
     return (_pak.emplace (_pak.end(), ContextId(), po, osz)->Id());
 }
 
@@ -300,7 +300,7 @@ void CGLClient::BindBuffer (GLuint id)
     if (Buffer() == id)
 	return;
     const CBuffer* pbo = FindGObject (_buffer, id);
-    if (!pbo) Error();
+    if (!pbo) throw XError ("no such buffer");
     BindBuffer (id, pbo->Type());
 }
 
@@ -354,7 +354,7 @@ void CGLClient::Shader (GLuint id) noexcept
 {
     if (Shader() == id)
 	return;
-    if (id == UINT_MAX)
+    if (id == CGObject::NoObject)
 	return;
     SetShader (id);
     glUseProgram (id);

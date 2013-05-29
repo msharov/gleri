@@ -4,7 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #pragma once
-#include "config.h"
+#include "util.h"
 #include <type_traits>
 
 //----------------------------------------------------------------------
@@ -48,7 +48,7 @@ public:
     inline		bstrs (void)		:_sz(0) { }
     template <typename T>
     inline T*		iptr (void)		{ return (nullptr); }
-    inline size_type	remaining (void) const	{ return (UINT_MAX); }
+    inline size_type	remaining (void) const	{ return (numeric_limits<size_type>::max()); }
     inline size_type	size (void) const	{ return (_sz); }
     inline void		skip (size_type n)	{ _sz += n; }
     inline void		align (size_type g)	{ skip (align_size(size(),g)); }

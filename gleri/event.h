@@ -4,7 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #pragma once
-#include "config.h"
+#include "util.h"
 
 struct CEvent {
     uint32_t	key;

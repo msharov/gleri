@@ -30,7 +30,7 @@ private:
 	query_FrameEnd,
 	NStdQueries
     };
-    enum { NotWaitingForVSync = UINT64_MAX };
+    enum { NotWaitingForVSync = CApp::NoTimer };
     typedef float		matrix4f_t[4][4];
     typedef PRGL::SWinInfo	SWinInfo;
 public:

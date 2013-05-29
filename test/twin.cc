@@ -4,6 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #include "twin.h"
+#include "../config.h"	// to see which image libraries are linked in
 
 //{{{ Vertex data ------------------------------------------------------
 namespace {
@@ -75,7 +76,12 @@ void CTestWindow::OnInit (void)
     Open (640, 480);
     printf ("Initializing test window\n");
     _vbuf = BufferData (_vdata1, sizeof(_vdata1));
+#if HAVE_PNG_H
     _walk = LoadTexture ("test/princess.png");
+#endif
+#if HAVE_JPEGLIB_H
+    _cat = LoadTexture ("test/pgcat.jpg");
+#endif
     _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
 }
 
@@ -165,10 +171,15 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Color (255,255,255);
     drw.LineStrip (vb_BrokenLineOffset, vb_BrokenLineSize);
 
-    drw.Image (200, 75, _walk);
-    drw.Offset (_wx, _wy);
-    drw.Sprite (0, 0, _walk, _wsx, _wsy, walk_SpriteW, walk_SpriteH);
-    drw.Offset (0, 0);
+    #if HAVE_JPEGLIB_H
+	drw.Image (700, 20, _cat);
+    #endif
+    #if HAVE_PNG_H
+	drw.Image (200, 75, _walk);
+	drw.Offset (_wx, _wy);
+	drw.Sprite (0, 0, _walk, _wsx, _wsy, walk_SpriteW, walk_SpriteH);
+	drw.Offset (0, 0);
+    #endif
 
     drw.Color (ARGB(0xc0804040));
     drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);

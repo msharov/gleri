@@ -14,6 +14,7 @@ class CApp {
 public:
     typedef int			argc_t;
     typedef char* const*	argv_t;
+    enum : uint64_t { NoTimer = UINT64_MAX };
 public:
     inline		CApp (void);
     static inline CApp&	Instance (void)		{ assert (gs_pApp); return (*gs_pApp); }
@@ -59,7 +60,7 @@ private:
 
 inline CApp::CApp (void)
 :_watch()
-,_timer(1,UINT64_MAX)
+,_timer(1,NoTimer)
 ,_quitting(false)
 {
     assert (!gs_pApp && "Application object must be a singleton");

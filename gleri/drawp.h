@@ -107,7 +107,7 @@ private:
     template <typename... Arg>
     static inline void	Args (Stm& is, Arg&... args);
     constexpr uint32_t	Header (ECmd cmd, uint16_t sz) const	{ return (vpack4(uint16_t(cmd),sz)); }
-    static inline void	Error (void)				{ throw XError ("RGL parse error"); }
+    static inline void	Error (void)				{ throw XError ("drawlist parse error"); }
 private:
     Stm			_os;
 };

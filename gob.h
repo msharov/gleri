@@ -25,7 +25,7 @@ inline void DTRACE (const char*, Args...) noexcept {}
 
 class CGObject {
 public:
-    enum : GLuint { NoObject = UINT_MAX };
+    enum : GLuint { NoObject = numeric_limits<GLuint>::max() };
 public:
     inline		CGObject (GLXContext ctx, GLuint id)	:_ctx(ctx),_id(id) {}
     inline explicit	CGObject (CGObject&& v)			:_ctx(v._ctx),_id(v._id) { v._ctx = nullptr; v._id = NoObject; }
@@ -33,6 +33,8 @@ public:
     inline bool		operator== (GLuint id) const		{ return (_id == id); }
     inline GLXContext	Context (void) const			{ return (_ctx); }
     inline GLuint	Id (void) const				{ return (_id); }
+protected:
+    inline void		ResetId (void)				{ _id = NoObject; }
 private:
     GLXContext		_ctx;
     GLuint		_id;

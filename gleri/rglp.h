@@ -12,6 +12,7 @@ public:
     typedef CCmdBuf::iid_t	iid_t;
     typedef PDraw<bstro>	draww_t;
     typedef draww_t::goid_t	goid_t;
+    enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
     typedef draww_t::coord_t	coord_t;
     typedef draww_t::dim_t	dim_t;
     typedef draww_t::color_t	color_t;
@@ -250,18 +251,22 @@ template <typename F>
 		goid_t id; G::EBufferHint hint; G::EResource dtype; uint32_t tsz, toff; SDataBlock d;
 		Args (cmdis, id, dtype, hint, tsz, toff, d);
 		uint32_t sid = clir->LookupId (id);
-		if (sid != UINT32_MAX)
+		if (sid != GoidNull)
 		    clir->FreeResource (dtype, sid);
 		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
+		if (sid == GoidNull)
+		    throw XError ("failed to load resource from data");
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::LoadPakFile: {
 		goid_t id,pak; const char* filename = nullptr; G::EResource dtype; G::EBufferHint hint;
 		Args (cmdis, id, dtype, hint, pak, filename);
 		uint32_t sid = clir->LookupId (id), flnsz = cmdis.ipos()-(const uint8_t*)filename;
-		if (sid != UINT32_MAX)
+		if (sid != GoidNull)
 		    clir->FreeResource (dtype, sid);
 		sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
+		if (sid == GoidNull)
+		    throw XError ("failed to load datapak resource %s", filename);
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::LoadFile: {
@@ -270,9 +275,11 @@ template <typename F>
 		CMMFile recvf (fd);
 		bstri dfis (recvf.MMData(), recvf.MMSize());
 		uint32_t sid = clir->LookupId (id);
-		if (sid != UINT32_MAX)
+		if (sid != GoidNull)
 		    clir->FreeResource (dtype, sid);
 		sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
+		if (sid == GoidNull)
+		    throw XError ("failed to load resource from file");
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::FreeResource: {

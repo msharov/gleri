@@ -41,7 +41,7 @@ public:
     };
 protected:
     enum : uint32_t { COMObject = vpack4('C','O','M',0) };
-    enum : cmd_t { InvalidCmd = UINT_MAX };
+    enum : cmd_t { InvalidCmd = numeric_limits<cmd_t>::max() };
     enum { c_MsgAlignment = 8 };
 protected:
     static inline bstrs& variadic_arg_size (bstrs& ss)

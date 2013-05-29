@@ -140,7 +140,7 @@ inline bool CApp::CheckForQuitSignal (void) const
 inline void CApp::WaitForFdsAndTimers (void)
 {
     uint64_t timeToWait = _timer.back();
-    if (timeToWait != UINT64_MAX)
+    if (timeToWait != NoTimer)
 	timeToWait -= NowMS();
     int prv = poll (&_watch[0], _watch.size(), uint32_t(timeToWait));
     if (prv < 0 && errno != EINTR)
