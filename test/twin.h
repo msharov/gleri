@@ -3,6 +3,7 @@
 // Copyright (c) 2012 by Mike Sharov <msharov@users.sourceforge.net>
 // This file is free software, distributed under the MIT License.
 
+#pragma once
 #include "../gleri.h"
 
 class CTestWindow : public CWindow {
@@ -11,6 +12,7 @@ public:
     virtual void	OnInit (void);
     virtual void	OnResize (dim_t w, dim_t h);
     virtual void	OnKey (key_t key);
+    virtual void	OnButton (key_t b, coord_t x, coord_t y);
     virtual void	OnTimer (uint64_t tms);
     ONDRAWDECL		OnDraw (Drw& drw) const;
 private:

@@ -14,8 +14,10 @@ template <typename... Args>
 inline void DTRACE (const char* fmt, Args... args) noexcept
 {
     extern bool g_bDebugTrace;
-    if (g_bDebugTrace)
+    if (g_bDebugTrace) {
 	printf (fmt, args...);
+	fflush (stdout);
+    }
 }
 #else
 inline void DTRACE (const char*, Args...) noexcept {}

@@ -156,6 +156,8 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	Error ("could not open X display");
     WatchFd (ConnectionNumber(_dpy));
 
+    GetAtoms();
+
     int glx_major = 0, glx_minor = 0;
     if (!glXQueryVersion (_dpy, &glx_major, &glx_minor) || (glx_major<<4|glx_minor) < 0x14)
 	Error ("X server does not support GLX 1.4");
@@ -192,7 +194,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
     _colormap = XCreateColormap(_dpy, _rootWindow, _visinfo->visual, AllocNone);
 
     // Create the root gl context (share root)
-    static const SWinInfo rootinfo = { 0, 0, 1, 1, 0x33, 0x43, SWinInfo::wt_Normal, SWinInfo::wf_Hidden };
+    static const SWinInfo rootinfo = { 0, 0, 1, 1, 0, 0x33, 0x43, 0, SWinInfo::type_Normal, SWinInfo::state_Hidden, SWinInfo::flag_None };
     Window rctxw = CreateWindow (rootinfo);	// Temporary window to create the root gl context
     GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig, GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
@@ -245,21 +247,66 @@ void CGleris::Init (argc_t argc, argv_t argv)
     }
 }
 
+void CGleris::GetAtoms (void) noexcept
+{
+    //{{{ c_AtomNames
+    static const char c_AtomNames[] =
+	"\0ATOM"
+	"\0_NET_WM_STATE"
+	"\0_NET_WM_STATE_MODAL"
+	"\0_NET_WM_STATE_DEMANDS_ATTENTION"
+	"\0_NET_WM_STATE_FOCUSED"
+	"\0_NET_WM_STATE_STICKY"
+	"\0_NET_WM_STATE_SKIP_TASKBAR"
+	"\0_NET_WM_STATE_SKIP_PAGER"
+	"\0_NET_WM_STATE_ABOVE"
+	"\0_NET_WM_STATE_BELOW"
+	"\0_NET_WM_STATE_MAXIMIZED_HORZ"
+	"\0_NET_WM_STATE_MAXIMIZED_VERT"
+	"\0_NET_WM_STATE_HIDDEN"
+	"\0_NET_WM_STATE_FULLSCREEN"
+	"\0_NET_WM_STATE_FULLSCREEN_EXCLUSIVE"
+	"\0_NET_WM_WINDOW_TYPE"
+	"\0_NET_WM_WINDOW_TYPE_NORMAL"
+	"\0_NET_WM_WINDOW_TYPE_DESKTOP"
+	"\0_NET_WM_WINDOW_TYPE_DOCK"
+	"\0_NET_WM_WINDOW_TYPE_DIALOG"
+	"\0_NET_WM_WINDOW_TYPE_TOOLBAR"
+	"\0_NET_WM_WINDOW_TYPE_UTILITY"
+	"\0_NET_WM_WINDOW_TYPE_MENU"
+	"\0_NET_WM_WINDOW_TYPE_POPUP_MENU"
+	"\0_NET_WM_WINDOW_TYPE_DROPDOWN_MENU"
+	"\0_NET_WM_WINDOW_TYPE_COMBO"
+	"\0_NET_WM_WINDOW_TYPE_NOTIFICATION"
+	"\0_NET_WM_WINDOW_TYPE_TOOLTIP"
+	"\0_NET_WM_WINDOW_TYPE_SPLASH"
+	"\0_NET_WM_WINDOW_TYPE_DND";
+    //}}}
+    const char* ana [a_Last], *an = c_AtomNames;
+    for (unsigned i = 0, anl = sizeof(c_AtomNames); i < a_Last; ++i)
+	ana[i] = an = strnext(an,anl);
+    if (!XInternAtoms (_dpy, const_cast<char**>(ana), a_Last, false, _atoms))
+	Error ("failed to get server strings");
+}
+
 Window CGleris::CreateWindow (const SWinInfo& winfo)
 {
     XSetWindowAttributes swa;
     swa.colormap = _colormap;
     swa.background_pixmap = None;
+    swa.backing_store = NotUseful;
     swa.border_pixel = BlackPixel (_dpy, _screen);
     swa.event_mask =
 	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
-	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| KeymapStateMask|
+	ButtonPressMask| ButtonReleaseMask| PointerMotionMask|
 	VisibilityChangeMask| FocusChangeMask| PropertyChangeMask;
+    swa.save_under = swa.override_redirect = winfo.Decoless();
 
     Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
 				_visinfo->depth, InputOutput, _visinfo->visual,
-				CWBackPixmap| CWBorderPixel| CWColormap| CWEventMask, &swa);
-    DTRACE ("Created window %x, %ux%u+%d+%d\n", winfo.w,winfo.h, winfo.x,winfo.y);
+				CWBackPixmap| CWBackingStore| CWOverrideRedirect|
+				CWSaveUnder| CWBorderPixel| CWColormap| CWEventMask, &swa);
+    DTRACE ("Created window %x, %ux%u+%d+%d\n", win, winfo.w,winfo.h, winfo.x,winfo.y);
     if (!win)
 	Error ("failed to create window");
     XSync (_dpy, False);
@@ -267,11 +314,71 @@ Window CGleris::CreateWindow (const SWinInfo& winfo)
     return (win);
 }
 
+/*static*/ void CGleris::DTRACE_EventType (const XEvent& e) noexcept
+{
+#ifndef NDEBUG
+    //{{{ c_EventNames
+    static const char c_EventNames[] =
+	"Error"
+	"\0Reply"
+	"\0KeyPress"
+	"\0KeyRelease"
+	"\0ButtonPress"
+	"\0ButtonRelease"
+	"\0MotionNotify"
+	"\0EnterNotify"
+	"\0LeaveNotify"
+	"\0FocusIn"
+	"\0FocusOut"
+	"\0KeymapNotify"
+	"\0Expose"
+	"\0GraphicsExpose"
+	"\0NoExpose"
+	"\0VisibilityNotify"
+	"\0CreateNotify"
+	"\0DestroyNotify"
+	"\0UnmapNotify"
+	"\0MapNotify"
+	"\0MapRequest"
+	"\0ReparentNotify"
+	"\0ConfigureNotify"
+	"\0ConfigureRequest"
+	"\0GravityNotify"
+	"\0ResizeRequest"
+	"\0CirculateNotify"
+	"\0CirculateRequest"
+	"\0PropertyNotify"
+	"\0SelectionClear"
+	"\0SelectionRequest"
+	"\0SelectionNotify"
+	"\0ColormapNotify"
+	"\0ClientMessage"
+	"\0MappingNotify"
+	"\0GenericEvent"
+	"\0Invalid";
+    //}}}
+    const char* en = c_EventNames;
+    int t = min(e.type,LASTEvent);
+    unsigned enl = sizeof(c_EventNames);
+    for (int i = 0; i < t; ++i)
+	en = strnext(en,enl);
+    DTRACE ("Received X event %s for window %x\n", en, e.xany.window);
+#else
+    DTRACE ("Received X event type %u, for window %x\n", e.type, e.xany.window);
+#endif
+}
+
 void CGleris::OnXEvent (void)
 {
     for (XEvent xev; XPending(_dpy);) {
 	XNextEvent(_dpy,&xev);
-	DTRACE ("Received X event type %u\n", xev.type);
+	DTRACE_EventType (xev);
+
+	if (xev.type == MappingNotify || xev.type == KeymapNotify) {
+	    DTRACE ("Keyboard mapping updated\n");
+	    XRefreshKeyboardMapping (&xev.xmapping);
+	    continue;
+	}
 
 	CGLClient* icli = ClientRecordForWindow (xev.xany.window);
 	if (!icli) {
@@ -283,22 +390,24 @@ void CGleris::OnXEvent (void)
 	    icli->Draw();
 	else if (xev.type == ConfigureNotify) {
 	    ActivateClient (*icli);
-	    DTRACE ("Resizing to %ux%u+%d+%d\n", xev.xconfigure.width, xev.xconfigure.height, xev.xconfigure.x, xev.xconfigure.y);
 	    icli->Resize (xev.xconfigure.x, xev.xconfigure.y, xev.xconfigure.width, xev.xconfigure.height);
 	} else if (xev.type == KeyPress || xev.type == KeyRelease) {
-	    DTRACE ("Receive keypress %u\n", xev.xkey.keycode);
+	    DTRACE ("[%x] Receive keypress %u\n", icli->IId(), xev.xkey.keycode);
 	    icli->Event (EventFromXKey (xev.xkey));
 	} else if (xev.type == ButtonPress || xev.type == ButtonRelease) {
-	    DTRACE ("Receive button press %u\n", xev.xbutton.button);
+	    DTRACE ("[%x] Receive button press %u at %u:%u for %x\n", icli->IId(), xev.xbutton.button, xev.xbutton.x, xev.xbutton.y);
 	    icli->Event (EventFromButton (xev.xbutton));
 	} else if (xev.type == MotionNotify) {
-	    DTRACE ("Receive motion event to %u:%u\n", xev.xmotion.x, xev.xmotion.y);
+	    DTRACE ("[%x] Receive motion event to %u:%u\n", icli->IId(), xev.xmotion.x, xev.xmotion.y);
 	    icli->Event (EventFromMotion (xev.xmotion));
-	} else if (xev.type == MappingNotify) {
-	    DTRACE ("Keyboard mapping updated\n");
-	    XRefreshKeyboardMapping (&xev.xmapping);
+	} else if (xev.type == MapNotify) {
+	    DTRACE ("[%x] Receive map notification\n", icli->IId());
+	    if (icli->WinInfo().Decoless()) {	// override-redirect windows do not automatically get focus
+		DTRACE ("[%x] Requesting input focus for window %x\n", icli->IId(), icli->Drawable());
+		XSetInputFocus (_dpy, icli->Drawable(), RevertToParent, CurrentTime);
+	    }
 	} else
-	    DTRACE ("Unknown event type %u\n", xev.type);
+	    DTRACE ("[%x] Unhandled event %u\n", icli->IId(), xev.type);
     }
     if (_xlib_error)
 	throw XError (true, _xlib_error);
@@ -424,9 +533,12 @@ void CGleris::OnFdError (int fd)
 void CGleris::OnTimer (uint64_t tms)
 {
     CApp::OnTimer (tms);
-    for (auto c : _cli)
-	if (c->NextFrameTime() == tms)
+    for (auto c : _cli) {
+	if (c->NextFrameTime() == tms) {
+	    ActivateClient (*c);
 	    WaitForTime (c->DrawPendingFrame (_dpy));
+	}
+    }
     OnXEvent();
     for (auto c : _cli)
 	try { c->WriteCmds(); } catch (...) {}	// fd errors will be caught by poll
@@ -466,16 +578,29 @@ void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn)
     }
 
     // Create client record
-    _cli.push_back (new CGLClient (iid, wid, ctx));
+    _cli.push_back (new CGLClient (iid, winfo, wid, ctx));
 
     // Activate the new context and set default parameters
-    if (!(winfo.flags & SWinInfo::wf_Hidden))
-	XMapWindow (_dpy, wid);
     CGLClient& rcli = *_cli.back();
     if (piconn)
 	rcli.SetFd (piconn->Fd(), piconn->CanPassFd());
     ActivateClient (rcli);
     rcli.Init();
+
+    // Set additional window attributes and map if not hidden
+    if (winfo.Parented()) {
+	for (const auto w : _cli) {
+	    if (w->Matches (rcli.Fd(), winfo.parent)) {
+		DTRACE ("[%x] Setting parent window of %x to %x\n", rcli.IId(), wid, w->Drawable());
+		XSetTransientForHint (_dpy, wid, w->Drawable());
+	    }
+	}
+    }
+    if (winfo.Decoless())	// override-redirect windows do not receive configure events
+	rcli.Resize (winfo.x, winfo.y, winfo.w, winfo.h);
+    XChangeProperty (_dpy, wid, _atoms[a_NET_WM_WINDOW_TYPE], _atoms[a_ATOM], 32, PropModeReplace, (unsigned char*) &_atoms[a_NET_WM_WINDOW_TYPE+1+winfo.wtype], 1);
+    if (winfo.wstate != SWinInfo::state_Hidden)
+	XMapWindow (_dpy, wid);
 
     // Check for X errors in all of the above
     XSync (_dpy, False);
@@ -486,8 +611,10 @@ inline void CGleris::ActivateClient (CGLClient& rcli) noexcept
 {
     if (_curCli == &rcli)
 	return;
-    _curCli = &rcli;
     DTRACE ("Activate client window %x, context %x\n", rcli.Drawable(), rcli.ContextId());
+    if (_curCli)
+	_curCli->Deactivate();
+    _curCli = &rcli;
     glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
 }
 

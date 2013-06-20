@@ -34,11 +34,13 @@ private:
     typedef float		matrix4f_t[4][4];
     typedef PRGL::SWinInfo	SWinInfo;
 public:
-				CGLClient (iid_t iid, Window win, GLXContext ctx);
+				CGLClient (iid_t iid, const SWinInfo& winfo, Window win, GLXContext ctx);
     void			Init (void);
+    void			Deactivate (void);
     inline const CContext&	Context (void) const		{ return (_ctx); }
     inline GLXContext		ContextId (void) const		{ return (_ctx.Context()); }
     inline Window		Drawable (void) const		{ return (_ctx.Drawable()); }
+    inline const SWinInfo&	WinInfo (void) const		{ return (_winfo); }
     void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
     void			MapId (goid_t cid, GLuint sid) noexcept;
     GLuint			LookupId (goid_t cid) const noexcept;

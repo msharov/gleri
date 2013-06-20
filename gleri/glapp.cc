@@ -23,6 +23,21 @@ void CGLApp::OpenWindow (CWindow* w)
     w->WriteCmds();
 }
 
+void CGLApp::DeleteWindow (const CWindow* p)
+{
+    foreach (auto,w,_wins) {
+	if (*w == p) {
+	    (*w)->PostClose();
+	    (*w)->WriteCmds();
+	    delete (*w);
+	    (*w) = nullptr;
+	    --(w = _wins.erase(w));
+	}
+    }
+    if (_wins.empty())
+	Quit();
+}
+
 CWindow* CGLApp::ClientRecord (int fd, CWindow::wid_t wid)
 {
     for (auto w : _wins)

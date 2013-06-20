@@ -19,6 +19,7 @@ public:
     enum { NotWaitingForVSync = UINT64_MAX };
 public:
     inline explicit	CWindow (wid_t wid) noexcept;
+    inline virtual	~CWindow (void)			{ }
     inline virtual void	OnExpose (void)			{ Draw(); }
     inline virtual void	OnInit (void)			{ }
     virtual void	OnTimer (uint64_t tms);
@@ -32,8 +33,10 @@ public:
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
     inline bool		Matches (int fd, iid_t iid)const{ return (PRGL::Matches(fd,iid)); }
     inline bool		Matches (int fd) const		{ return (PRGL::Matches(fd)); }
+    inline void		PostClose (void)		{ PRGL::Close(); }
 protected:
     inline rcwininfo_t	Info (void) const		{ return (_info); }
+    void		Close (void);
     inline uint32_t	LastRenderTimeNS (void) const	{ return (_fsync.time); }
     inline uint32_t	RefreshTimeNS (void) const	{ return (_fsync.key); }
     inline virtual void	OnKey (key_t)			{ }

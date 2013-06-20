@@ -12,13 +12,15 @@ public:
     virtual			~CGLApp (void) noexcept;
     void			Init (argc_t argc, argv_t argv);
     CWindow*			ClientRecord (int fd, CWindow::wid_t wid);
+    static inline CGLApp&	Instance (void)		{ return (static_cast<CGLApp&>(CApp::Instance())); }
+    template <typename WC, typename... A>
+    inline WC*			CreateWindow (A... a)	{ WC* w = new WC (GenWId(), a...); OpenWindow(w); return (w); }
+    void			DeleteWindow (const CWindow* p);
 protected:
     inline			CGLApp (void);
     virtual void		OnFd (int fd);
     virtual void		OnFdError (int fd);
     virtual void		OnTimer (uint64_t tms);
-    template <typename WC>
-    inline void			CreateWindow (void)	{ OpenWindow (new WC (GenWId())); }
 private:
     inline CWindow::wid_t	GenWId (void)		{ return (++_nextwid); }
     void			ConnectToServer (void);

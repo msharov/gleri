@@ -10,7 +10,7 @@
 
 /*static*/ const CGLClient* CGLClient::s_RootClient = nullptr;
 
-CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
+CGLClient::CGLClient (iid_t iid, const SWinInfo& winfo, Window win, GLXContext ctx)
 : PRGLR(iid)
 ,_ctx(ctx,win)
 ,_cidmap()
@@ -26,10 +26,11 @@ CGLClient::CGLClient (iid_t iid, Window win, GLXContext ctx)
 ,_curBuffer (CGObject::NoObject)
 ,_curTexture (CGObject::NoObject)
 ,_curFont (CGObject::NoObject)
+,_winfo (winfo)
 ,_pendingFrameIId (0)
 {
     DTRACE ("[%x] Create: window %x, context %x\n", iid, win, ctx);
-    memset (&_winfo, 0, sizeof(_winfo));
+    _winfo.h = 0;	// Make invalid until explicit resize
     if (!s_RootClient)
 	s_RootClient = this;
     _query[query_FrameEnd] = 0;
@@ -50,6 +51,11 @@ void CGLClient::Init (void)
 	return;
     SetDefaultShader();
     glGenQueries (ArraySize(_query), _query);
+}
+
+void CGLClient::Deactivate (void)
+{
+    _curShader = _curBuffer = _curTexture = _curFont = CGObject::NoObject;
 }
 
 void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
@@ -90,17 +96,21 @@ void CGLClient::Offset (GLint x, GLint y) noexcept
 uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
 {
     if (_nextVSync != NotWaitingForVSync) {
-	DTRACE ("[%x] Waiting for vsync\n", IId());
-	while (!QueryResultAvailable(_query[query_FrameEnd]))
+	DTRACE ("[%x] Waiting for vsync: ", IId());
+	bool bHaveQuery;
+	for (unsigned n = 0; !(bHaveQuery = QueryResultAvailable(_query[query_FrameEnd])) && ++n < 64;)
 	    usleep(256);
-	uint64_t times[ArraySize(_query)];	// Query times are in ns
-	for (unsigned i = 0; i < ArraySize(_query); ++i)
-	    glGetQueryObjectui64v (_query[i], GL_QUERY_RESULT, &times[i]);
-	_syncEvent.time = times[query_RenderEnd] - times[query_RenderBegin];
-	_syncEvent.key = times[query_FrameEnd] - times[query_RenderBegin];
-	Event (_syncEvent);
+	if (bHaveQuery) {
+	    uint64_t times[ArraySize(_query)];	// Query times are in ns
+	    for (unsigned i = 0; i < ArraySize(_query); ++i)
+		glGetQueryObjectui64v (_query[i], GL_QUERY_RESULT, &times[i]);
+	    _syncEvent.time = times[query_RenderEnd] - times[query_RenderBegin];
+	    _syncEvent.key = times[query_FrameEnd] - times[query_RenderBegin];
+	    Event (_syncEvent);
+	    DTRACE ("Got it. Draw time %u ns, refresh %u ns\n", _syncEvent.time, _syncEvent.key);
+	} else	// technically should never happen, but timing out avoids a hang in case of driver problems
+	    DTRACE ("query lost\n");
 	_nextVSync = NotWaitingForVSync;
-	DTRACE ("[%x] VSync. Drawing time %u ns, refresh %u ns\n", IId(), _syncEvent.time, _syncEvent.key);
     }
     if (cmdis.remaining()) {
 	_nextVSync = CApp::NowMS() + LastFrameTime()/1000000 + 1;	// Round up to avoid busywait above
@@ -356,6 +366,7 @@ void CGLClient::Shader (GLuint id) noexcept
 	return;
     if (id == CGObject::NoObject)
 	return;
+    DTRACE ("[%x] SetShader %x\n", IId(), id);
     SetShader (id);
     glUseProgram (id);
     UniformMatrix ("Transform", Proj());
@@ -443,7 +454,7 @@ void CGLClient::Color (GLuint c) noexcept
     SetColor(c);
     float r,g,b,a;
     UnpackColor (c,r,g,b,a);
-    DTRACE ("[%x] Color 0x%02x%02x%02x%02x\n", a,b,g,r);
+    DTRACE ("[%x] Color 0x%08x\n", IId(), c);
     Uniform4f ("Color", r, g, b, a);
 }
 
@@ -451,17 +462,15 @@ void CGLClient::Clear (GLuint c) noexcept
 {
     float r,g,b,a;
     UnpackColor (c,r,g,b,a);
-    DTRACE ("[%x] Clear 0x%02x%02x%02x%02x\n", a,b,g,r);
+    DTRACE ("[%x] Clear 0x%08x\n", IId(), c);
     glClearColor (r,g,b,a);
     glClear (GL_COLOR_BUFFER_BIT);
 }
 
 void CGLClient::DrawCmdInit (void) noexcept
 {
-    if (_curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader()) {
-	DTRACE ("[%x] Resetting internal shader to default\n", IId());
+    if (_curShader == CGObject::NoObject || _curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader())
 	SetDefaultShader();
-    }
 }
 
 //----------------------------------------------------------------------
@@ -567,7 +576,7 @@ void CGLClient::Text (coord_t x, coord_t y, const char* s)
     if (!pfont && !(pfont = s_RootClient->DefaultFont()))
 	return;
 
-    DTRACE ("[%x] Text at %d:%d: '%s'\n", x,y,s);
+    DTRACE ("[%x] Text at %d:%d: '%s'\n", IId(), x,y,s);
     const unsigned nChars = strlen(s);
     struct SVertex { GLshort x,y,s,t; } v [nChars];
     const unsigned fw = pfont->Width(), fh = pfont->Height();

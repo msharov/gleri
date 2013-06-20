@@ -16,26 +16,58 @@ public:
     typedef draww_t::coord_t	coord_t;
     typedef draww_t::dim_t	dim_t;
     typedef draww_t::color_t	color_t;
-    struct SWinInfo {
+    //{{{ SWinInfo
+    struct alignas(4) SWinInfo {
 	coord_t		x,y;
 	dim_t		w,h;
+	iid_t		parent;
 	uint8_t		mingl,maxgl;
+	uint8_t		aa;
 	enum EWinType : uint8_t {
-	    wt_Normal,
-	    wt_Dialog,
-	    wt_Menu,
-	    wt_Tray
-	}		state;
-	enum EWinFlag {
-	    wf_Hidden		= 1<<0,
-	    wf_MaximizedX	= 1<<1,
-	    wf_MaximizedY	= 1<<2,
-	    wf_Maximized	= wf_MaximizedX| wf_MaximizedY,
-	    wf_Fullscreen	= 1<<3,
-	    wf_Gamescreen	= 1<<4
+	    type_Normal,
+	    type_Desktop,
+	    type_Dock,
+	    type_Dialog,
+	    type_Toolbar,
+	    type_Utility,
+	    type_Menu,
+	    type_PopupMenu,
+	    type_DropdownMenu,
+	    type_ComboMenu,
+	    type_Notification,
+	    type_Tooltip,
+	    type_Splash,
+	    type_Dragged,
+	    type_FirstParented = type_Dialog,
+	    type_FirstDecoless = type_PopupMenu,
+	    type_LastParented = type_Splash,
+	    type_LastDecoless = type_Dragged
+	}		wtype;
+	enum EWinState : uint8_t {
+	    state_Normal,
+	    state_MaximizedX,
+	    state_MaximizedY,
+	    state_Maximized,
+	    state_Hidden,
+	    state_Fullscreen,
+	    state_Gamescreen
+	}		wstate;
+	enum EWinFlag : uint8_t {
+	    flag_None,
+	    flag_Modal		= (1<<0),
+	    flag_Attention	= (1<<1),
+	    flag_Focused	= (1<<2),
+	    flag_Sticky		= (1<<3),
+	    flag_NotOnTaskbar	= (1<<4),
+	    flag_NotOnPager	= (1<<5),
+	    flag_Above		= (1<<5),
+	    flag_Below		= (1<<7)
 	};
 	uint8_t		flags;
+	inline bool	Parented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
+	inline bool	Decoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
     };
+    //}}}
 private:
     enum : uint32_t { RGLObject = vpack4('R','G','L',0) };
     enum class ECmd : cmd_t {
@@ -69,7 +101,7 @@ public:
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
 				// Commands
     inline void			Open (const SWinInfo& winfo)	{ Cmd(ECmd::Open,winfo); }
-    inline void			Open (dim_t w, dim_t h, uint8_t glver = 0x33)	{ SWinInfo winfo = { 0,0,w,h,glver,0,SWinInfo::wt_Normal,0 }; Open(winfo); }
+    inline void			Open (dim_t w, dim_t h, uint8_t glver = 0x33)	{ SWinInfo winfo = { 0,0,w,h,0,glver,0,0,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }; Open(winfo); }
     inline void			Close (void)			{ Cmd(ECmd::Close); }
     inline draww_t		Draw (size_type sz);
     inline goid_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);

@@ -4,6 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #include "twin.h"
+#include "menu.h"
 #include "../config.h"	// to see which image libraries are linked in
 
 //{{{ Vertex data ------------------------------------------------------
@@ -94,7 +95,7 @@ void CTestWindow::OnResize (dim_t w, dim_t h)
     BufferSubData (_vbuf, _vdata1, sizeof(_vdata1), 3*sizeof(int16_t));
     _wx = 0; _wy = (h-walk_SpriteH)/2;
     _wsx = 0*walk_SpriteW; _wsy = walk_StripRight;
-    WaitForTime (_wtimer = NowMS()+1000/30);
+    //WaitForTime (_wtimer = NowMS()+1000/30);
 }
 
 void CTestWindow::OnKey (key_t key)
@@ -102,7 +103,7 @@ void CTestWindow::OnKey (key_t key)
     CWindow::OnKey (key);
     if (key == 'q' || key == Key::Escape) {
 	printf ("Event received, quitting\n");
-	CApp::Instance().Quit();
+	Close();
     } else if (key == Key::Up) {
 	if (--_wy < 0)
 	    _wy = 0;
@@ -136,6 +137,13 @@ void CTestWindow::OnKey (key_t key)
 	    _wsx = 0;
 	Draw();
     }
+}
+
+void CTestWindow::OnButton (key_t b, coord_t x, coord_t y)
+{
+    CWindow::OnButton (b,x,y);
+    if (b == 3)
+	CPopupMenu::Create (IId(), x, y);
 }
 
 void CTestWindow::OnTimer (uint64_t tms)

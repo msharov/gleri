@@ -37,6 +37,7 @@ public:
     template <typename F>
     static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis);
     inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
+    inline int			Fd (void) const			{ return (CCmdBuf::Fd()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
     static inline void		Error (void)			{ CCmdBuf::Error(); }
@@ -79,8 +80,8 @@ template <typename F>
 /*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis)
 {
     auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);
-    if ((h.objname != RGLRObject && h.objname != COMObject) || !clir)	// Not for me
-	Error();
+    if ((h.objname != RGLRObject && h.objname != COMObject) || !clir)
+	return;			// Not for me; ignore
     switch (LookupCmd (cmdname, h.hsz)) {
 	case ECmd::Error:	{ const char* m = nullptr; Args(cmdis,m); clir->OnError(m); } break;
 	case ECmd::Restate:	{ SWinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;

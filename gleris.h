@@ -27,6 +27,39 @@ private:
     typedef CGLClient::iid_t	iid_t;
     typedef PRGL::SWinInfo	SWinInfo;
     typedef const SWinInfo&	rcwininfo_t;
+    enum EAtom {
+	a_ATOM,
+	a_NET_WM_STATE,
+	a_NET_WM_STATE_MODAL,
+	a_NET_WM_STATE_DEMANDS_ATTENTION,
+	a_NET_WM_STATE_FOCUSED,
+	a_NET_WM_STATE_STICKY,
+	a_NET_WM_STATE_SKIP_TASKBAR,
+	a_NET_WM_STATE_SKIP_PAGER,
+	a_NET_WM_STATE_ABOVE,
+	a_NET_WM_STATE_BELOW,
+	a_NET_WM_STATE_MAXIMIZED_HORZ,
+	a_NET_WM_STATE_MAXIMIZED_VERT,
+	a_NET_WM_STATE_HIDDEN,
+	a_NET_WM_STATE_FULLSCREEN,
+	a_NET_WM_STATE_FULLSCREEN_EXCLUSIVE,
+	a_NET_WM_WINDOW_TYPE,
+	a_NET_WM_WINDOW_TYPE_NORMAL,
+	a_NET_WM_WINDOW_TYPE_DESKTOP,
+	a_NET_WM_WINDOW_TYPE_DOCK,
+	a_NET_WM_WINDOW_TYPE_DIALOG,
+	a_NET_WM_WINDOW_TYPE_TOOLBAR,
+	a_NET_WM_WINDOW_TYPE_UTILITY,
+	a_NET_WM_WINDOW_TYPE_MENU,
+	a_NET_WM_WINDOW_TYPE_POPUP_MENU,
+	a_NET_WM_WINDOW_TYPE_DROPDOWN_MENU,
+	a_NET_WM_WINDOW_TYPE_COMBO,
+	a_NET_WM_WINDOW_TYPE_NOTIFICATION,
+	a_NET_WM_WINDOW_TYPE_TOOLTIP,
+	a_NET_WM_WINDOW_TYPE_SPLASH,
+	a_NET_WM_WINDOW_TYPE_DND,
+	a_Last
+    };
 public:
 			// Client id translation
     CGLClient*		ClientRecord (int fd, iid_t iid) noexcept;
@@ -44,6 +77,7 @@ private:
     void		DestroyClient (CGLClient*& pcli) noexcept;
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
     inline iid_t	GenIId (void)		{ return (++_nextiid); }
+    inline void		GetAtoms (void) noexcept;
     void		OnXEvent (void);
     static uint32_t	ModsFromXState (uint32_t state) noexcept;
    static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
@@ -56,6 +90,7 @@ private:
     static int		XlibIOErrorHandler (Display*) noexcept NORETURN;
     inline void		OnXlibIOError (void) { _dpy = nullptr; }
     static void		Error (const char* m) NORETURN;
+    static inline void	DTRACE_EventType (const XEvent& e) noexcept;
 private:
     GLXFBConfig		_fbconfig;
     CGLClient*		_curCli;
@@ -66,6 +101,7 @@ private:
     Colormap		_colormap;
     XID			_screen;
     Window		_rootWindow;
+    Atom		_atoms [a_Last];
     iid_t		_nextiid;
     CFile		_localSocket;
     CFile		_tcpSocket;

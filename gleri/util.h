@@ -69,4 +69,15 @@ constexpr static inline uint64_t bole_swap8 (uint64_t v)
 constexpr static inline uint32_t vpack4 (uint8_t a, uint8_t b, uint8_t c, uint8_t d)
     { return (vpack4(vpack2(a,b),vpack2(c,d))); }
 
+inline const char* strnext (const char* s, unsigned& n)
+{
+#if __i386__ || __x86_64__
+    if (!__builtin_constant_p(strlen(s)))
+	asm("repnz\tscasb":"+D"(s),"+c"(n):"a"('\0'));
+    else
+#endif
+	s+=strlen(s)+1;
+    return (s);
+}
+
 } // namespace
