@@ -11,63 +11,12 @@ class PRGL : private CCmdBuf {
 public:
     typedef CCmdBuf::iid_t	iid_t;
     typedef PDraw<bstro>	draww_t;
-    typedef draww_t::goid_t	goid_t;
+    typedef G::SWinInfo		SWinInfo;
+    typedef G::goid_t		goid_t;
     enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
-    typedef draww_t::coord_t	coord_t;
-    typedef draww_t::dim_t	dim_t;
-    typedef draww_t::color_t	color_t;
-    //{{{ SWinInfo
-    struct alignas(4) SWinInfo {
-	coord_t		x,y;
-	dim_t		w,h;
-	iid_t		parent;
-	uint8_t		mingl,maxgl;
-	uint8_t		aa;
-	enum EWinType : uint8_t {
-	    type_Normal,
-	    type_Desktop,
-	    type_Dock,
-	    type_Dialog,
-	    type_Toolbar,
-	    type_Utility,
-	    type_Menu,
-	    type_PopupMenu,
-	    type_DropdownMenu,
-	    type_ComboMenu,
-	    type_Notification,
-	    type_Tooltip,
-	    type_Splash,
-	    type_Dragged,
-	    type_FirstParented = type_Dialog,
-	    type_FirstDecoless = type_PopupMenu,
-	    type_LastParented = type_Splash,
-	    type_LastDecoless = type_Dragged
-	}		wtype;
-	enum EWinState : uint8_t {
-	    state_Normal,
-	    state_MaximizedX,
-	    state_MaximizedY,
-	    state_Maximized,
-	    state_Hidden,
-	    state_Fullscreen,
-	    state_Gamescreen
-	}		wstate;
-	enum EWinFlag : uint8_t {
-	    flag_None,
-	    flag_Modal		= (1<<0),
-	    flag_Attention	= (1<<1),
-	    flag_Focused	= (1<<2),
-	    flag_Sticky		= (1<<3),
-	    flag_NotOnTaskbar	= (1<<4),
-	    flag_NotOnPager	= (1<<5),
-	    flag_Above		= (1<<5),
-	    flag_Below		= (1<<7)
-	};
-	uint8_t		flags;
-	inline bool	Parented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
-	inline bool	Decoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
-    };
-    //}}}
+    typedef G::coord_t		coord_t;
+    typedef G::dim_t		dim_t;
+    typedef G::color_t		color_t;
 private:
     enum : uint32_t { RGLObject = vpack4('R','G','L',0) };
     enum class ECmd : cmd_t {
@@ -92,7 +41,7 @@ private:
 	uint32_t _sz;
     };
 public:
-    inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_nextid(0) {}
+    inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_nextid(iid<<16) {}
     inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
@@ -133,7 +82,6 @@ public:
 				// Buffer reading for serialization
     template <typename F>
     static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis);
-    static inline void		Error (void)			{ CCmdBuf::Error(); }
 private:
     template <typename... Arg>
     inline void			Cmd (ECmd cmd, const Arg&... args);
@@ -249,7 +197,7 @@ template <typename... Arg>
 {
     bstrs ss; variadic_arg_size (ss, args...);	// Size of args
     if (is.remaining() < ss.size())		// Have the whole thing?
-	Error();				//  sz may be != ss.size if args has a string
+	XError::emit ("RGL protocol error");	//  sz may be != ss.size if args has a string
     variadic_arg_read (is, args...);		// Read args
 }
 
@@ -263,7 +211,7 @@ template <typename F>
     try {
 	ECmd cmd = LookupCmd (cmdname, h.hsz);
 	if (h.objname != RGLObject || (!clir ^ (cmd == ECmd::Open)))
-	    Error();
+	    XError::emit ("RGL protocol error");
 
 	switch (cmd) {
 	    case ECmd::Open: {
@@ -287,7 +235,7 @@ template <typename F>
 		    clir->FreeResource (dtype, sid);
 		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
 		if (sid == GoidNull)
-		    throw XError ("failed to load resource from data");
+		    XError::emit ("failed to load resource from data");
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::LoadPakFile: {
@@ -311,7 +259,7 @@ template <typename F>
 		    clir->FreeResource (dtype, sid);
 		sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
 		if (sid == GoidNull)
-		    throw XError ("failed to load resource from file");
+		    XError::emit ("failed to load resource from file");
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::FreeResource: {
@@ -326,7 +274,7 @@ template <typename F>
 		clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
 		} break;
 	    default:
-		Error();
+		XError::emit ("RGL protocol error");
 		break;
 	}
     } catch (XError& e) {

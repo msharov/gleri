@@ -3,22 +3,20 @@
 // Copyright (c) 2012 by Mike Sharov <msharov@users.sourceforge.net>
 // This file is free software, distributed under the MIT License.
 
-#include "gcli.h"
+#include "gwin.h"
 #include <sys/time.h>
 
 //----------------------------------------------------------------------
 
-/*static*/ const CGLClient* CGLClient::s_RootClient = nullptr;
-
-CGLClient::CGLClient (iid_t iid, const SWinInfo& winfo, Window win, GLXContext ctx)
+CGLWindow::CGLWindow (iid_t iid, const SWinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn)
 : PRGLR(iid)
 ,_ctx(ctx,win)
-,_cidmap()
 ,_shader()
 ,_texture()
 ,_font()
 ,_pak()
 ,_pendingFrame()
+,_pconn (pconn)
 ,_color (0xffffffff)
 ,_syncEvent()
 ,_nextVSync (NotWaitingForVSync)
@@ -31,14 +29,12 @@ CGLClient::CGLClient (iid_t iid, const SWinInfo& winfo, Window win, GLXContext c
 {
     DTRACE ("[%x] Create: window %x, context %x\n", iid, win, ctx);
     _winfo.h = 0;	// Make invalid until explicit resize
-    if (!s_RootClient)
-	s_RootClient = this;
     _query[query_FrameEnd] = 0;
     _syncEvent.type = CEvent::FrameSync;
     _syncEvent.key = 1000000000/60;
 }
 
-void CGLClient::Init (void)
+void CGLWindow::Init (void)
 {
     glEnable (GL_BLEND);
     glEnable (GL_CULL_FACE);
@@ -47,18 +43,16 @@ void CGLClient::Init (void)
     glDepthMask (GL_FALSE);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glXSwapIntervalSGI (1);
-    if (s_RootClient == this)
-	return;
     SetDefaultShader();
     glGenQueries (ArraySize(_query), _query);
 }
 
-void CGLClient::Deactivate (void)
+void CGLWindow::Deactivate (void)
 {
     _curShader = _curBuffer = _curTexture = _curFont = CGObject::NoObject;
 }
 
-void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
+void CGLWindow::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 {
     DTRACE ("[%x] Resize %hux%hu+%hd+%hd\n", IId(), w,h,x,y);
     _winfo.x = x; _winfo.y = y;
@@ -69,7 +63,7 @@ void CGLClient::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
     PRGLR::Restate (_winfo);
 }
 
-void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
+void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 {
     DTRACE ("[%x] Viewport %hux%hu+%hd+%hd\n", IId(), w,h,x,y);
     _viewport.x = x;
@@ -85,7 +79,7 @@ void CGLClient::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
     Offset (0, 0);
 }
 
-void CGLClient::Offset (GLint x, GLint y) noexcept
+void CGLWindow::Offset (GLint x, GLint y) noexcept
 {
     DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
     _proj[3][0] = -float(_viewport.w-2*x-1)/_viewport.w;
@@ -93,7 +87,7 @@ void CGLClient::Offset (GLint x, GLint y) noexcept
     UniformMatrix ("Transform", Proj());
 }
 
-uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
+uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 {
     if (_nextVSync != NotWaitingForVSync) {
 	DTRACE ("[%x] Waiting for vsync: ", IId());
@@ -124,7 +118,7 @@ uint64_t CGLClient::DrawFrame (bstri cmdis, Display* dpy)
     return (_nextVSync);
 }
 
-uint64_t CGLClient::DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid)
+uint64_t CGLWindow::DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid)
 {
     if (_nextVSync != NotWaitingForVSync) {
 	_pendingFrameIId = iid;
@@ -134,7 +128,7 @@ uint64_t CGLClient::DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid)
     return (DrawFrame (cmdis, dpy));
 }
 
-uint64_t CGLClient::DrawPendingFrame (Display* dpy) noexcept
+uint64_t CGLWindow::DrawPendingFrame (Display* dpy) noexcept
 {
     uint64_t nf = 0;
     try {
@@ -146,7 +140,7 @@ uint64_t CGLClient::DrawPendingFrame (Display* dpy) noexcept
     return (nf);
 }
 
-void CGLClient::ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept
+void CGLWindow::ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept
 {
     PRGLR* pcli = this;
     try {
@@ -165,38 +159,9 @@ void CGLClient::ForwardError (const char* cmdname, const XError& e, int fd, iid_
 }
 
 //----------------------------------------------------------------------
-// Client-side id mapping
-
-void CGLClient::MapId (uint32_t cid, GLuint sid) noexcept
-{
-    DTRACE ("[%x] Map cid %x -> sid %x\n", IId(), cid, sid);
-    _cidmap.insert (SIdMap(cid,sid));
-}
-
-GLuint CGLClient::LookupId (uint32_t cid) const noexcept
-{
-    auto fi = _cidmap.lower_bound (SIdMap(cid,0));
-    return (fi == _cidmap.end() || fi->_cid != cid ? CGObject::NoObject : fi->_sid);
-}
-
-uint32_t CGLClient::LookupSid (GLuint sid) const noexcept
-{
-    for (const auto& i : _cidmap)
-	if (i._sid == sid)
-	    return (i._cid);
-    return (CGObject::NoObject);
-}
-
-void CGLClient::UnmapId (uint32_t cid) noexcept
-{
-    DTRACE ("[%x] Unmapping cid %x\n", IId(), cid);
-    erase_if (_cidmap, [cid](const SIdMap& i) { return (i._cid == cid); });
-}
-
-//----------------------------------------------------------------------
 // Resource loader by enum
 
-/*static*/ void CGLClient::ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept
+/*static*/ void CGLWindow::ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept
 {
     bstri shis (s, ssz);
     for (unsigned i = 0; i < 5; ++i) {
@@ -206,7 +171,7 @@ void CGLClient::UnmapId (uint32_t cid) noexcept
     }
 }
 
-GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz)
+GLuint CGLWindow::LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz)
 {
     GLuint sid = CGObject::NoObject;
     switch (dtype) {
@@ -231,7 +196,7 @@ GLuint CGLClient::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
     return (sid);
 }
 
-GLuint CGLClient::LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLuint pak, const char* filename, GLuint flnsz)
+GLuint CGLWindow::LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLuint pak, const char* filename, GLuint flnsz)
 {
     if (dtype == G::EResource::SHADER) {
 	const char* shs[5];
@@ -239,7 +204,7 @@ GLuint CGLClient::LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLui
 	return (LoadShader (pak, shs[0],shs[1],shs[2],shs[3],shs[4]));
     } else {
 	const CDatapak* p = Datapak (pak);
-	if (!p) Error();
+	if (!p) XError::emit ("RGL protocol error");
 	GLuint fsz;
 	const GLubyte* pf = p->File (filename, fsz);
 	if (!pf) throw XError ("%s is not in the datapak", filename);
@@ -247,7 +212,7 @@ GLuint CGLClient::LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLui
     }
 }
 
-void CGLClient::FreeResource (G::EResource dtype, GLuint id)
+void CGLWindow::FreeResource (G::EResource dtype, GLuint id)
 {
     switch (dtype) {
 	case G::EResource::DATAPAK:	FreeDatapak (id);	break;
@@ -261,29 +226,29 @@ void CGLClient::FreeResource (G::EResource dtype, GLuint id)
 //----------------------------------------------------------------------
 // Datapak
 
-GLuint CGLClient::LoadDatapak (const GLubyte* pi, GLuint isz)
+GLuint CGLWindow::LoadDatapak (const GLubyte* pi, GLuint isz)
 {
     DTRACE ("[%x] LoadDatapak %u bytes\n", IId(), isz);
     GLuint osz = 0;
     GLubyte* po = CDatapak::DecompressBlock (pi, isz, osz);
-    if (!po) throw XError ("failed to decompress datapak");
+    if (!po) XError::emit ("failed to decompress datapak");
     return (_pak.emplace (_pak.end(), ContextId(), po, osz)->Id());
 }
 
-GLuint CGLClient::LoadDatapak (const char* filename)
+GLuint CGLWindow::LoadDatapak (const char* filename)
 {
     DTRACE ("[%x] LoadDatapak from file %s\n", IId(), filename);
     CMMFile f (filename);
     return (LoadDatapak (f.MMData(), f.MMSize()));
 }
 
-void CGLClient::FreeDatapak (GLuint id)
+void CGLWindow::FreeDatapak (GLuint id)
 {
     DTRACE ("[%x] FreeDatapak %x\n", IId(), id);
     EraseGObject (_pak, id);
 }
 
-const CDatapak* CGLClient::Datapak (GLuint id) const
+const CDatapak* CGLWindow::Datapak (GLuint id) const
 {
     return (FindGObject (_pak, id));
 }
@@ -291,13 +256,13 @@ const CDatapak* CGLClient::Datapak (GLuint id) const
 //----------------------------------------------------------------------
 // Buffer
 
-GLuint CGLClient::CreateBuffer (G::EBufferType btype) noexcept
+GLuint CGLWindow::CreateBuffer (G::EBufferType btype) noexcept
 {
     DTRACE ("[%x] CreateBuffer type %u\n", IId(), btype);
     return (_buffer.emplace (_buffer.end(), ContextId(), btype)->Id());
 }
 
-void CGLClient::FreeBuffer (GLuint buf) noexcept
+void CGLWindow::FreeBuffer (GLuint buf) noexcept
 {
     DTRACE ("[%x] FreeBuffer %x\n", IId(), buf);
     if (Buffer() == buf)
@@ -305,16 +270,16 @@ void CGLClient::FreeBuffer (GLuint buf) noexcept
     EraseGObject (_buffer, buf);
 }
 
-void CGLClient::BindBuffer (GLuint id)
+void CGLWindow::BindBuffer (GLuint id)
 {
     if (Buffer() == id)
 	return;
     const CBuffer* pbo = FindGObject (_buffer, id);
-    if (!pbo) throw XError ("no such buffer");
+    if (!pbo) XError::emit ("no such buffer");
     BindBuffer (id, pbo->Type());
 }
 
-void CGLClient::BindBuffer (GLuint id, G::EBufferType btype) noexcept
+void CGLWindow::BindBuffer (GLuint id, G::EBufferType btype) noexcept
 {
     if (Buffer() == id)
 	return;
@@ -323,14 +288,14 @@ void CGLClient::BindBuffer (GLuint id, G::EBufferType btype) noexcept
     glBindBuffer (btype, id);
 }
 
-void CGLClient::BufferData (GLuint buf, const void* data, GLuint dsz, G::EBufferHint mode, G::EBufferType btype)
+void CGLWindow::BufferData (GLuint buf, const void* data, GLuint dsz, G::EBufferHint mode, G::EBufferType btype)
 {
     BindBuffer (buf, btype);
     DTRACE ("[%x] BufferData %u bytes into %x\n", IId(), dsz, buf);
     glBufferData (btype, dsz, data, mode);
 }
 
-void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint offset, G::EBufferType btype)
+void CGLWindow::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint offset, G::EBufferType btype)
 {
     BindBuffer (buf, btype);
     DTRACE ("[%x] BufferSubData %u bytes at %u into %x\n", IId(), dsz, offset, buf);
@@ -340,27 +305,27 @@ void CGLClient::BufferSubData (GLuint buf, const void* data, GLuint dsz, GLuint 
 //----------------------------------------------------------------------
 // Shader interface
 
-GLuint CGLClient::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
+GLuint CGLWindow::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
     DTRACE ("[%x] LoadShader\n", IId());
     return (_shader.emplace (_shader.end(), ContextId(), CShader::Sources(v,tc,te,g,f))->Id());
 }
 
-GLuint CGLClient::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
+GLuint CGLWindow::LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
     DTRACE ("[%x] LoadShader from pak %x: %s,%s,%s,%s,%s\n", IId(), pak,v,tc,te,g,f);
     const CDatapak* ppak = Datapak(pak);
-    if (!ppak) Error();
+    if (!ppak) XError::emit ("RGL protocol error");
     return (_shader.emplace (_shader.end(), ContextId(), CShader::Sources(*ppak,v,tc,te,g,f))->Id());
 }
 
-void CGLClient::FreeShader (GLuint sh) noexcept
+void CGLWindow::FreeShader (GLuint sh) noexcept
 {
     DTRACE ("[%x] FreeShader %x\n", IId(), sh);
     EraseGObject (_shader, sh);
 }
 
-void CGLClient::Shader (GLuint id) noexcept
+void CGLWindow::Shader (GLuint id) noexcept
 {
     if (Shader() == id)
 	return;
@@ -373,12 +338,12 @@ void CGLClient::Shader (GLuint id) noexcept
     Color (Color());
 }
 
-void CGLClient::Parameter (const char* varname, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
+void CGLWindow::Parameter (const char* varname, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
     Parameter (glGetAttribLocation (Shader(), varname), buf, type, nels, offset, stride);
 }
 
-void CGLClient::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
+void CGLWindow::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
     BindBuffer (buf, G::ARRAY_BUFFER);
     if (slot >= 16) return;
@@ -387,7 +352,7 @@ void CGLClient::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, 
     glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));
 }
 
-void CGLClient::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept
+void CGLWindow::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept
 {
     GLint slot = glGetUniformLocation (Shader(), varname);
     if (slot < 0) return;
@@ -395,7 +360,7 @@ void CGLClient::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z,
     glUniform4f (slot, x, y, z, w);
 }
 
-void CGLClient::Uniform4iv (const char* varname, const GLint* v) const noexcept
+void CGLWindow::Uniform4iv (const char* varname, const GLint* v) const noexcept
 {
     GLint slot = glGetUniformLocation (Shader(), varname);
     if (slot < 0) return;
@@ -403,7 +368,7 @@ void CGLClient::Uniform4iv (const char* varname, const GLint* v) const noexcept
     glUniform4iv (slot, 4, v);
 }
 
-void CGLClient::UniformMatrix (const char* varname, const GLfloat* mat) const noexcept
+void CGLWindow::UniformMatrix (const char* varname, const GLfloat* mat) const noexcept
 {
     GLint slot = glGetUniformLocation (Shader(), varname);
     if (slot < 0) return;
@@ -411,7 +376,7 @@ void CGLClient::UniformMatrix (const char* varname, const GLfloat* mat) const no
     glUniformMatrix4fv (slot, 1, GL_FALSE, mat);
 }
 
-void CGLClient::UniformTexture (const char* varname, GLuint img, GLuint itex) noexcept
+void CGLWindow::UniformTexture (const char* varname, GLuint img, GLuint itex) noexcept
 {
     if (Texture() == img) return;
     GLint slot = glGetUniformLocation (Shader(), varname);
@@ -449,7 +414,7 @@ inline void UnpackColor (GLuint c, float& r, float& g, float& b, float& a)
 }
 } // namespace
 
-void CGLClient::Color (GLuint c) noexcept
+void CGLWindow::Color (GLuint c) noexcept
 {
     SetColor(c);
     float r,g,b,a;
@@ -458,7 +423,7 @@ void CGLClient::Color (GLuint c) noexcept
     Uniform4f ("Color", r, g, b, a);
 }
 
-void CGLClient::Clear (GLuint c) noexcept
+void CGLWindow::Clear (GLuint c) noexcept
 {
     float r,g,b,a;
     UnpackColor (c,r,g,b,a);
@@ -467,41 +432,41 @@ void CGLClient::Clear (GLuint c) noexcept
     glClear (GL_COLOR_BUFFER_BIT);
 }
 
-void CGLClient::DrawCmdInit (void) noexcept
+void CGLWindow::DrawCmdInit (void) noexcept
 {
-    if (_curShader == CGObject::NoObject || _curShader == s_RootClient->TextureShader() || _curShader == s_RootClient->FontShader())
+    if (_curShader == CGObject::NoObject || _curShader == _pconn->TextureShader() || _curShader == _pconn->FontShader())
 	SetDefaultShader();
 }
 
 //----------------------------------------------------------------------
 // Texture
 
-GLuint CGLClient::LoadTexture (const GLubyte* d, GLuint dsz)
+GLuint CGLWindow::LoadTexture (const GLubyte* d, GLuint dsz)
 {
     DTRACE ("[%x] LoadTexture %u bytes\n", IId(), dsz);
     _texture.emplace_back (ContextId(), d, dsz);
     return (_texture.back().Id());
 }
 
-GLuint CGLClient::LoadTexture (const char* filename)
+GLuint CGLWindow::LoadTexture (const char* filename)
 {
     CMMFile f (filename);
     DTRACE ("[%x] LoadTexture from file %s\n", IId(), filename);
     return (LoadTexture (f.MMData(), f.MMSize()));
 }
 
-void CGLClient::FreeTexture (GLuint id)
+void CGLWindow::FreeTexture (GLuint id)
 {
     DTRACE ("[%x] FreeTexture %x\n", IId(), id);
     EraseGObject (_texture, id);
 }
 
-const CTexture* CGLClient::Texture (GLuint id) const
+const CTexture* CGLWindow::Texture (GLuint id) const
 {
     return (FindGObject (_texture, id));
 }
 
-void CGLClient::Sprite (coord_t x, coord_t y, GLuint id)
+void CGLWindow::Sprite (coord_t x, coord_t y, GLuint id)
 {
     const CTexture* pimg = Texture(id);
     if (!pimg) return;
@@ -513,7 +478,7 @@ void CGLClient::Sprite (coord_t x, coord_t y, GLuint id)
     glDrawArrays (GL_POINTS, 0, 1);
 }
 
-void CGLClient::Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy, dim_t sw, dim_t sh)
+void CGLWindow::Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy, dim_t sw, dim_t sh)
 {
     const CTexture* pimg = Texture(id);
     if (!pimg) return;
@@ -528,7 +493,7 @@ void CGLClient::Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy,
 //----------------------------------------------------------------------
 // Font
 
-GLuint CGLClient::LoadFont (const GLubyte* p, GLuint psz)
+GLuint CGLWindow::LoadFont (const GLubyte* p, GLuint psz)
 {
     DTRACE ("[%x] LoadFont %u bytes\n", IId(), psz);
     _font.emplace_back (ContextId(), p, psz);
@@ -536,44 +501,44 @@ GLuint CGLClient::LoadFont (const GLubyte* p, GLuint psz)
     return (Font());
 }
 
-GLuint CGLClient::LoadFont (const char* filename)
+GLuint CGLWindow::LoadFont (const char* filename)
 {
     DTRACE ("[%x] LoadFont from file %s\n", IId(), filename);
     CMMFile f (filename);
     GLuint sz = 0;
     GLubyte* p = CDatapak::DecompressBlock (f.MMData(), f.MMSize(), sz);
-    if (!p) Error();
+    if (!p) XError::emit ("RGL protocol error");
     GLuint id = LoadFont (p, sz);
     free (p);
     return (id);
 }
 
-GLuint CGLClient::LoadFont (GLuint pak, const char* filename)
+GLuint CGLWindow::LoadFont (GLuint pak, const char* filename)
 {
     DTRACE ("[%x] LoadFont from pak %x file %s\n", IId(), pak, filename);
     const CDatapak* p = Datapak (pak);
-    if (!p) Error();
+    if (!p) XError::emit ("RGL protocol error");
     GLuint fsz;
     const GLubyte* pf = p->File (filename, fsz);
-    if (!pf) Error();
+    if (!pf) XError::emit ("RGL protocol error");
     return (LoadFont (pf, fsz));
 }
 
-void CGLClient::FreeFont (GLuint id)
+void CGLWindow::FreeFont (GLuint id)
 {
     DTRACE ("[%x] FreeFont %x\n", IId(), id);
     EraseGObject (_font, id);
 }
 
-const CFont* CGLClient::Font (GLuint id) const noexcept
+const CFont* CGLWindow::Font (GLuint id) const noexcept
 {
     return (FindGObject (_font, id));
 }
 
-void CGLClient::Text (coord_t x, coord_t y, const char* s)
+void CGLWindow::Text (coord_t x, coord_t y, const char* s)
 {
     const CFont* pfont = Font (Font());
-    if (!pfont && !(pfont = s_RootClient->DefaultFont()))
+    if (!pfont && !(pfont = _pconn->DefaultFont()))
 	return;
 
     DTRACE ("[%x] Text at %d:%d: '%s'\n", IId(), x,y,s);
@@ -605,13 +570,13 @@ void CGLClient::Text (coord_t x, coord_t y, const char* s)
 //----------------------------------------------------------------------
 // Queries
 
-inline void CGLClient::PostQuery (GLuint q)
+inline void CGLWindow::PostQuery (GLuint q)
 {
     glQueryCounter (q, GL_TIMESTAMP);
     QueryResultAvailable (q);	// Probably a radeon bug: an unasked for query may be set to the first ask time
 }
 
-inline bool CGLClient::QueryResultAvailable (GLuint q) const
+inline bool CGLWindow::QueryResultAvailable (GLuint q) const
 {
     GLint haveQuery;
     glGetQueryObjectiv (q, GL_QUERY_RESULT_AVAILABLE, &haveQuery);

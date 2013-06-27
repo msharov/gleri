@@ -14,10 +14,10 @@ public:
 	is_reading = Stm::is_reading,
 	is_writing = Stm::is_writing
     };
-    typedef uint32_t		goid_t;
-    typedef int16_t		coord_t;
-    typedef uint16_t		dim_t;
-    typedef uint32_t		color_t;
+    typedef G::goid_t		goid_t;
+    typedef G::coord_t		coord_t;
+    typedef G::dim_t		dim_t;
+    typedef G::color_t		color_t;
 private:
     template <typename T, unsigned N> struct ArrayArg {
 	inline constexpr ArrayArg (const T* v = nullptr) :_v(v) {}
@@ -27,7 +27,6 @@ private:
 	const T* _v;
     };
     enum class ECmd : uint16_t {
-	DefaultShader,
 	Clear,
 	Viewport,
 	Offset,
@@ -60,7 +59,6 @@ public:
     inline explicit	PDraw (const Stm& os)	:_os(os) {}
     inline size_type	size (void) const	{ return (_os.size()); }
 			// Base drawing commands. See PDrawR reading equivalents below.
-    inline void		DefaultShader (void)					{ Cmd (ECmd::DefaultShader); }
     inline void		Clear (color_t c = 0)					{ Cmd (ECmd::Clear, c); }
     inline void		Viewport (coord_t x, coord_t y, dim_t w, dim_t h)	{ Cmd (ECmd::Viewport, x,y,w,h); }
     inline void		Offset (coord_t x, coord_t y)				{ Cmd (ECmd::Offset, x,y); }
@@ -69,6 +67,7 @@ public:
     inline void		Image (coord_t x, coord_t y, goid_t s)			{ Cmd (ECmd::Image, x, y, s); }
     inline void		Sprite (coord_t x, coord_t y, goid_t s, coord_t sx, coord_t sy, dim_t sw, dim_t sh)	{ Cmd (ECmd::Sprite,x,y,s,sx,sy,sw,sh); }
     inline void		Shader (goid_t id)					{ Cmd (ECmd::Shader, id); }
+    inline void		DefaultShader (void)					{ Shader (G::default_FlatShader); }
     inline void		BindBuffer (goid_t id)					{ Cmd (ECmd::BindBuffer, id); }
     inline void		Parameter (uint8_t slot, goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }
     inline void		Uniform (const char* name, float x, float y, float z, float w)	{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
@@ -107,7 +106,6 @@ private:
     template <typename... Arg>
     static inline void	Args (Stm& is, Arg&... args);
     constexpr uint32_t	Header (ECmd cmd, uint16_t sz) const	{ return (vpack4(uint16_t(cmd),sz)); }
-    static inline void	Error (void)				{ throw XError ("drawlist parse error"); }
 private:
     Stm			_os;
 };
@@ -158,10 +156,11 @@ template <typename... Arg>
     bstrs ss; variadic_arg_size (ss, args...);	// Size of args
     uint16_t sz; is >> sz;			// Written size
     if (sz < ss.size() || is.remaining() < sz)	// Have the whole thing?
-	Error();				//  sz may be != ss.size if args has a string
+	XError::emit ("drawlist parse error");	//  sz may be != ss.size if args has a string
     bstri cmdis (is.ipos(),sz);			// Command stream with sz limit
     variadic_arg_read (cmdis, args...);		// Read args
-    if (cmdis.ipos() != cmdis.end()) Error();	// Verify that sz is valid
+    if (cmdis.ipos() != cmdis.end())
+	XError::emit ("drawlist parse error");	// Verify that sz is valid
     is.skip (sz);				// Update the parent stream
 }
 
@@ -174,7 +173,6 @@ template <typename F>
 	if (cmd >= ECmd::DrawArrays && cmd <= ECmd::MultiDrawArraysIndirect)
 	    f.DrawCmdInit();
 	switch (cmd) {
-	    case ECmd::DefaultShader: Args(is); f.SetDefaultShader(); break;
 	    case ECmd::Clear: { color_t c; Args(is,c); f.Clear(c); } break;
 	    case ECmd::Viewport: { coord_t x,y; dim_t w,h; Args(is,x,y,w,h); f.Viewport(x,y,w,h); } break;
 	    case ECmd::Color: { color_t c; Args(is,c); f.Color(c); } break;
@@ -205,7 +203,7 @@ template <typename F>
 		{ G::EShape t; uint16_t n; G::EType it; uint32_t ni,o,bi,bv; Args(is,t,n,it,ni,o,bv,bi); f.DrawElementsInstanced(t,n,ni,it,o,bv,bi); } break;
 	    case ECmd::DrawRangeElements:
 		{ G::EShape t; uint16_t n,minv,maxv; G::EType it; uint32_t o,bv; Args(is,t,n,it,minv,maxv,o,bv); f.DrawRangeElements(t,minv,maxv,n,it,o,bv); } break;
-	    default: Error();
+	    default: XError::emit ("drawlist parse error");
 	}
     }
 }

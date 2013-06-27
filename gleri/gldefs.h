@@ -11,6 +11,11 @@
 
 namespace G {
 
+typedef uint32_t	goid_t;
+typedef int16_t		coord_t;
+typedef uint16_t	dim_t;
+typedef uint32_t	color_t;
+
 enum EType : uint16_t {
     BYTE = 0x1400,
     UNSIGNED_BYTE,
@@ -94,6 +99,14 @@ enum class EResource : uint16_t {
     BUFFER_UNIFORM		= UNIFORM_BUFFER
 };
 
+enum EDefaultResource : goid_t {
+    default_FlatShader,
+    default_TextureShader,
+    default_FontShader,
+    default_Font,
+    default_Resources
+};
+
 namespace Pixel {
 enum EComp : uint16_t {
     RED		= 0x1903,
@@ -134,6 +147,61 @@ struct alignas(8) STextureHeader {
     G::Pixel::EFmt	fmt;
 };
 
+struct alignas(4) SWinInfo {
+    coord_t	x,y;
+    dim_t	w,h;
+    uint16_t	parent;
+    uint8_t	mingl,maxgl;
+    uint8_t	aa;
+    enum EWinType : uint8_t {
+	type_Normal,
+	type_Desktop,
+	type_Dock,
+	type_Dialog,
+	type_Toolbar,
+	type_Utility,
+	type_Menu,
+	type_PopupMenu,
+	type_DropdownMenu,
+	type_ComboMenu,
+	type_Notification,
+	type_Tooltip,
+	type_Splash,
+	type_Dragged,
+	type_FirstParented = type_Dialog,
+	type_FirstDecoless = type_PopupMenu,
+	type_LastParented = type_Splash,
+	type_LastDecoless = type_Dragged
+    }		wtype;
+    enum EWinState : uint8_t {
+	state_Normal,
+	state_MaximizedX,
+	state_MaximizedY,
+	state_Maximized,
+	state_Hidden,
+	state_Fullscreen,
+	state_Gamescreen
+    }		wstate;
+    enum EWinFlag : uint8_t {
+	flag_None,
+	flag_Modal		= (1<<0),
+	flag_Attention		= (1<<1),
+	flag_Focused		= (1<<2),
+	flag_Sticky		= (1<<3),
+	flag_NotOnTaskbar	= (1<<4),
+	flag_NotOnPager		= (1<<5),
+	flag_Above		= (1<<5),
+	flag_Below		= (1<<7)
+    };
+    uint8_t	flags;
+    inline bool	Parented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
+    inline bool	Decoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
+};
+
+// These are in rglp.cc
+extern const char* TypeName (EType t) noexcept __attribute__((const));
+extern const char* ShapeName (EShape s) noexcept __attribute__((const));
+
 } // namespace G
 
 //----------------------------------------------------------------------
@@ -146,6 +214,7 @@ public:
     inline		XError (bool, char*& msg)	:_msg(msg) { msg = nullptr; }
     inline		~XError (void) noexcept		{ free (_msg); }
     inline const char*	what (void) const noexcept	{ return (_msg); }
+    static void		emit (const char* e) NORETURN	{ throw XError (e); }
 private:
     char*		_msg;
 };
@@ -168,11 +237,11 @@ inline void erase_if (Ctr& v, Condition f)
 }
 
 /// Creates uint32_t color value from components
-inline constexpr uint32_t RGBA (uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+inline constexpr G::color_t RGBA (uint8_t r, uint8_t g, uint8_t b, uint8_t a)
     { return (vpack4(r,g,b,a)); }
 
 /// Creates uint32_t color value from components
-inline static uint32_t ARGB (uint32_t c)
+inline static G::color_t ARGB (G::color_t c)
 {
 #if __x86_64__
     if (!__builtin_constant_p(c)) asm("rol\t$8,%0":"+r"(c)); else
@@ -182,11 +251,11 @@ inline static uint32_t ARGB (uint32_t c)
 }
 
 /// Creates uint32_t color value from components
-inline constexpr uint32_t RGB (uint8_t r, uint8_t g, uint8_t b)
+inline constexpr G::color_t RGB (uint8_t r, uint8_t g, uint8_t b)
     { return (RGBA(r,g,b,UINT8_MAX)); }
 
 /// Creates uint32_t color value from components
-inline static uint32_t RGB (uint32_t c)
+inline static G::color_t RGB (G::color_t c)
 #if USTL_BYTE_ORDER == USTL_LITTLE_ENDIAN
     { return (ARGB((UINT8_MAX<<24)|c)); }
 #else

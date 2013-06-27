@@ -26,7 +26,7 @@ ${DHH}:	${PAK} ${MKDCC}
 	@echo "    Compiling $< ..."
 	@${MKDCC} $<
 
-${DCC} gleris.cc:	${DHH}
+${DCC} iconn.cc:	${DHH}
 
 ${PAK} ${DCC} ${DHH} ${MKDCC}: Makefile data/Module.mk ${CONFS}
 

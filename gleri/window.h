@@ -26,7 +26,7 @@ public:
     inline virtual void	OnVSync (void)			{ if (_drawPending) Draw(); }
     inline void		OnRestate (rcwininfo_t wi)	{ _info = wi; OnResize (wi.w, wi.h); }
     inline virtual void	OnResize (dim_t, dim_t)		{ }
-    virtual void	OnError (const char* m);
+    virtual void	OnError (const char* m)		{ XError::emit (m); }
     virtual void	OnEvent (const CEvent& e);
     inline virtual void	Draw (void)			{ }
     inline void		WriteCmds (void)		{ PRGL::WriteCmds(); }

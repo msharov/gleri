@@ -34,11 +34,6 @@ bool CWindow::WaitingForVSync (void)
     return (_drawPending = false);
 }
 
-void CWindow::OnError (const char* m)
-{
-    throw XError (m);
-}
-
 void CWindow::Close (void)
 {
     CGLApp::Instance().DeleteWindow (this);

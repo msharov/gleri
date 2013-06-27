@@ -5,7 +5,7 @@
 
 #pragma once
 #include "gleri.h"
-#include "gcli.h"
+#include "gwin.h"
 
 //----------------------------------------------------------------------
 
@@ -24,10 +24,11 @@ public:
     inline bool		Option (EOption o) const	{ return (_options & (1<<o)); }
 private:
     enum { c_SocketPathLen = sizeof(sockaddr_un::sun_path) };
-    typedef CGLClient::iid_t	iid_t;
+    typedef CGLWindow::iid_t	iid_t;
     typedef PRGL::SWinInfo	SWinInfo;
     typedef const SWinInfo&	rcwininfo_t;
-    enum EAtom {
+    //{{{ EAtom
+    enum EAtom : unsigned {
 	a_ATOM,
 	a_NET_WM_STATE,
 	a_NET_WM_STATE_MODAL,
@@ -60,24 +61,36 @@ private:
 	a_NET_WM_WINDOW_TYPE_DND,
 	a_Last
     };
+    enum EWMSTATEAction : uint32_t {
+	_NET_WM_STATE_REMOVE,
+	_NET_WM_STATE_ADD,
+	_NET_WM_STATE_TOGGLE
+    };
+    enum EWMSTATESource : uint32_t {
+	_NET_WM_STATE_SOURCE_UNSPECIFIED,
+	_NET_WM_STATE_SOURCE_APPLICATION,
+	_NET_WM_STATE_SOURCE_USER
+    };
+    //}}}
 public:
 			// Client id translation
-    CGLClient*		ClientRecord (int fd, iid_t iid) noexcept;
-    CGLClient*		ClientRecordForWindow (Window w) noexcept;
-    void		CreateClient (iid_t iid, SWinInfo winfo, const CCmdBuf* piconn = nullptr);
-    void		CloseClient (CGLClient* pcli) noexcept;
-    void		ClientDraw (CGLClient& cli, bstri cmdis, iid_t iid);
+    CGLWindow*		ClientRecord (int fd, iid_t iid) noexcept;
+    CGLWindow*		ClientRecordForWindow (Window w) noexcept;
+    void		CreateClient (iid_t iid, SWinInfo winfo, CCmdBuf* piconn = nullptr);
+    void		CloseClient (CGLWindow* pcli) noexcept;
+    void		ClientDraw (CGLWindow& cli, bstri cmdis, iid_t iid);
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     Window		CreateWindow (rcwininfo_t winfo);
     inline void		AddConnection (int fd, bool canPassFd = false);
     void		RemoveConnection (int fd) noexcept;
     inline CCmdBuf*	LookupConnection (int fd) noexcept;
-    inline void		ActivateClient (CGLClient& rcli) noexcept;
-    void		DestroyClient (CGLClient*& pcli) noexcept;
+    inline void		ActivateClient (CGLWindow& rcli) noexcept;
+    void		DestroyClient (CGLWindow*& pcli) noexcept;
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
     inline iid_t	GenIId (void)		{ return (++_nextiid); }
     inline void		GetAtoms (void) noexcept;
+    unsigned		WinStateAtoms (const SWinInfo& winfo, uint32_t a[16]) const noexcept;
     void		OnXEvent (void);
     static uint32_t	ModsFromXState (uint32_t state) noexcept;
    static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
@@ -89,13 +102,12 @@ private:
     static int		XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept;
     static int		XlibIOErrorHandler (Display*) noexcept NORETURN;
     inline void		OnXlibIOError (void) { _dpy = nullptr; }
-    static void		Error (const char* m) NORETURN;
     static inline void	DTRACE_EventType (const XEvent& e) noexcept;
 private:
     GLXFBConfig		_fbconfig;
-    CGLClient*		_curCli;
-    vector<CGLClient*>	_cli;
-    vector<CCmdBuf>	_iconn;
+    CGLWindow*		_curCli;
+    vector<CGLWindow*>	_win;
+    vector<CIConn*>	_iconn;
     Display*		_dpy;
     XVisualInfo*	_visinfo;
     Colormap		_colormap;

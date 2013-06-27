@@ -68,7 +68,8 @@ protected:
 
 class CCmdBuf : public CCmd {
 public:
-    inline explicit		CCmdBuf (iid_t iid=0) noexcept	:_buf(nullptr),_sz(0),_used(0),_outf(),_iid(iid),_bFdPass(false) {}
+    inline explicit		CCmdBuf (iid_t iid) noexcept	:_outf(),_iid(iid) {}
+    inline			CCmdBuf (iid_t iid, int fd, bool fdpass)	:_outf(fd),_iid(iid),_bFdPass(fdpass) {}
     inline			~CCmdBuf (void) noexcept	{ if(_buf) free(_buf); _outf.Detach(); }
     inline iid_t		IId (void) const		{ return (_iid); }
     inline int			Fd (void) const			{ return (_outf.Fd()); }
@@ -88,7 +89,6 @@ protected:
     void			SendFile (CFile& f, uint32_t fsz);
     static const char*		LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept;
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
-    static void			Error (void)			{ throw XError ("protocol error"); }
 private:
     static inline const char*	nextname (const char* n, size_type& sz) noexcept;
     static inline bool		namecmp (const void* s1, const void* s2, size_type n) noexcept;
@@ -99,12 +99,12 @@ private:
     inline pointer		end (void)		{ return (begin()+size()); }
     void			EndRead (bstri::const_pointer p) noexcept;
 private:
-    pointer			_buf;
-    size_type			_sz;
-    size_type			_used;
+    pointer			_buf	= nullptr;
+    size_type			_sz	= 0;
+    size_type			_used	= 0;
     CFile			_outf;
     iid_t			_iid;
-    bool			_bFdPass;
+    bool			_bFdPass= false;
 };
 
 //----------------------------------------------------------------------

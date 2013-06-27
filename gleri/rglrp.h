@@ -4,17 +4,17 @@
 // This file is free software, distributed under the MIT License.
 
 #pragma once
-#include "rglp.h"
+#include "cmd.h"
 #include "event.h"
 
 class PRGLR : private CCmdBuf {
 public:
     typedef CCmdBuf::iid_t	iid_t;
-    typedef PRGL::SWinInfo	SWinInfo;
-    typedef PRGL::goid_t	goid_t;
-    typedef PRGL::coord_t	coord_t;
-    typedef PRGL::dim_t		dim_t;
-    typedef PRGL::color_t	color_t;
+    typedef G::SWinInfo		SWinInfo;
+    typedef G::goid_t		goid_t;
+    typedef G::coord_t		coord_t;
+    typedef G::dim_t		dim_t;
+    typedef G::color_t		color_t;
     typedef const SWinInfo&	rcwininfo_t;
 private:
     enum : uint32_t { RGLRObject = vpack4('R','G','L','R') };
@@ -40,7 +40,6 @@ public:
     inline int			Fd (void) const			{ return (CCmdBuf::Fd()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
-    static inline void		Error (void)			{ CCmdBuf::Error(); }
 private:
     template <typename... Arg>
     inline void			Cmd (ECmd cmd, const Arg&... args);
@@ -69,7 +68,7 @@ template <typename... Arg>
 {
     bstrs ss; variadic_arg_size (ss, args...);	// Size of args
     if (is.remaining() < ss.size())		// Have the whole thing?
-	Error();				//  sz may be != ss.size if args has a string
+	XError::emit ("RGL protocol error");	//  sz may be != ss.size if args has a string
     variadic_arg_read (is, args...);		// Read args
 }
 
@@ -87,7 +86,7 @@ template <typename F>
 	case ECmd::Restate:	{ SWinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;
 	case ECmd::Draw:	clir->OnExpose(); break;
 	case ECmd::Event:	{ CEvent e; Args(cmdis,e); clir->OnEvent(e); } break;
-	default:		Error();
+	default:		XError::emit ("RGL protocol error");
     }
 }
 

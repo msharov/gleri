@@ -55,7 +55,7 @@ void CGLApp::ConnectToServer (void)
     //
     const char *xdispstr = getenv("DISPLAY"), *xpcolon;
     if (!xdispstr || !(xpcolon = strchr (xdispstr, ':')))
-	throw XError ("no locally accessible X11 server found");
+	XError::emit ("no locally accessible X11 server found");
 
     int idpy = atoi (xpcolon+1);
     bool bConnected, bCanPassFd = (xdispstr == xpcolon);
@@ -65,7 +65,7 @@ void CGLApp::ConnectToServer (void)
 	bConnected = _srvsock.Connect (sockpath);
     } else {			// TCP socket, GLERIS_PORT+idpy port on localhost
 	if (xpcolon-xdispstr != strlen("localhost") || memcmp(xdispstr,"localhost",strlen("localhost")))
-	    throw XError ("no locally accessible X11 server found");
+	    XError::emit ("no locally accessible X11 server found");
 	bConnected = _srvsock.Connect (INADDR_LOOPBACK, GLERIS_PORT+idpy);
     }
     if (!bConnected) {		// Launch gleris in single mode if unable to connect
@@ -94,7 +94,7 @@ void CGLApp::ConnectToServer (void)
 	path += strlen(path)+1;
     }
     if (!srvexe)
-	throw XError ("could not find " GLERIS_NAME " in PATH");
+	XError::emit ("could not find " GLERIS_NAME " in PATH");
     // Server is launched with -s flag, in single application mode
     const char* srvcmd[] = { srvexe, "-s", nullptr };
 
