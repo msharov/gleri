@@ -6,6 +6,7 @@
 #pragma once
 #include "config.h"
 #include "gleri/gldefs.h"
+#include "gleri/bstr.h"
 
 //----------------------------------------------------------------------
 
@@ -31,6 +32,8 @@ inline void DHEXDUMP (const void* p, size_t sz) noexcept
 inline void DTRACE (const char*, Args...) noexcept {}
 inline void DHEXDUMP (const void*, size_t) noexcept {}
 #endif
+inline void DHEXDUMP (const bstri& is) noexcept
+    { DHEXDUMP (is.ipos(), is.remaining()); }
 
 //----------------------------------------------------------------------
 

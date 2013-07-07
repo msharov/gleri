@@ -16,6 +16,8 @@ public:
     template <typename WC, typename... A>
     inline WC*			CreateWindow (A... a)	{ WC* w = new WC (GenWId(), a...); OpenWindow(w); return (w); }
     void			DeleteWindow (const CWindow* p);
+    inline void			ForwardError (const CCmd::SMsgHeader&, const XError& e, int) const { throw e; }
+    inline void			OnExport (const char*, int) {}
 protected:
     inline			CGLApp (void);
     virtual void		OnFd (int fd);

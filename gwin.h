@@ -30,10 +30,10 @@ public:
     inline const SWinInfo&	WinInfo (void) const		{ return (_winfo); }
     void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
     uint64_t			DrawFrame (bstri cmdis, Display* dpy);
-    uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid);
+    uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy);
     uint64_t			DrawPendingFrame (Display* dpy) noexcept;
+    inline void			ClearPendingFrame (void)	{ _pendingFrame.clear(); }
     uint64_t			NextFrameTime (void) const	{ return (_nextVSync); }
-    void			ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept;
 				// Client-side id map, forwarded to the connection object
     inline void			MapId (goid_t cid, GLuint sid) noexcept	{ _pconn->MapId (cid, sid); }
     inline GLuint		LookupId (goid_t cid) const noexcept	{ return (_pconn->LookupId (cid)); }
@@ -165,7 +165,7 @@ private:
     vector<CTexture>		_texture;
     vector<CFont>		_font;
     vector<CDatapak>		_pak;
-    vector<unsigned char>	_pendingFrame;
+    vector<GLubyte>		_pendingFrame;
     CIConn*			_pconn;
     matrix4f_t			_proj;
     GLuint			_color;
@@ -178,5 +178,4 @@ private:
     GLuint			_curFont;
     SWinInfo			_winfo;
     struct { coord_t x,y,w,h; }	_viewport;
-    iid_t			_pendingFrameIId;
 };

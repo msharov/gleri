@@ -21,6 +21,7 @@ void CGLApp::OpenWindow (CWindow* w)
 {
     w->SetFd (_srvsock.Fd(), _srvbuf.CanPassFd());
     if (_wins.empty()) {
+	w->Export (GLERIS_EXPORTS);
 	char hostname [HOST_NAME_MAX];
 	gethostname (ArrayBlock(hostname));
 	w->Authenticate (_argc, _argv, hostname, getpid(), ArrayBlock(_xauth));
@@ -132,7 +133,7 @@ void CGLApp::OnFd (int fd)
     CApp::OnFd (fd);
     if (fd != _srvbuf.Fd()) return;
     _srvbuf.ReadCmds();
-    _srvbuf.ProcessMessages (*this, PRGLR::Parse<CGLApp>);
+    _srvbuf.ProcessMessages<PRGLR> (*this);
     for (auto w : _wins)
 	w->WriteCmds();
 }

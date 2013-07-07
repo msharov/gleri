@@ -17,8 +17,8 @@ public:
     typedef G::coord_t		coord_t;
     typedef G::dim_t		dim_t;
     typedef G::color_t		color_t;
+    enum : uint32_t { c_ObjectName = vpack4('R','G','L',0) };
 private:
-    enum : uint32_t { RGLObject = vpack4('R','G','L',0) };
     enum class ECmd : cmd_t {
 	Auth,
 	Open,
@@ -75,6 +75,7 @@ public:
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
 				// Commands
+    inline void			Export (const char* ol)		{ CCmdBuf::Export (ol); }
     inline void			Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, const void* ad, uint32_t adsz)	{ Cmd (ECmd::Auth, SArgv(argc,argv), hostname, pid, SDataBlock(ad,adsz)); }
     inline void			Open (const char* title, const SWinInfo& winfo)			{ Cmd(ECmd::Open,winfo,title); }
     inline void			Open (const char* title, dim_t w, dim_t h, uint8_t glver =0x33)	{ Open (title, (SWinInfo){ 0,0,w,h,0,glver,0,0,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }); }
@@ -108,14 +109,12 @@ public:
     inline void			FreeShader (goid_t id);
 				// Buffer reading for serialization
     template <typename F>
-    static inline void		Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis);
+    static inline void		Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf);
 private:
     template <typename... Arg>
     inline void			Cmd (ECmd cmd, const Arg&... args);
     template <typename... Arg>
     inline void			CmdU (ECmd cmd, size_type unwritten, const Arg&... args);
-    template <typename... Arg>
-    static inline void		Args (bstri& is, Arg&... args);
     bstro			CreateCmd (ECmd cmd, size_type sz, size_type unwritten = 0) noexcept;
     inline goid_t		GenId (void)			{ return (++_nextid); }
     static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
@@ -219,105 +218,83 @@ inline void PRGL::FreeShader (goid_t id)
 //}}}-------------------------------------------------------------------
 //{{{ The read parser
 
-template <typename... Arg>
-/*static*/ inline void PRGL::Args (bstri& is, Arg&... args)
-{
-    bstrs ss; variadic_arg_size (ss, args...);	// Size of args
-    if (is.remaining() < ss.size())		// Have the whole thing?
-	XError::emit ("RGL protocol error");	//  sz may be != ss.size if args has a string
-    variadic_arg_read (is, args...);		// Read args
-}
-
 template <typename F>
-/*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, const char* cmdname, CCmdBuf& cmdbuf, bstri cmdis)
+/*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
 {
-    #ifndef NDEBUG
-	auto icmdstart = cmdis.ipos();
-    #endif
+    bstri cmdis (h.Msgstrm());
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
-    try {
-	ECmd cmd = LookupCmd (cmdname, h.hsz);
-	if (h.objname != RGLObject || (!clir ^ (cmd == ECmd::Open || cmd == ECmd::Auth)))
-	    XError::emit ("RGL protocol error");
+    ECmd cmd = LookupCmd (h.Cmdname(), h.hsz);
+    if (!clir ^ (cmd == ECmd::Open || cmd == ECmd::Auth))
+	XError::emit ("no such client");
 
-	switch (cmd) {
-	    case ECmd::Auth: {
-		SDataBlock argv,b;
-		const char* hostname = nullptr;
-		uint32_t pid;
-		Args (cmdis, argv, hostname, pid, b);
-		f.Authenticate (cmdbuf, pid, hostname, argv, b);
-		} break;
-	    case ECmd::Open: {
-		SWinInfo winfo;
-		const char* title = nullptr;
-		Args (cmdis, winfo, title);
-		f.CreateClient (h.iid, winfo, title, &cmdbuf);
-		} break;
-	    case ECmd::Close:
-		f.CloseClient (clir);
-		break;
-	    case ECmd::Draw: {
-		SDataBlock b;
-		Args (cmdis, b);
-		f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz), h.iid);
-		} break;
-	    case ECmd::LoadData:
-	    case ECmd::LoadPakFile:
-	    case ECmd::LoadFile: {
-		goid_t id; G::EBufferHint hint; G::EResource dtype;
-		Args (cmdis, id, dtype, hint);
-		uint32_t sid = clir->LookupId (id);
-		if (sid != GoidNull)
-		    clir->FreeResource (dtype, sid);
-		if (cmd == ECmd::LoadPakFile) {
-		    goid_t pak; const char* filename = nullptr;
-		    Args (cmdis, pak, filename);
-		    uint32_t flnsz = cmdis.ipos()-(const uint8_t*)filename;
-		    sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
-		    if (sid == GoidNull)
-			throw XError ("failed to load datapak resource %s", filename);
-		} else if (cmd == ECmd::LoadData) {
-		    uint32_t tsz, toff; SDataBlock d;
-		    Args (cmdis, tsz, toff, d);
-		    sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
-		    if (sid == GoidNull)
-			XError::emit ("failed to load resource from data");
-		} else {
-		    int fd;
-		    Args (cmdis, fd);
-		    CMMFile recvf (fd);
-		    bstri dfis (recvf.MMData(), recvf.MMSize());
-		    sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
-		    if (sid == GoidNull)
-			XError::emit ("failed to load resource from file");
-		}
-		clir->MapId (id, sid);
-		} break;
-	    case ECmd::FreeResource: {
-		goid_t id; G::EResource dtype;
-		Args (cmdis, id, dtype);
-		clir->FreeResource (dtype, clir->LookupId(id));
-		clir->UnmapId (id);
-		} break;
-	    case ECmd::BufferSubData: {
-		goid_t id; G::EBufferType btype; G::EBufferHint hint; uint32_t offset; SDataBlock d;
-		Args (cmdis, id, btype, hint, offset, d);
-		clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
-		} break;
-	    default:
-		XError::emit ("RGL protocol error");
-		break;
-	}
-    } catch (XError& e) {
-	clir->ForwardError (cmdname, e, cmdbuf.Fd(), h.iid);	// ok if clir == nullptr
-	#ifndef NDEBUG
-	if (isatty(STDIN_FILENO)) {
-	    printf ("Failing command (hsz=0x%x,sz=0x%x,errorat=0x%lx):\n", h.hsz,h.sz, cmdis.ipos()-icmdstart); fflush(stdout);
-	    hexdump (icmdstart-h.hsz, h.hsz+h.sz);
-	}
-	#endif
-	f.CloseClient (clir);
+    switch (cmd) {
+	case ECmd::Auth: {
+	    SDataBlock argv,b;
+	    const char* hostname = nullptr;
+	    uint32_t pid;
+	    Args (cmdis, argv, hostname, pid, b);
+	    f.Authenticate (cmdbuf, pid, hostname, argv, b);
+	    } break;
+	case ECmd::Open: {
+	    SWinInfo winfo;
+	    const char* title = nullptr;
+	    Args (cmdis, winfo, title);
+	    f.CreateClient (h.iid, winfo, title, &cmdbuf);
+	    } break;
+	case ECmd::Close:
+	    f.CloseClient (clir);
+	    break;
+	case ECmd::Draw: {
+	    SDataBlock b;
+	    Args (cmdis, b);
+	    f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz));
+	    } break;
+	case ECmd::LoadData:
+	case ECmd::LoadPakFile:
+	case ECmd::LoadFile: {
+	    goid_t id; G::EBufferHint hint; G::EResource dtype;
+	    Args (cmdis, id, dtype, hint);
+	    uint32_t sid = clir->LookupId (id);
+	    if (sid != GoidNull)
+		clir->FreeResource (dtype, sid);
+	    if (cmd == ECmd::LoadPakFile) {
+		goid_t pak; const char* filename = nullptr;
+		Args (cmdis, pak, filename);
+		uint32_t flnsz = cmdis.ipos()-(const uint8_t*)filename;
+		sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
+		if (sid == GoidNull)
+		    throw XError ("failed to load datapak resource %s", filename);
+	    } else if (cmd == ECmd::LoadData) {
+		uint32_t tsz, toff; SDataBlock d;
+		Args (cmdis, tsz, toff, d);
+		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
+		if (sid == GoidNull)
+		    XError::emit ("failed to load resource from data");
+	    } else {
+		int fd;
+		Args (cmdis, fd);
+		CMMFile recvf (fd);
+		bstri dfis (recvf.MMData(), recvf.MMSize());
+		sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
+		if (sid == GoidNull)
+		    XError::emit ("failed to load resource from file");
+	    }
+	    clir->MapId (id, sid);
+	    } break;
+	case ECmd::FreeResource: {
+	    goid_t id; G::EResource dtype;
+	    Args (cmdis, id, dtype);
+	    clir->FreeResource (dtype, clir->LookupId(id));
+	    clir->UnmapId (id);
+	    } break;
+	case ECmd::BufferSubData: {
+	    goid_t id; G::EBufferType btype; G::EBufferHint hint; uint32_t offset; SDataBlock d;
+	    Args (cmdis, id, btype, hint, offset, d);
+	    clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
+	    } break;
+	default:
+	    XError::emit ("invalid protocol command");
+	    break;
     }
 }
 

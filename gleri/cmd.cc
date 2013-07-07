@@ -138,11 +138,29 @@ void CCmdBuf::SendFile (CFile& f, uint32_t fsz)
     }
 }
 
-void CCmdBuf::ForwardError (const char* m)
+//----------------------------------------------------------------------
+// COM object interface
+
+#define N(n,s)	#n "\0" #s "\0"
+/*static*/ const char CCmdBuf::_cmdNames[] =
+     N(Error,s)
+     N(Export,ay)
+;
+#undef N
+
+/*static*/ inline const char* CCmdBuf::LookupCmdName (ECmd cmd, size_type& sz) noexcept
 {
-    static const char c_ErrorMethod[] = "Error\0s";
-    bstrs ss;
-    variadic_arg_size (ss, m);
-    bstro os = CreateCmd (COMObject, ArrayBlock(c_ErrorMethod), ss.size());
-    variadic_arg_write (os, m);
+    return (CCmdBuf::LookupCmdName((unsigned)cmd,sz,ArrayBlock(_cmdNames)-1));
+}
+
+/*static*/ CCmdBuf::ECmd CCmdBuf::LookupCmd (const char* name, size_type bleft) noexcept
+{
+    return (ECmd(CCmdBuf::LookupCmd(name,bleft,ArrayBlock(_cmdNames)-1)));
+}
+
+bstro CCmdBuf::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
+{
+    size_type msz;
+    const char* m = LookupCmdName (cmd, msz);
+    return (CCmdBuf::CreateCmd (c_ObjectName, m, msz, sz, unwritten));
 }

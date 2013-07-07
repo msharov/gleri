@@ -11,8 +11,8 @@
 
 #define N(n,s)	#n "\0" #s "\0"
 /*static*/ const char PRGL::_cmdNames[] =
-     N(Auth,ayay)
-     N(Open,(nnqqqyyyyyy))
+     N(Auth,aysuay)
+     N(Open,(nnqqqyyyyyy)s)
      N(Close,)
      N(Draw,ay)
      N(LoadData,uqquuay)
@@ -37,7 +37,7 @@ bstro PRGL::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
 {
     size_type msz;
     const char* m = LookupCmdName (cmd, msz);
-    return (CCmdBuf::CreateCmd (RGLObject, m, msz, sz, unwritten));
+    return (CCmdBuf::CreateCmd (c_ObjectName, m, msz, sz, unwritten));
 }
 
 PRGL::goid_t PRGL::LoadFile (G::EResource dtype, const char* filename, G::EBufferHint hint)

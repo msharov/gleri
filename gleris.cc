@@ -132,6 +132,41 @@ void CGleris::Authenticate (CCmdBuf& cmdbuf, uint32_t pid, const char* hostname,
     pconn.SetArgv (argv);
 }
 
+void CGleris::ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept
+{
+    ForwardError (h.Cmdname(), e, fd, h.iid);
+    DTRACE ("Failing command (hsz=0x%x,sz=0x%x):\n", h.hsz,h.sz);
+    bstri msgstrm (h.Msgstrm());
+    DHEXDUMP (msgstrm.ipos()-h.hsz,h.Msgsize());
+}
+
+void CGleris::ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept
+{
+    try {
+	PRGLR* pcli = ClientRecord (fd, iid);
+	PRGLR errbuf (iid);
+	if (!pcli) {
+	    errbuf.SetFd (fd);
+	    pcli = &errbuf;
+	}
+	size_t bufsz = 16+strlen(cmdname)+2+strlen(e.what())+1;
+	char buf [bufsz];
+	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
+	DTRACE ("[%x] Forwarding error: %s\n", pcli->IId(), buf);
+	pcli->ForwardError (buf);
+	pcli->WriteCmds();
+	CloseClient (static_cast<const CGLWindow*>(pcli));
+    } catch (...) {}	// fd errors will be caught by poll
+}
+
+void CGleris::OnExport (const char*, int fd)
+{
+    PRGLR exbuf (0);
+    exbuf.SetFd (fd);
+    exbuf.Export (GLERIS_EXPORTS);
+    exbuf.WriteCmds();
+}
+
 //----------------------------------------------------------------------
 // X and OpenGL interface
 
@@ -559,7 +594,7 @@ void CGleris::OnFd (int fd)
 	AddConnection (cfd, fd == _localSocket.Fd());
     } else if ((pic = LookupConnection(fd))) {
 	pic->ReadCmds();
-	pic->ProcessMessages (*this, PRGL::Parse<CGleris>);
+	pic->ProcessMessages<PRGL> (*this);
     }
     OnXEvent();
 }
@@ -579,8 +614,13 @@ void CGleris::OnTimer (uint64_t tms)
     CApp::OnTimer (tms);
     for (auto c : _win) {
 	if (c->NextFrameTime() == tms) {
-	    ActivateClient (*c);
-	    WaitForTime (c->DrawPendingFrame (_dpy));
+	    try {
+		ActivateClient (*c);
+		WaitForTime (c->DrawPendingFrame (_dpy));
+	    } catch (XError& e) {
+		ForwardError ("Draw", e, -1, c->IId());
+	    }
+	    c->ClearPendingFrame();
 	}
     }
     OnXEvent();
@@ -682,7 +722,7 @@ inline void CGleris::ActivateClient (CGLWindow& rcli) noexcept
     glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
 }
 
-void CGleris::CloseClient (CGLWindow* pcli) noexcept
+void CGleris::CloseClient (const CGLWindow* pcli) noexcept
 {
     auto ic = find (_win.begin(), _win.end(), pcli);
     if (ic < _win.end()) {
@@ -725,9 +765,9 @@ CGLWindow* CGleris::ClientRecordForWindow (Window w) noexcept
     return (nullptr);
 }
 
-void CGleris::ClientDraw (CGLWindow& cli, bstri cmdis, iid_t iid)
+void CGleris::ClientDraw (CGLWindow& cli, bstri cmdis)
 {
-    WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy, iid));
+    WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy));
 }
 
 GLERI_APP (CGleris)

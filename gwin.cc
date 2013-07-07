@@ -25,7 +25,6 @@ CGLWindow::CGLWindow (iid_t iid, const SWinInfo& winfo, Window win, GLXContext c
 ,_curTexture (CGObject::NoObject)
 ,_curFont (CGObject::NoObject)
 ,_winfo (winfo)
-,_pendingFrameIId (0)
 {
     DTRACE ("[%x] Create: window %x, context %x\n", iid, win, ctx);
     _winfo.h = 0;	// Make invalid until explicit resize
@@ -118,10 +117,9 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
     return (_nextVSync);
 }
 
-uint64_t CGLWindow::DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid)
+uint64_t CGLWindow::DrawFrameNoWait (bstri cmdis, Display* dpy)
 {
     if (_nextVSync != NotWaitingForVSync) {
-	_pendingFrameIId = iid;
 	_pendingFrame.assign (cmdis.ipos(), cmdis.end());
 	return (_nextVSync);
     }
@@ -130,32 +128,7 @@ uint64_t CGLWindow::DrawFrameNoWait (bstri cmdis, Display* dpy, iid_t iid)
 
 uint64_t CGLWindow::DrawPendingFrame (Display* dpy) noexcept
 {
-    uint64_t nf = 0;
-    try {
-	DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy);
-    } catch (XError& e) {
-	ForwardError ("Draw", e, -1, _pendingFrameIId);
-    }
-    _pendingFrame.clear();
-    return (nf);
-}
-
-void CGLWindow::ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept
-{
-    PRGLR* pcli = this;
-    try {
-	PRGLR errbuf (iid);
-	if (!pcli) {
-	    errbuf.SetFd (fd);
-	    pcli = &errbuf;
-	}
-	size_t bufsz = 16+strlen(cmdname)+2+strlen(e.what())+1;
-	char buf [bufsz];
-	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
-	DTRACE ("[%x] Forwarding error: %s\n", pcli->IId(), buf);
-	pcli->ForwardError (buf);
-	pcli->WriteCmds();
-    } catch (...) {}	// fd errors will be caught by poll
+    return (DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy));
 }
 
 //----------------------------------------------------------------------

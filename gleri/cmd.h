@@ -24,6 +24,11 @@ public:
 	uint8_t		fdoffset;
 	uint8_t		hsz;
 	uint32_t	objname;
+    public:
+	inline const char*	Cmdname (void) const	{ return ((const char*)this+sizeof(*this)); }
+	inline const_pointer	Msgdata (void) const	{ return ((const_pointer)this+hsz); }
+	inline size_type	Msgsize (void) const	{ return (hsz+sz); }
+	inline bstri		Msgstrm (void) const	{ return (bstri (Msgdata(), sz)); }
     };
     struct SDataBlock {
 	const void*	_p;
@@ -40,7 +45,7 @@ public:
 	}
     };
 protected:
-    enum : uint32_t { COMObject = vpack4('C','O','M',0) };
+    enum : uint32_t { c_ObjectName = vpack4('C','O','M',0) };
     enum : cmd_t { InvalidCmd = numeric_limits<cmd_t>::max() };
     enum { c_MsgAlignment = 8 };
 protected:
@@ -66,6 +71,10 @@ protected:
 
 //----------------------------------------------------------------------
 
+#define GLERIS_EXPORTS		"RGL\0RGLR\0"
+
+//----------------------------------------------------------------------
+
 class CCmdBuf : public CCmd {
 public:
     inline explicit		CCmdBuf (iid_t iid) noexcept	:_outf(),_iid(iid) {}
@@ -77,18 +86,35 @@ public:
     inline bool			CanPassFd (void) const		{ return (_bFdPass); }
     inline size_type		size (void) const		{ return (_used); }
     inline size_type		capacity (void) const		{ return (_sz); }
-    void			ForwardError (const char* m);
+    void			ForwardError (const char* m)	{ Cmd (ECmd::Error, m); }
+    void			Export (const char* ol)		{ Cmd (ECmd::Export, ol); }
     void			ReadCmds (void);
     void			WriteCmds (void);
     inline bstri		BeginRead (void) const		{ return (bstri(_buf,_used)); }
     inline void			EndRead (const bstri& is)	{ EndRead(is.ipos()); }
-    template <typename T, typename MProc>
-    inline void			ProcessMessages (T& o, MProc f);
+    template <typename OT, typename PT>
+    inline void			ProcessMessages (PT& pp);
 protected:
     bstro			CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz, size_type unwritten = 0) noexcept;
     void			SendFile (CFile& f, uint32_t fsz);
     static const char*		LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept;
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
+    template <typename... Arg>
+    static inline void		Args (bstri& is, Arg&... args);
+private:
+    enum class ECmd : cmd_t {	// COM interface
+	Error,
+	Export,
+	NCmds
+    };
+private:
+    template <typename... Arg>
+    inline void			Cmd (ECmd cmd, const Arg&... args);
+    template <typename F>
+    static inline void		Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf);
+    static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
+    static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
+    bstro			CreateCmd (ECmd cmd, size_type sz, size_type unwritten = 0) noexcept;
 private:
     static inline const char*	nextname (const char* n, size_type& sz) noexcept;
     static inline bool		namecmp (const void* s1, const void* s2, size_type n) noexcept;
@@ -105,26 +131,60 @@ private:
     CFile			_outf;
     iid_t			_iid;
     bool			_bFdPass= false;
+    static const char		_cmdNames[];
 };
 
 //----------------------------------------------------------------------
 
-template <typename T, typename MProc>
-inline void CCmdBuf::ProcessMessages (T& o, MProc f)
+template <typename... Arg>
+inline void CCmdBuf::Cmd (ECmd cmd, const Arg&... args)
+{
+    bstrs ss;
+    variadic_arg_size (ss, args...);
+    bstro os = CreateCmd (cmd, ss.size());
+    variadic_arg_write (os, args...);
+}
+
+template <typename OT, typename PT>
+inline void CCmdBuf::ProcessMessages (PT& pp)
 {
     bstri is = BeginRead();
     while (is.remaining() >sizeof(SMsgHeader)) {// While have commands
 	const SMsgHeader& h = *is.iptr<SMsgHeader>();
-	unsigned btodata = h.hsz-sizeof(SMsgHeader);
-	if (is.remaining() < btodata+h.sz)
+	if (is.remaining() < h.Msgsize())
 	    break;
-	is.skip (sizeof(SMsgHeader));
-	const char* cmdname = (const char*) is.ipos();
-	is.skip (btodata);
-	bstri cmdis (is.ipos(), h.sz);		// Command data stream
-	is.skip (h.sz);				// Skip to next command
-	f (o, h, cmdname, *this, cmdis);
+	is.skip (h.Msgsize());
+	try {
+	    switch (h.objname) {
+		case c_ObjectName:	Parse (pp, h, *this); break;
+		case OT::c_ObjectName:	OT::Parse (pp, h, *this); break;
+		default:		XError::emit ("no such object");
+	    }
+	} catch (XError& e) {
+	    pp.ForwardError (h, e, Fd());
+	}
     }
     EndRead(is);
 }
+
 //----------------------------------------------------------------------
+
+template <typename... Arg>
+/*static*/ inline void CCmdBuf::Args (bstri& is, Arg&... args)
+{
+    bstrs ss; variadic_arg_size (ss, args...);	// Size of args
+    if (is.remaining() < ss.size())		// Have the whole thing?
+	XError::emit ("RGL protocol error");	//  sz may be != ss.size if args has a string
+    variadic_arg_read (is, args...);		// Read args
+}
+
+template <typename F>
+/*static*/ inline void CCmdBuf::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
+{
+    bstri cmdis (h.Msgstrm());
+    switch (LookupCmd (h.Cmdname(), h.hsz)) {
+	case ECmd::Error: 	{ const char* m = nullptr; Args(cmdis,m); XError::emit(m); } break;
+	case ECmd::Export:	{ const char* m = nullptr; Args(cmdis,m); f.OnExport(m,cmdbuf.Fd()); } break;
+	default:		XError::emit ("invalid protocol command");
+    }
+}

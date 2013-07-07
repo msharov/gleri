@@ -212,6 +212,7 @@ public:
     template <typename... T>
     inline explicit	XError (const char* fmt, T... args) noexcept __attribute__((__format__(__printf__,2,0)));
     inline		XError (bool, char*& msg)	:_msg(msg) { msg = nullptr; }
+    inline		XError (const XError& e)	:_msg(strdup(e.what())) {}
     inline		~XError (void) noexcept		{ free (_msg); }
     inline const char*	what (void) const noexcept	{ return (_msg); }
     static void		emit (const char* e) NORETURN	{ throw XError (e); }

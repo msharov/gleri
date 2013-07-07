@@ -7,7 +7,7 @@
 
 #define N(n,s)	#n "\0" #s "\0"
 /*static*/ const char PRGLR::_cmdNames[] =
-     N(Error,s)			// Dirty trick: object name is 4 bytes, but must be zero terminated, so there must be a null char here. However, Error is a method in the COM object, which is 4 bytes with null, so no extra null needed.
+     "\0"			// Dirty trick: object name is 4 bytes, but must be zero terminated, so there must be a null char here.
      N(Restate,(nnqqyyyy))
      N(Expose,)
      N(Event,(unnuu))
@@ -28,5 +28,5 @@ bstro PRGLR::CreateCmd (ECmd cmd, size_type sz) noexcept
 {
     size_type msz;
     const char* m = LookupCmdName(cmd, msz);
-    return (CCmdBuf::CreateCmd (RGLRObject, m-1, msz+1, sz));
+    return (CCmdBuf::CreateCmd (c_ObjectName, m-1, msz+1, sz));
 }

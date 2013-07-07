@@ -84,8 +84,10 @@ public:
     CGLWindow*		ClientRecordForWindow (Window w) noexcept;
     void		Authenticate (CCmdBuf& cmdbuf, uint32_t pid, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth);
     void		CreateClient (iid_t iid, SWinInfo winfo, const char* title = nullptr, CCmdBuf* piconn = nullptr);
-    void		CloseClient (CGLWindow* pcli) noexcept;
-    void		ClientDraw (CGLWindow& cli, bstri cmdis, iid_t iid);
+    void		CloseClient (const CGLWindow* pcli) noexcept;
+    void		ClientDraw (CGLWindow& cli, bstri cmdis);
+    void		ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept;
+    void		OnExport (const char*, int fd);
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     Window		CreateWindow (rcwininfo_t winfo);
@@ -94,6 +96,7 @@ private:
     inline CCmdBuf*	LookupConnection (int fd) noexcept;
     inline void		ActivateClient (CGLWindow& rcli) noexcept;
     void		DestroyClient (CGLWindow*& pcli) noexcept;
+    void		ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept;
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
     inline iid_t	GenIId (void)		{ return (++_nextiid); }
     inline void		GetAtoms (void) noexcept;
