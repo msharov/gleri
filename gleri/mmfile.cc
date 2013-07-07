@@ -5,6 +5,7 @@
 
 #include "mmfile.h"
 #include "gldefs.h"
+#include "bstr.h"
 #include <sys/stat.h>
 #if HAVE_SYS_SENDFILE_H
     #include <sys/sendfile.h>
@@ -200,4 +201,72 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
 CTmpfile::~CTmpfile (void) noexcept
 {
     Close();
+}
+
+//----------------------------------------------------------------------
+
+#define XAUTH_NAME	"MIT-MAGIC-COOKIE-1"
+enum { XAUTH_NAME_LEN = sizeof(XAUTH_NAME)-1 };
+enum XauthFamily {
+    XauthFamilyInternet,
+    XauthFamilyLocal = 256
+};
+
+unsigned GetXauthData (const SXDisplay& dpy, char data [XAUTH_DATA_LEN])
+{
+    char filename [PATH_MAX];
+    const char* xauthpath = getenv("XAUTHORITY");
+    if (xauthpath)
+	strcpy (filename, xauthpath);
+    else
+	snprintf (ArrayBlock(filename), "%s/.Xauthority", getenv("HOME"));
+    CMMFile authfile (filename);
+    bstri is (authfile.MMData(), authfile.MMSize());
+    const uint16_t hostlen = strlen(dpy.host);
+    while (is.remaining() >= 4) {
+	uint16_t family, sz, match = 0;
+	is >> family;
+	match += (family == htons(XauthFamilyLocal));
+	enum { str_Host, str_Display, str_AuthName, str_AuthData, str_Last };
+	for (unsigned i = 0; i < str_Last; ++i) {
+	    is >> sz; sz = ntohs(sz);
+	    if (is.remaining() < sz)
+		return (0);
+	    if (i == str_Host && sz == hostlen)
+		match += !memcmp(is.iptr<char>(), dpy.host, hostlen);
+	    else if (i == str_Display) {
+		uint16_t dpynum = 0;
+		for (const char* d = is.iptr<char>(), *e = d+sz; d < e;)
+		    dpynum = dpynum*10 + (*d++ - '0');
+		match += (dpynum == dpy.display);
+	    } else if (i == str_AuthName && sz == XAUTH_NAME_LEN)
+		match += !memcmp(is.iptr<char>(), XAUTH_NAME, XAUTH_NAME_LEN);
+	    else if (i == str_AuthData && sz == XAUTH_DATA_LEN && match == 4) {
+		memcpy (data, is.iptr<char>(), XAUTH_DATA_LEN);
+		return (sz);
+	    }
+	    is.skip (sz);
+	}
+    }
+    return (0);
+}
+
+void ParseXDisplay (const char* dispstr, SXDisplay& dinfo)
+{
+    strncpy (dinfo.host, dispstr, sizeof(dinfo.host));
+    dinfo.display = 0;
+    dinfo.screen = 0;
+    dinfo.host[sizeof(dinfo.host)-1] = 0;
+    char* pdpynum = strchr (dinfo.host, ':');
+    if (!pdpynum || pdpynum == dinfo.host) {
+	gethostname (dinfo.host, sizeof(dinfo.host)-1);
+	return;
+    }
+    *pdpynum++ = 0;
+    char* pscrnum = strchr (pdpynum, ':');
+    if (pscrnum) {
+	*pscrnum++ = 0;
+	dinfo.screen = atoi (pscrnum);
+    }
+    dinfo.display = atoi (pdpynum);
 }

@@ -8,7 +8,7 @@
 void CPopupMenu::OnInit (void)
 {
     CWindow::OnInit();
-    Open ((SWinInfo){ _x,_y,100,80,0,0x33,0,0,SWinInfo::type_PopupMenu,SWinInfo::state_Normal,SWinInfo::flag_None });
+    Open ("Menu", (SWinInfo){ _x,_y,100,80,0,0x33,0,0,SWinInfo::type_PopupMenu,SWinInfo::state_Normal,SWinInfo::flag_None });
 }
 
 void CPopupMenu::OnResize (dim_t w, dim_t h)

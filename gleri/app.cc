@@ -38,7 +38,7 @@ static inline bool _printable (char c)
 //}}}-------------------------------------------------------------------
 //{{{ hexdump
 
-void hexdump (const void* pv, size_t n)
+void hexdump (const void* pv, size_t n) noexcept
 {
     const uint8_t* p = (const uint8_t*) pv;
     uint8_t line[65]; line[64] = '\n';

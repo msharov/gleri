@@ -46,12 +46,15 @@ private:
     inline size_type	wrstrlen (const char* s) const	{ return (s?strlen(s):0); }
 public:
     inline		bstrs (void)		:_sz(0) { }
+    inline pointer	ipos (void)		{ return (nullptr); }
+   inline const_pointer	ipos (void) const	{ return (nullptr); }
     template <typename T>
     inline T*		iptr (void)		{ return (nullptr); }
     inline size_type	remaining (void) const	{ return (numeric_limits<size_type>::max()); }
     inline size_type	size (void) const	{ return (_sz); }
     inline void		skip (size_type n)	{ _sz += n; }
     inline void		align (size_type g)	{ skip (align_size(size(),g)); }
+    inline void		skipalign (size_type g)	{ align (g); }
     template <typename T>
     inline void		iwrite (const T& v)	{ skip(sizeof(v)); }
     inline void		write (const void*, size_type sz)	{ skip(sz); }
@@ -79,6 +82,7 @@ public:
     inline size_type	size (void) const	{ return (remaining()); }
     inline void		skip (size_type n)	{ assert(remaining()>=n && "stream overflow");  _p += n; }
     inline void		align (size_type g)	{ const size_type nz = align_size(ipos(),g); memset(ipos(),0,nz); skip(nz); }
+    inline void		skipalign (size_type g)	{ skip(align_size(ipos(),g)); }
     template <typename T>
     inline void		iwrite (const T& v)	{ *iptr<T>() = v; skip(sizeof(v)); }
     inline void		write (const void* v, size_type sz)	{ pointer o = _p; skip(sz); memcpy (o,v,sz); }
@@ -107,6 +111,7 @@ public:
     inline void		iseek (const_pointer i)	{ assert(i <= end() && "stream underflow"); _p = i; }
     inline void		skip (size_type n)	{ iseek (ipos()+n); }
     inline void		align (size_type g)	{ skip (align_size(ipos(),g)); }
+    inline void		skipalign (size_type g)	{ align (g); }
     template <typename T>
     inline void		iread (T& v)		{ v = *iptr<T>(); skip(sizeof(v)); }
     inline void		read (void* v, size_type sz)	{ assert(remaining()>=sz && "read overflow"); memcpy (v,ipos(),sz); skip(sz); }

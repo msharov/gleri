@@ -74,7 +74,7 @@ static const char c_gradShader_f[] =
 void CTestWindow::OnInit (void)
 {
     CWindow::OnInit();
-    Open (640, 480);
+    Open ("GLERI Test Program", 640, 480);
     printf ("Initializing test window\n");
     _vbuf = BufferData (_vdata1, sizeof(_vdata1));
 #if HAVE_PNG_H

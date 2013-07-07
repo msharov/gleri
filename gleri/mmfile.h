@@ -162,3 +162,15 @@ inline bool CFile::Connect (uint32_t addr, uint16_t port)
     sa.sin_addr.s_addr = htonl(addr);
     return (ConnectStream ((const sockaddr*) &sa, sizeof(sa)));
 }
+
+//----------------------------------------------------------------------
+
+enum { XAUTH_DATA_LEN = 16, };
+struct SXDisplay {
+    uint8_t	display;
+    uint8_t	screen;
+    char	host [62];
+};
+
+unsigned GetXauthData (const SXDisplay& dpy, char data [XAUTH_DATA_LEN]);
+void ParseXDisplay (const char* dispstr, SXDisplay& dinfo);

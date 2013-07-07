@@ -5,6 +5,7 @@
 
 #include "gleris.h"
 #include <X11/XF86keysym.h>
+#include <X11/Xauth.h>
 
 //----------------------------------------------------------------------
 
@@ -35,6 +36,7 @@ CGleris::CGleris (void) noexcept
     XSetErrorHandler (XlibErrorHandler);
     XSetIOErrorHandler (XlibIOErrorHandler);
     snprintf (ArrayBlock(s_SocketPath), GLERIS_SOCKET, getenv("HOME"));
+    memset (_xauth, 0, sizeof(_xauth));
 }
 
 CGleris::~CGleris (void) noexcept
@@ -117,6 +119,17 @@ CCmdBuf* CGleris::LookupConnection (int fd) noexcept
 	if ((*i)->Fd() == fd)
 	    return (*i);
     return (nullptr);
+}
+
+void CGleris::Authenticate (CCmdBuf& cmdbuf, uint32_t pid, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth)
+{
+    CIConn& pconn = static_cast<CIConn&>(cmdbuf);
+    if (!xauth._p || xauth._sz != ArraySize(_xauth) || 0 != memcmp(_xauth, xauth._p, ArraySize(_xauth)))
+	XError::emit ("invalid xauth token");
+    pconn.SetAuthenticated();
+    pconn.SetPid (pid);
+    pconn.SetHostname (hostname);
+    pconn.SetArgv (argv);
 }
 
 //----------------------------------------------------------------------
@@ -215,6 +228,27 @@ void CGleris::Init (argc_t argc, argv_t argv)
     CreateClient (0, rootinfo);
     CIConn::LoadDefaultResources (_curCli);
 
+    // Set WM properties on the root context's window
+    Xutf8SetWMProperties (_dpy, _curCli->Drawable(), GLERIS_NAME, nullptr, const_cast<char**>(argv), argc, nullptr, nullptr, nullptr);
+    char hostname [HOST_NAME_MAX];
+    gethostname (ArrayBlock(hostname));
+    XChangeProperty (_dpy, _curCli->Drawable(), _atoms[a_WM_CLIENT_MACHINE], _atoms[a_STRING], 8, PropModeReplace, (unsigned char*) hostname, strlen(hostname));
+    uint32_t mypid = getpid();
+    XChangeProperty (_dpy, _curCli->Drawable(), _atoms[a_NET_WM_PID], _atoms[a_CARDINAL], 32, PropModeReplace, (unsigned char*) &mypid, 1);
+
+    // Cache xauth information
+    const char* xdispstr = getenv("GLERI_DISPLAY");
+    if (!xdispstr) xdispstr = getenv("DISPLAY");
+    if (!xdispstr) xdispstr = ":0";
+    SXDisplay dinfo;
+    ParseXDisplay (xdispstr, dinfo);
+    if (XAUTH_DATA_LEN != GetXauthData (dinfo, _xauth))
+	DTRACE ("Error: failed to load xauth key for %s:%hu.%hu; defaulting to zero\n", dinfo.host, dinfo.display, dinfo.screen);
+    else {
+	DTRACE ("Successfully loaded xauth key for %s:%hu.%hu\n", dinfo.host, dinfo.display, dinfo.screen);
+	DHEXDUMP (ArrayBlock(_xauth));
+    }
+
     // Start listening on server sockets
     if (Option (opt_SingleClient)) {
 	DTRACE ("Single client mode. Listening on stdin.\n");
@@ -226,8 +260,8 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	_localSocket.Bind (s_SocketPath, GLERIS_LISTEN_QUEUE_SIZE);
 	WatchFd (_localSocket.Fd());
 	if (Option (opt_TCPSocket)) {
-	    DTRACE ("Listening on TCP socket localhost:%hu\n", GLERIS_PORT);
-	    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT, GLERIS_LISTEN_QUEUE_SIZE);
+	    DTRACE ("Listening on TCP socket localhost:%hu\n", GLERIS_PORT+dinfo.display);
+	    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT+dinfo.display, GLERIS_LISTEN_QUEUE_SIZE);
 	    WatchFd (_tcpSocket.Fd());
 	}
     }
@@ -238,6 +272,11 @@ void CGleris::GetAtoms (void) noexcept
     //{{{ c_AtomNames
     static const char c_AtomNames[] =
 	"\0ATOM"
+	"\0STRING"
+	"\0CARDINAL"
+	"\0WM_CLIENT_MACHINE"
+	"\0WM_COMMAND"
+	"\0_NET_WM_PID"
 	"\0_NET_WM_STATE"
 	"\0_NET_WM_STATE_MODAL"
 	"\0_NET_WM_STATE_DEMANDS_ATTENTION"
@@ -550,8 +589,11 @@ void CGleris::OnTimer (uint64_t tms)
 //----------------------------------------------------------------------
 // Client records, selection and forwarding
 
-void CGleris::CreateClient (iid_t iid, SWinInfo winfo, CCmdBuf* piconn)
+void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBuf* piconn)
 {
+    CIConn* pconn = static_cast<CIConn*>(piconn);
+    if (pconn && !pconn->Authenticated())
+	XError::emit ("unauthenticated connection can not open windows");
     // Parse requested GL version, high byte max version, low byte min version
     uint8_t reqver = min(max(winfo.mingl,winfo.maxgl), _glversion);
     int major = reqver>>4, minor = reqver&0xf;
@@ -602,12 +644,25 @@ void CGleris::CreateClient (iid_t iid, SWinInfo winfo, CCmdBuf* piconn)
     }
     if (winfo.Decoless())	// override-redirect windows do not receive configure events
 	rcli.Resize (winfo.x, winfo.y, winfo.w, winfo.h);
+    if (title)
+	XStoreName (_dpy, wid, title);
+    if (pconn) {
+	if (!pconn->Argv().empty())
+	    XChangeProperty (_dpy, wid, _atoms[a_WM_COMMAND], _atoms[a_STRING], 8, PropModeReplace,
+			     (const unsigned char*) &pconn->Argv()[0], pconn->Argv().size());
+	if (!pconn->Hostname().empty())
+	    XChangeProperty (_dpy, wid, _atoms[a_WM_CLIENT_MACHINE], _atoms[a_STRING], 8, PropModeReplace,
+			     (const unsigned char*) pconn->Hostname().c_str(), pconn->Hostname().size());
+	if (pconn->Pid())
+	    XChangeProperty (_dpy, wid, _atoms[a_NET_WM_PID], _atoms[a_CARDINAL], 32, PropModeReplace,
+			     (const unsigned char*) pconn->PidPtr(), 1);
+    }
     XChangeProperty (_dpy, wid, _atoms[a_NET_WM_WINDOW_TYPE], _atoms[a_ATOM], 32, PropModeReplace,
-		     (unsigned char*) &_atoms[a_NET_WM_WINDOW_TYPE+1+winfo.wtype], 1);
+		     (const unsigned char*) &_atoms[a_NET_WM_WINDOW_TYPE+1+winfo.wtype], 1);
     uint32_t wsa [16];
     unsigned nwsa = WinStateAtoms (winfo, wsa);
     if (nwsa)
-	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_STATE], _atoms[a_ATOM], 32, PropModeReplace, (unsigned char*) wsa, nwsa);
+	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_STATE], _atoms[a_ATOM], 32, PropModeReplace, (const unsigned char*) wsa, nwsa);
     if (winfo.wstate != SWinInfo::state_Hidden)
 	XMapWindow (_dpy, wid);
 

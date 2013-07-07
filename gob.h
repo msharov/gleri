@@ -19,8 +19,17 @@ inline void DTRACE (const char* fmt, Args... args) noexcept
 	fflush (stdout);
     }
 }
+inline void DHEXDUMP (const void* p, size_t sz) noexcept
+{
+    extern bool g_bDebugTrace;
+    if (g_bDebugTrace) {
+	hexdump (p, sz);
+	fflush (stdout);
+    }
+}
 #else
 inline void DTRACE (const char*, Args...) noexcept {}
+inline void DHEXDUMP (const void*, size_t) noexcept {}
 #endif
 
 //----------------------------------------------------------------------

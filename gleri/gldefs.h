@@ -226,7 +226,7 @@ inline XError::XError (const char* fmt, T... args) noexcept
 //----------------------------------------------------------------------
 // Utility functions
 
-void hexdump (const void* pv, size_t n);
+void hexdump (const void* pv, size_t n) noexcept;
 
 template <typename Ctr, typename Condition>
 inline void erase_if (Ctr& v, Condition f)

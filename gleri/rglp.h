@@ -20,6 +20,7 @@ public:
 private:
     enum : uint32_t { RGLObject = vpack4('R','G','L',0) };
     enum class ECmd : cmd_t {
+	Auth,
 	Open,
 	Close,
 	Draw,
@@ -30,16 +31,41 @@ private:
 	BufferSubData,
 	NCmds,
     };
+    //{{{ Serialization helper objects: SShader, SArgv
     struct SShader {
 	inline SShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
 	    :_v(v),_tc(tc),_te(te),_g(g),_f(f),_sz(strlen(v)+1+strlen(tc)+1+strlen(te)+1+strlen(g)+1+strlen(f)+1) {}
 	template <typename Stm>
-	inline void write (Stm& os) const
-	    { os << _sz; os.write_strz (_v); os.write_strz (_tc); os.write_strz (_te); os.write_strz (_g); os.write_strz (_f); }
+	inline void write (Stm& os) const {
+	    os << _sz;
+	    os.write_strz (_v);
+	    os.write_strz (_tc);
+	    os.write_strz (_te);
+	    os.write_strz (_g);
+	    os.write_strz (_f);
+	    os.skipalign(4);
+	}
     private:
 	const char *_v, *_tc, *_te, *_g, *_f;
 	uint32_t _sz;
     };
+    struct SArgv {
+	inline SArgv (uint32_t argc, char* const* argv):_argv(argv),_argc(argc) {}
+	template <typename Stm>
+	inline void write (Stm& os) const {
+	    uint32_t* pstrsz = (uint32_t*) os.ipos();
+	    os.skip(4);	// Writing as a concatenated string (ay)
+	    for (uint32_t i = 0; i < _argc; ++i)
+		os.write_strz (_argv[i]);
+	    if (Stm::is_writing)
+		*pstrsz = os.ipos()-(typename Stm::pointer)pstrsz-4;
+	    os.skipalign (4);
+	}
+    private:
+	char* const* _argv;
+	uint32_t _argc;
+    };
+    //}}}
 public:
     inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_nextid(iid<<16) {}
     inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
@@ -49,8 +75,9 @@ public:
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
 				// Commands
-    inline void			Open (const SWinInfo& winfo)	{ Cmd(ECmd::Open,winfo); }
-    inline void			Open (dim_t w, dim_t h, uint8_t glver = 0x33)	{ SWinInfo winfo = { 0,0,w,h,0,glver,0,0,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }; Open(winfo); }
+    inline void			Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, const void* ad, uint32_t adsz)	{ Cmd (ECmd::Auth, SArgv(argc,argv), hostname, pid, SDataBlock(ad,adsz)); }
+    inline void			Open (const char* title, const SWinInfo& winfo)			{ Cmd(ECmd::Open,winfo,title); }
+    inline void			Open (const char* title, dim_t w, dim_t h, uint8_t glver =0x33)	{ Open (title, (SWinInfo){ 0,0,w,h,0,glver,0,0,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }); }
     inline void			Close (void)			{ Cmd(ECmd::Close); }
     inline draww_t		Draw (size_type sz);
     inline goid_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
@@ -210,14 +237,22 @@ template <typename F>
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
     try {
 	ECmd cmd = LookupCmd (cmdname, h.hsz);
-	if (h.objname != RGLObject || (!clir ^ (cmd == ECmd::Open)))
+	if (h.objname != RGLObject || (!clir ^ (cmd == ECmd::Open || cmd == ECmd::Auth)))
 	    XError::emit ("RGL protocol error");
 
 	switch (cmd) {
+	    case ECmd::Auth: {
+		SDataBlock argv,b;
+		const char* hostname = nullptr;
+		uint32_t pid;
+		Args (cmdis, argv, hostname, pid, b);
+		f.Authenticate (cmdbuf, pid, hostname, argv, b);
+		} break;
 	    case ECmd::Open: {
 		SWinInfo winfo;
-		Args (cmdis, winfo);
-		f.CreateClient (h.iid, winfo, &cmdbuf);
+		const char* title = nullptr;
+		Args (cmdis, winfo, title);
+		f.CreateClient (h.iid, winfo, title, &cmdbuf);
 		} break;
 	    case ECmd::Close:
 		f.CloseClient (clir);
@@ -227,39 +262,36 @@ template <typename F>
 		Args (cmdis, b);
 		f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz), h.iid);
 		} break;
-	    case ECmd::LoadData: {
-		goid_t id; G::EBufferHint hint; G::EResource dtype; uint32_t tsz, toff; SDataBlock d;
-		Args (cmdis, id, dtype, hint, tsz, toff, d);
-		uint32_t sid = clir->LookupId (id);
-		if (sid != GoidNull)
-		    clir->FreeResource (dtype, sid);
-		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
-		if (sid == GoidNull)
-		    XError::emit ("failed to load resource from data");
-		clir->MapId (id, sid);
-		} break;
-	    case ECmd::LoadPakFile: {
-		goid_t id,pak; const char* filename = nullptr; G::EResource dtype; G::EBufferHint hint;
-		Args (cmdis, id, dtype, hint, pak, filename);
-		uint32_t sid = clir->LookupId (id), flnsz = cmdis.ipos()-(const uint8_t*)filename;
-		if (sid != GoidNull)
-		    clir->FreeResource (dtype, sid);
-		sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
-		if (sid == GoidNull)
-		    throw XError ("failed to load datapak resource %s", filename);
-		clir->MapId (id, sid);
-		} break;
+	    case ECmd::LoadData:
+	    case ECmd::LoadPakFile:
 	    case ECmd::LoadFile: {
-		goid_t id; G::EBufferHint hint; G::EResource dtype; int fd;
-		Args (cmdis, id, dtype, hint, fd);
-		CMMFile recvf (fd);
-		bstri dfis (recvf.MMData(), recvf.MMSize());
+		goid_t id; G::EBufferHint hint; G::EResource dtype;
+		Args (cmdis, id, dtype, hint);
 		uint32_t sid = clir->LookupId (id);
 		if (sid != GoidNull)
 		    clir->FreeResource (dtype, sid);
-		sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
-		if (sid == GoidNull)
-		    XError::emit ("failed to load resource from file");
+		if (cmd == ECmd::LoadPakFile) {
+		    goid_t pak; const char* filename = nullptr;
+		    Args (cmdis, pak, filename);
+		    uint32_t flnsz = cmdis.ipos()-(const uint8_t*)filename;
+		    sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
+		    if (sid == GoidNull)
+			throw XError ("failed to load datapak resource %s", filename);
+		} else if (cmd == ECmd::LoadData) {
+		    uint32_t tsz, toff; SDataBlock d;
+		    Args (cmdis, tsz, toff, d);
+		    sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
+		    if (sid == GoidNull)
+			XError::emit ("failed to load resource from data");
+		} else {
+		    int fd;
+		    Args (cmdis, fd);
+		    CMMFile recvf (fd);
+		    bstri dfis (recvf.MMData(), recvf.MMSize());
+		    sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
+		    if (sid == GoidNull)
+			XError::emit ("failed to load resource from file");
+		}
 		clir->MapId (id, sid);
 		} break;
 	    case ECmd::FreeResource: {

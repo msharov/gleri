@@ -30,7 +30,11 @@ private:
     vector<CWindow*>		_wins;
     CCmdBuf			_srvbuf;
     CFile			_srvsock;
-    CWindow::wid_t		_nextwid;
+    CWindow::wid_t		_nextwid= 0;
+    uint16_t			_screen	= 0;
+    char			_xauth [XAUTH_DATA_LEN];
+    argc_t			_argc	= 0;
+    argv_t			_argv	= nullptr;
 };
 
 //----------------------------------------------------------------------
@@ -40,8 +44,8 @@ inline CGLApp::CGLApp (void)
 ,_wins()
 ,_srvbuf(0)
 ,_srvsock()
-,_nextwid(0)
 {
+    memset (_xauth, 0, sizeof(_xauth));
 }
 
 // Here because CApp is needed

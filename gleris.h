@@ -27,9 +27,15 @@ private:
     typedef CGLWindow::iid_t	iid_t;
     typedef PRGL::SWinInfo	SWinInfo;
     typedef const SWinInfo&	rcwininfo_t;
+    typedef CCmd::SDataBlock	SDataBlock;
     //{{{ EAtom
     enum EAtom : unsigned {
 	a_ATOM,
+	a_STRING,
+	a_CARDINAL,
+	a_WM_CLIENT_MACHINE,
+	a_WM_COMMAND,
+	a_NET_WM_PID,
 	a_NET_WM_STATE,
 	a_NET_WM_STATE_MODAL,
 	a_NET_WM_STATE_DEMANDS_ATTENTION,
@@ -76,7 +82,8 @@ public:
 			// Client id translation
     CGLWindow*		ClientRecord (int fd, iid_t iid) noexcept;
     CGLWindow*		ClientRecordForWindow (Window w) noexcept;
-    void		CreateClient (iid_t iid, SWinInfo winfo, CCmdBuf* piconn = nullptr);
+    void		Authenticate (CCmdBuf& cmdbuf, uint32_t pid, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth);
+    void		CreateClient (iid_t iid, SWinInfo winfo, const char* title = nullptr, CCmdBuf* piconn = nullptr);
     void		CloseClient (CGLWindow* pcli) noexcept;
     void		ClientDraw (CGLWindow& cli, bstri cmdis, iid_t iid);
 private:
@@ -119,6 +126,7 @@ private:
     CFile		_tcpSocket;
     uint8_t		_glversion;
     uint8_t		_options;
+    char		_xauth [XAUTH_DATA_LEN];
     static char*	_xlib_error;
     static char		s_SocketPath [c_SocketPathLen];
 };

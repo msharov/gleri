@@ -12,14 +12,21 @@ CGLApp::~CGLApp (void) noexcept
 void CGLApp::Init (argc_t argc, argv_t argv)
 {
     CApp::Init (argc, argv);
+    _argc = argc;
+    _argv = argv;
     ConnectToServer();
 }
 
 void CGLApp::OpenWindow (CWindow* w)
 {
     w->SetFd (_srvsock.Fd(), _srvbuf.CanPassFd());
-    w->OnInit();
+    if (_wins.empty()) {
+	char hostname [HOST_NAME_MAX];
+	gethostname (ArrayBlock(hostname));
+	w->Authenticate (_argc, _argv, hostname, getpid(), ArrayBlock(_xauth));
+    }
     _wins.push_back (w);
+    w->OnInit();
     w->WriteCmds();
 }
 
@@ -48,26 +55,28 @@ CWindow* CGLApp::ClientRecord (int fd, CWindow::wid_t wid)
 
 void CGLApp::ConnectToServer (void)
 {
-    // The X server must either be running locally or be ssh forwarded here
-    // gleris requires a direct OpenGL context to run, and so a local server.
-    // Remote connections should be forwarded through ssh for security and
-    // performance, because gleri protocol is not encrypted or compressed.
+    // Gleris must be either running locally or have its ports ssh forwarded.
+    // When forwarded, set DISPLAY or GLERI_DISPLAY to the server hostname
+    // and display. GLERI_DISPLAY has priority in case X is also forwarded,
+    // in which case DISPLAY will contain local hostname instead of server.
     //
-    const char *xdispstr = getenv("DISPLAY"), *xpcolon;
-    if (!xdispstr || !(xpcolon = strchr (xdispstr, ':')))
-	XError::emit ("no locally accessible X11 server found");
+    const char* xdispstr = getenv("GLERI_DISPLAY");
+    if (!xdispstr)
+	xdispstr = getenv("DISPLAY");
+    if (!xdispstr)
+	XError::emit ("no locally accessible GLERI server found");
+    SXDisplay dinfo;
+    ParseXDisplay (xdispstr, dinfo);
+    _screen = dinfo.screen;
+    GetXauthData (dinfo, _xauth);
 
-    int idpy = atoi (xpcolon+1);
-    bool bConnected, bCanPassFd = (xdispstr == xpcolon);
+    bool bConnected, bCanPassFd = (xdispstr[0] == ':');
     if (bCanPassFd) {		// Try local server, PF_LOCAL socket
 	char sockpath [sizeof(sockaddr_un::sun_path)];
 	snprintf (ArrayBlock(sockpath), GLERIS_SOCKET, getenv("HOME"));
 	bConnected = _srvsock.Connect (sockpath);
-    } else {			// TCP socket, GLERIS_PORT+idpy port on localhost
-	if (xpcolon-xdispstr != strlen("localhost") || memcmp(xdispstr,"localhost",strlen("localhost")))
-	    XError::emit ("no locally accessible X11 server found");
-	bConnected = _srvsock.Connect (INADDR_LOOPBACK, GLERIS_PORT+idpy);
-    }
+    } else			// TCP socket, GLERIS_PORT+idpy port on localhost
+	bConnected = _srvsock.Connect (INADDR_LOOPBACK, GLERIS_PORT+dinfo.display);
     if (!bConnected) {		// Launch gleris in single mode if unable to connect
 	_srvsock.Attach (LaunchServer());
 	bCanPassFd = true;

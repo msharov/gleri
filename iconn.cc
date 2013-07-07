@@ -16,7 +16,7 @@ void CIConn::MapId (uint32_t cid, GLuint sid) noexcept
 GLuint CIConn::LookupId (uint32_t cid) const noexcept
 {
     auto fi = _cidmap.lower_bound (SIdMap(cid,0));
-    if (fi < _cidmap.end() && fi->_cid == cid)
+    if (fi != _cidmap.end() && fi->_cid == cid)
 	return (fi->_sid);
     if (cid < G::default_Resources)
 	return (_defres[cid]);
