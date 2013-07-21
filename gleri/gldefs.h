@@ -79,6 +79,15 @@ enum EStdParameter : uint8_t {
     TEXT_DATA
 };
 
+enum EFeature : uint16_t {
+    CAP_BLEND,
+    CAP_CULL_FACE,
+    CAP_DEPTH_CLAMP,
+    CAP_DEPTH_TEST,
+    CAP_MULTISAMPLE,
+    CAP_N
+};
+
 enum class EResource : uint16_t {
     DATAPAK,
     SHADER,
