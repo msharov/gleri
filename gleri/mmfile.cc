@@ -220,6 +220,8 @@ unsigned GetXauthData (const SXDisplay& dpy, char data [XAUTH_DATA_LEN])
 	strcpy (filename, xauthpath);
     else
 	snprintf (ArrayBlock(filename), "%s/.Xauthority", getenv("HOME"));
+    if (access(filename,R_OK) != 0)
+	return (0);
     CMMFile authfile (filename);
     bstri is (authfile.MMData(), authfile.MMSize());
     const uint16_t hostlen = strlen(dpy.host);

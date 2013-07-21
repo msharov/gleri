@@ -9,12 +9,13 @@
 void CWindow::OnEvent (const CEvent& e)
 {
     switch (e.type) {
+	case CEvent::Close:		Close();			break;
+	case CEvent::FrameSync:		_fsync = e;			break;
 	case CEvent::KeyDown:		OnKey (e.key);			break;
 	case CEvent::KeyUp:		OnKeyUp (e.key);		break;
 	case CEvent::ButtonDown:	OnButton (e.key, e.x, e.y);	break;
 	case CEvent::ButtonUp:		OnButtonUp (e.key, e.x, e.y);	break;
 	case CEvent::Motion:		OnMotion (e.x, e.y, e.key);	break;
-	case CEvent::FrameSync:		_fsync = e;			break;
     }
 }
 

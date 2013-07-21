@@ -11,12 +11,13 @@ struct CEvent {
     int16_t	x;
     int16_t	y;
     enum EType : uint32_t {
+	Close,
+	FrameSync,
 	KeyDown,
 	KeyUp,
 	ButtonDown,
 	ButtonUp,
-	Motion,
-	FrameSync
+	Motion
     }		type;
     uint32_t	time;
 };

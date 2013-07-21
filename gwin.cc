@@ -42,8 +42,15 @@ void CGLWindow::Init (void)
     glDepthMask (GL_FALSE);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glXSwapIntervalSGI (1);
-    SetDefaultShader();
     glGenQueries (ArraySize(_query), _query);
+    glGenVertexArrays (ArraySize(_vao), _vao);
+    SetDefaultShader();
+}
+
+CGLWindow::~CGLWindow (void) noexcept
+{
+    glDeleteQueries (ArraySize(_query), _query);
+    glDeleteVertexArrays (ArraySize(_vao), _vao);
 }
 
 void CGLWindow::Deactivate (void)
@@ -106,10 +113,19 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 	_nextVSync = NotWaitingForVSync;
     }
     if (cmdis.remaining()) {
-	_nextVSync = CApp::NowMS() + LastFrameTime()/1000000 + 1;	// Round up to avoid busywait above
+	_nextVSync = CApp::NowMS() + LastFrameTime()/1000000 + 1;	// Round up to try to avoid busywait above
 	DTRACE ("[%x] Parsing drawlist\n", IId());
 	PostQuery (_query[query_RenderBegin]);
+
+	// Clear VAO slots. Need only to do it here because buffers can not be freed during drawing, so all slots remain valid
+	glBindVertexArray (_vao[0]);
+	for (GLuint i = 0; i < MAX_VAO_SLOTS; ++i)
+	    glDisableVertexAttribArray (i);
+
+	// Parse the drawlist
 	PDraw<bstri>::Parse (*this, cmdis);
+
+	// End of frame swap and queries
 	PostQuery (_query[query_RenderEnd]);
 	glXSwapBuffers (dpy, Drawable());
 	PostQuery (_query[query_FrameEnd]);
@@ -304,9 +320,11 @@ void CGLWindow::Shader (GLuint id) noexcept
 	return;
     if (id == CGObject::NoObject)
 	return;
+    bool bInternal = (id == _pconn->TextureShader() || id == _pconn->FontShader());
     DTRACE ("[%x] SetShader %x\n", IId(), id);
     SetShader (id);
     glUseProgram (id);
+    glBindVertexArray (_vao[bInternal]);
     UniformMatrix ("Transform", Proj());
     Color (Color());
 }
@@ -319,7 +337,7 @@ void CGLWindow::Parameter (const char* varname, GLuint buf, G::EType type, GLuin
 void CGLWindow::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
     BindBuffer (buf, G::ARRAY_BUFFER);
-    if (slot >= 16) return;
+    if (slot >= MAX_VAO_SLOTS) return;
     DTRACE ("[%x] Parameter %u set to %x, type %ux%u, offset %u, stride %u\n", IId(), slot, buf, type, nels, offset, stride);
     glEnableVertexAttribArray (slot);
     glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));
@@ -525,19 +543,17 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
 	v[i].t = pfont->LetterY(s[i]);
     }
 
-    GLuint buf = CreateBuffer();
-    BufferData (buf, v, sizeof(v), G::STATIC_DRAW);
-
     SetFontShader();
+    GLuint buf = CreateBuffer();
+    BufferData (buf, v, sizeof(v), G::STREAM_DRAW);
     UniformTexture ("Texture", pfont->Id());
-    Uniform4f ("FontSize", fw,fh, 256,256);
+    Uniform4f ("FontSize", fw-1,fh-1, 256,256);
     Parameter (G::TEXT_DATA, buf, G::SHORT, 4);
 
     glDrawArrays (GL_POINTS, 0, nChars);
+    glDisableVertexAttribArray (G::TEXT_DATA);
 
     FreeBuffer (buf);
-
-    glFlush();	// Bug in radeon driver overrides uniforms for all queued texts
 }
 
 //----------------------------------------------------------------------

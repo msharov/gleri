@@ -209,14 +209,13 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT,
 	GLX_X_VISUAL_TYPE,	GLX_TRUE_COLOR,
 	GLX_RENDER_TYPE,	GLX_RGBA_BIT,
-	GLX_CONFIG_CAVEAT,	GLX_NONE,
 	GLX_DOUBLEBUFFER,	True,
 	GLX_DEPTH_SIZE,		16,
 	GLX_RED_SIZE,		8,
 	GLX_GREEN_SIZE,		8,
 	GLX_BLUE_SIZE,		8,
 	GLX_ALPHA_SIZE,		8,
-	GLX_NONE
+	0
     };
     int fbcount;
     GLXFBConfig* fbcs = glXChooseFBConfig (_dpy, DefaultScreen(_dpy), fbconfattr, &fbcount);
@@ -311,6 +310,10 @@ void CGleris::GetAtoms (void) noexcept
 	"\0CARDINAL"
 	"\0WM_CLIENT_MACHINE"
 	"\0WM_COMMAND"
+	"\0WM_PROTOCOLS"
+	"\0WM_DELETE_WINDOW"
+	"\0_NET_WM_PING"
+	"\0_NET_WM_SYNC_REQUEST"
 	"\0_NET_WM_PID"
 	"\0_NET_WM_STATE"
 	"\0_NET_WM_STATE_MODAL"
@@ -484,6 +487,19 @@ void CGleris::OnXEvent (void)
 	    if (icli->WinInfo().Decoless()) {	// override-redirect windows do not automatically get focus
 		DTRACE ("[%x] Requesting input focus for window %x\n", icli->IId(), icli->Drawable());
 		XSetInputFocus (_dpy, icli->Drawable(), RevertToParent, CurrentTime);
+	    }
+	} else if (xev.type == ClientMessage) {
+	    if ((Atom) xev.xclient.data.l[0] == _atoms[a_WM_DELETE_WINDOW]) {
+		DTRACE ("[%x] WM delete window\n", icli->IId());
+		icli->Event ((CEvent){0,0,0,CEvent::Close,0});
+	    } else if ((Atom) xev.xclient.data.l[0] == _atoms[a_NET_WM_PING]) {
+		DTRACE ("[%x] WM ping\n", icli->IId());
+		xev.xclient.window = _rootWindow;
+		XSendEvent (_dpy, icli->Drawable(), false, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
+	    #ifndef NDEBUG
+	    } else {
+		DTRACE ("[%x] Unknown WM_PROTOCOLS message %s\n", icli->IId(), XGetAtomName(_dpy, xev.xclient.data.l[0]));
+	    #endif
 	    }
 	} else
 	    DTRACE ("[%x] Unhandled event %u\n", icli->IId(), xev.type);
@@ -697,6 +713,8 @@ void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBu
 	    XChangeProperty (_dpy, wid, _atoms[a_NET_WM_PID], _atoms[a_CARDINAL], 32, PropModeReplace,
 			     (const unsigned char*) pconn->PidPtr(), 1);
     }
+    XChangeProperty (_dpy, wid, _atoms[a_WM_PROTOCOLS], _atoms[a_ATOM], 32, PropModeReplace,
+		     (const unsigned char*) &_atoms[a_WM_DELETE_WINDOW], 2);
     XChangeProperty (_dpy, wid, _atoms[a_NET_WM_WINDOW_TYPE], _atoms[a_ATOM], 32, PropModeReplace,
 		     (const unsigned char*) &_atoms[a_NET_WM_WINDOW_TYPE+1+winfo.wtype], 1);
     uint32_t wsa [16];

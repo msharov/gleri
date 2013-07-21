@@ -3,7 +3,7 @@
 uniform mat4 Transform;
 uniform vec4 FontSize;
 layout(location=2) in vec4 Vertex;
-invariant out Sg { vec4 pos; vec4 tex; } g;
+out GeomVertex { vec4 pos; vec4 tex; } g;
 
 void main() {
     vec4 glyphtl = Transform*vec4(Vertex.xy,1,1);

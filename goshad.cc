@@ -57,7 +57,12 @@ void CShader::Load (const Sources& src)
 	    glGetShaderiv (stages[i], GL_INFO_LOG_LENGTH, &infoLogLength);
 	    char infoLog [infoLogLength];
 	    glGetShaderInfoLog (stages[i], infoLogLength, nullptr, infoLog);
-	    throw XError ("shader error:\n%s", infoLog);
+	    #ifndef NDEBUG
+		static const char* c_StageName[Sources::shader_NStages] =
+		    { "vertex", "tessctrl", "tesseval", "geometry", "fragment" };
+		DTRACE("%s shader compile error:\n%s\n", c_StageName[i], infoLog);
+	    #endif
+	    throw XError ("shader compile error:\n%s", infoLog);
 	}
     }
 
@@ -71,7 +76,8 @@ void CShader::Load (const Sources& src)
 	glGetProgramiv (Id(), GL_INFO_LOG_LENGTH, &infoLogLength);
 	char infoLog [infoLogLength];
 	glGetProgramInfoLog (Id(), infoLogLength, nullptr, infoLog);
-	throw XError ("shader error:\n%s", infoLog);
+	DTRACE("Shader link error:\n%s\n", infoLog);
+	throw XError ("shader linker error:\n%s", infoLog);
     }
 
     for (GLuint i = 0; i < Sources::shader_NStages; ++i)

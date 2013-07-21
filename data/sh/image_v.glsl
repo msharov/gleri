@@ -4,7 +4,7 @@ uniform mat4 Transform;
 uniform vec4 ImageRect;
 uniform vec4 SpriteRect;
 
-invariant out Sg { vec4 pos; vec4 tex; } g;
+out GeomVertex { vec4 pos; vec4 tex; } g;
 
 void main() {
     vec4 imgtl = Transform*vec4(ImageRect.xy,1,1);

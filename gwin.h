@@ -18,10 +18,12 @@ private:
 	NStdQueries
     };
     enum { NotWaitingForVSync = CApp::NoTimer };
+    enum { MAX_VAO_SLOTS = 16 };
     typedef float		matrix4f_t[4][4];
     typedef PRGL::SWinInfo	SWinInfo;
 public:
 				CGLWindow (iid_t iid, const SWinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn);
+				~CGLWindow (void) noexcept;
     void			Init (void);
     void			Deactivate (void);
     inline const CContext&	Context (void) const		{ return (_ctx); }
@@ -170,6 +172,7 @@ private:
     matrix4f_t			_proj;
     GLuint			_color;
     GLuint			_query[NStdQueries];
+    GLuint			_vao[2];
     CEvent			_syncEvent;
     uint64_t			_nextVSync;
     GLuint			_curShader;
