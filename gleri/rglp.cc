@@ -15,6 +15,7 @@
      N(Open,(nnqqqyyyyyy)s)
      N(Close,)
      N(Draw,ay)
+     N(Event,(unnuu))
      N(LoadData,uqquuay)
      N(LoadFile,uqqh)
      N(LoadPakFile,uqqus)

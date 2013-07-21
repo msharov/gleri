@@ -12,6 +12,7 @@ struct CEvent {
     int16_t	y;
     enum EType : uint32_t {
 	Close,
+	Ping,
 	FrameSync,
 	KeyDown,
 	KeyUp,

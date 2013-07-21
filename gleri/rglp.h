@@ -6,6 +6,7 @@
 #pragma once
 #include "cmd.h"
 #include "drawp.h"
+#include "event.h"
 
 class PRGL : private CCmdBuf {
 public:
@@ -24,6 +25,7 @@ private:
 	Open,
 	Close,
 	Draw,
+	Event,
 	LoadData,
 	LoadFile,
 	LoadPakFile,
@@ -81,6 +83,7 @@ public:
     inline void			Open (const char* title, dim_t w, dim_t h, uint8_t glver =0x33)	{ Open (title, (SWinInfo){ 0,0,w,h,0,glver,0,0,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }); }
     inline void			Close (void)			{ Cmd(ECmd::Close); }
     inline draww_t		Draw (size_type sz);
+    inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }
     inline goid_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline goid_t		BufferData (const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline goid_t		BufferData (goid_t pak, const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
@@ -248,6 +251,11 @@ template <typename F>
 	    SDataBlock b;
 	    Args (cmdis, b);
 	    f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz));
+	    } break;
+	case ECmd::Event: {
+	    CEvent e;
+	    Args (cmdis, e);
+	    f.ClientEvent (*clir, e);
 	    } break;
 	case ECmd::LoadData:
 	case ECmd::LoadPakFile:

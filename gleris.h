@@ -90,6 +90,7 @@ public:
     void		CreateClient (iid_t iid, SWinInfo winfo, const char* title = nullptr, CCmdBuf* piconn = nullptr);
     void		CloseClient (const CGLWindow* pcli) noexcept;
     void		ClientDraw (CGLWindow& cli, bstri cmdis);
+    void		ClientEvent (const CGLWindow& cli, const CEvent& e);
     void		ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept;
     void		OnExport (const char*, int fd);
 private:

@@ -494,8 +494,7 @@ void CGleris::OnXEvent (void)
 		icli->Event ((CEvent){0,0,0,CEvent::Close,0});
 	    } else if ((Atom) xev.xclient.data.l[0] == _atoms[a_NET_WM_PING]) {
 		DTRACE ("[%x] WM ping\n", icli->IId());
-		xev.xclient.window = _rootWindow;
-		XSendEvent (_dpy, icli->Drawable(), false, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
+		icli->Event ((CEvent){0,0,0,CEvent::Ping,(uint32_t)xev.xclient.data.l[1]});
 	    #ifndef NDEBUG
 	    } else {
 		DTRACE ("[%x] Unknown WM_PROTOCOLS message %s\n", icli->IId(), XGetAtomName(_dpy, xev.xclient.data.l[0]));
@@ -786,6 +785,22 @@ CGLWindow* CGleris::ClientRecordForWindow (Window w) noexcept
 void CGleris::ClientDraw (CGLWindow& cli, bstri cmdis)
 {
     WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy));
+}
+
+void CGleris::ClientEvent (const CGLWindow& cli, const CEvent& e)
+{
+    if (e.type == CEvent::Ping) {
+	XEvent xev;
+	memset (&xev, 0, sizeof(xev));
+	xev.xclient.type = ClientMessage;
+	xev.xclient.window = _rootWindow;
+	xev.xclient.message_type = _atoms[a_WM_PROTOCOLS];
+	xev.xclient.format = 32;
+	xev.xclient.data.l[0] = _atoms[a_NET_WM_PING];
+	xev.xclient.data.l[1] = e.time;
+	xev.xclient.data.l[2] = cli.Drawable();
+	XSendEvent (_dpy, cli.Drawable(), false, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
+    }
 }
 
 GLERI_APP (CGleris)

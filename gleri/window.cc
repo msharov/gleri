@@ -10,6 +10,7 @@ void CWindow::OnEvent (const CEvent& e)
 {
     switch (e.type) {
 	case CEvent::Close:		Close();			break;
+	case CEvent::Ping:		Event (e);			break;
 	case CEvent::FrameSync:		_fsync = e;			break;
 	case CEvent::KeyDown:		OnKey (e.key);			break;
 	case CEvent::KeyUp:		OnKeyUp (e.key);		break;
