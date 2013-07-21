@@ -15,7 +15,7 @@
 
 // Define to the name of the service executable
 #define GLERIS_NAME	"@PKG_NAME@s"
-#define GLERIS_SOCKET	"%s/.config/" GLERIS_NAME ".socket"
+#define GLERIS_SOCKET	"%s/.config/" GLERIS_NAME "-%u.socket"
 #define GLERIS_PORT	6540
 enum {
     GLERI_VERSION = @PKG_VERSION@,

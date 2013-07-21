@@ -74,7 +74,7 @@ void CGLApp::ConnectToServer (void)
     bool bConnected, bCanPassFd = (xdispstr[0] == ':');
     if (bCanPassFd) {		// Try local server, PF_LOCAL socket
 	char sockpath [sizeof(sockaddr_un::sun_path)];
-	snprintf (ArrayBlock(sockpath), GLERIS_SOCKET, getenv("HOME"));
+	snprintf (ArrayBlock(sockpath), GLERIS_SOCKET, getenv("HOME"), dinfo.display);
 	bConnected = _srvsock.Connect (sockpath);
     } else			// TCP socket, GLERIS_PORT+idpy port on localhost
 	bConnected = _srvsock.Connect (INADDR_LOOPBACK, GLERIS_PORT+dinfo.display);
