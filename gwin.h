@@ -93,7 +93,7 @@ public:
     void			Clear (GLuint c) noexcept;
     void			Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept;
     void			Offset (GLint x, GLint y) noexcept;
-    void			Enable (G::EFeature on, G::EFeature off);
+    void			Enable (G::EFeature f, uint16_t o) noexcept;
 				//{{{ DrawArrays and friends, inlined
     void			DrawCmdInit (void) noexcept;
     void			DrawArrays (G::EShape mode, GLuint first, GLuint count) noexcept {

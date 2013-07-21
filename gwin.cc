@@ -429,14 +429,16 @@ void CGLWindow::DrawCmdInit (void) noexcept
 	SetDefaultShader();
 }
 
-void CGLWindow::Enable (G::EFeature on, G::EFeature off)
+void CGLWindow::Enable (G::EFeature f, uint16_t o) noexcept
 {
     static const GLenum c_Features[G::CAP_N] =	// Parallel to G::EFeature
 	{ GL_BLEND, GL_CULL_FACE, GL_DEPTH_CLAMP, GL_DEPTH_TEST, GL_MULTISAMPLE };
-    if (on < G::CAP_N)
-	glEnable (c_Features[on]);
-    if (off < G::CAP_N)
-	glDisable (c_Features[off]);
+    if (f >= G::CAP_N)
+	return;
+    if (o)
+	glEnable (c_Features[f]);
+    else
+	glDisable (c_Features[f]);
 }
 
 //----------------------------------------------------------------------
