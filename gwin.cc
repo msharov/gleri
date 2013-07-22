@@ -124,6 +124,7 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 
 	// Parse the drawlist
 	PDraw<bstri>::Parse (*this, cmdis);
+	CheckForErrors();
 
 	// End of frame swap and queries
 	PostQuery (_query[query_RenderEnd]);
@@ -582,4 +583,27 @@ inline bool CGLWindow::QueryResultAvailable (GLuint q) const
     GLint haveQuery;
     glGetQueryObjectiv (q, GL_QUERY_RESULT_AVAILABLE, &haveQuery);
     return (haveQuery);
+}
+
+//----------------------------------------------------------------------
+// Errors
+
+void CGLWindow::CheckForErrors (void)
+{
+    static const char c_ErrorText[] =
+	"\0invalid enum"
+	"\0invalid value"
+	"\0invalid operation"
+	"\0stack overflow"
+	"\0stack underflow"
+	"\0out of memory"
+	"\0unknown GL error";
+    unsigned e = glGetError(), etxtsz = sizeof(c_ErrorText);
+    if (e == GL_NO_ERROR)
+	return;
+    e = min (7, e-(GL_INVALID_ENUM-1));
+    const char* etxt = c_ErrorText;
+    for (unsigned i = 0; i < e; ++i)
+	etxt = strnext(etxt, etxtsz);
+    XError::emit (etxt);
 }
