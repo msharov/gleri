@@ -18,6 +18,9 @@ static const CTestWindow::coord_t _vdata1[] = {
     250,50, 300,100, 300,50, 350,75,
     0,0, 0,-1, 1,0, 1,-1
 };
+static constexpr CTestWindow::color_t _cdata1[] = {
+    RGB(0xff0000), RGB(0x00ff00), RGB(0x0000ff), RGBA(0x80808080)
+};
 enum {
     vb_WindowBorderOffset,
     vb_WindowBorderSize = 4,	// In vertices
@@ -77,6 +80,7 @@ void CTestWindow::OnInit (void)
     Open ("GLERI Test Program", 640, 480);
     printf ("Initializing test window\n");
     _vbuf = BufferData (_vdata1, sizeof(_vdata1));
+    _cbuf = BufferData (_cdata1, sizeof(_cdata1));
 #if HAVE_PNG_H
     _walk = LoadTexture ("test/princess.png");
 #endif
@@ -191,8 +195,13 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 
     drw.Color (ARGB(0xc0804040));
     drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);
-    drw.Color (128,170,170);
-    drw.TriangleStrip (vb_SkewQuadOffset, vb_SkewQuadSize);
+
+    drw.Shader (G::default_GradientShader);
+    drw.VertexPointer (_vbuf, G::SHORT, 2, vb_SkewQuadOffset*(2*sizeof(short)));
+    drw.ColorPointer (_cbuf);
+    drw.TriangleStrip (0, vb_SkewQuadSize);
+    drw.DefaultShader();
+    drw.VertexPointer (_vbuf);
 
     drw.Color (0,240,255,128);
     drw.Text (300, 250, "Hello world from OpenGL!");
@@ -201,7 +210,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Text (300, 420, "A quick brown fox jumps over the lazy dog");
     uint32_t lrt = LastRenderTimeNS();
     uint32_t lft = RefreshTimeNS();
-    drw.Textf (10,10, "FPS %u, VSync %u", 1000000000/(lrt?lrt:1), 1000000000/(lft?lft:1));
+    drw.Textf (10,10, "FPS %6u, VSync %3u", 1000000000/(lrt?lrt:1), 1000000000/(lft?lft:1));
 
     drw.Color (128,90,150,220);
     drw.TriangleFan (vb_PurpleQuadOffset, vb_PurpleQuadSize);

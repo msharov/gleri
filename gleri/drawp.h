@@ -98,8 +98,9 @@ public:
     inline void		Triangles (uint32_t start, uint32_t sz)			{ DrawArrays (G::TRIANGLES, start, sz); }
     inline void		TriangleStrip (uint32_t start, uint32_t sz)		{ DrawArrays (G::TRIANGLE_STRIP, start, sz); }
     inline void		TriangleFan (uint32_t start, uint32_t sz)		{ DrawArrays (G::TRIANGLE_FAN, start, sz); }
-    inline void		VertexPointer (goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::VERTEX, buf, type, sz, offset, stride); }
-    inline void		TexCoordPointer (goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::TEXTURE_COORD, buf, type, sz, offset, stride); }
+    inline void		VertexPointer (goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Vertex, buf, type, sz, offset, stride); }
+    inline void		ColorPointer (goid_t buf, G::EType type = G::UNSIGNED_BYTE, uint8_t sz = 4, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Color, buf, type, sz, offset, stride); }
+    inline void		TexCoordPointer (goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_TexCoord, buf, type, sz, offset, stride); }
 			// Reading interface
     template <typename F>
     static inline void	Parse (F& f, Stm& is);

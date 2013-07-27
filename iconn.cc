@@ -37,6 +37,7 @@ void CIConn::UnmapId (uint32_t cid) noexcept
     DTRACE ("Loading shared resources\n");
     GLuint pak = w->LoadDatapak (ArrayBlock (File_resource));
     _defres[G::default_FlatShader] = w->LoadShader (pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
+    _defres[G::default_GradientShader] = w->LoadShader (pak, "sh/grad_v.glsl", "sh/grad_f.glsl");
     _defres[G::default_TextureShader] = w->LoadShader (pak, "sh/image_v.glsl", "sh/image_g.glsl", "sh/image_f.glsl");
     _defres[G::default_FontShader] = w->LoadShader (pak, "sh/font_v.glsl", "sh/image_g.glsl", "sh/font_f.glsl");
     _defres[G::default_Font] = w->LoadFont (pak, "ter-d18b.psf");

@@ -339,7 +339,7 @@ void CGLWindow::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, 
 {
     BindBuffer (buf, G::ARRAY_BUFFER);
     if (slot >= MAX_VAO_SLOTS) return;
-    DTRACE ("[%x] Parameter %u set to %x, type %ux%u, offset %u, stride %u\n", IId(), slot, buf, type, nels, offset, stride);
+    DTRACE ("[%x] Parameter %u set to %x, type %s[%u], +%u/%u\n", IId(), slot, buf, G::TypeName(type), nels, offset, stride);
     glEnableVertexAttribArray (slot);
     glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));
 }
@@ -561,10 +561,10 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
     BufferData (buf, v, sizeof(v), G::STREAM_DRAW);
     UniformTexture ("Texture", pfont->Id());
     Uniform4f ("FontSize", fw-1,fh-1, 256,256);
-    Parameter (G::TEXT_DATA, buf, G::SHORT, 4);
+    Parameter (G::param_TextData, buf, G::SHORT, 4);
 
     glDrawArrays (GL_POINTS, 0, nChars);
-    glDisableVertexAttribArray (G::TEXT_DATA);
+    glDisableVertexAttribArray (G::param_TextData);
 
     FreeBuffer (buf);
 }

@@ -17,6 +17,7 @@ public:
     ONDRAWDECL		OnDraw (Drw& drw) const;
 private:
     goid_t		_vbuf;
+    goid_t		_cbuf;
     goid_t		_gradShader;
     goid_t		_walk;
     goid_t		_cat;
@@ -30,6 +31,7 @@ private:
 inline CTestWindow::CTestWindow (wid_t wid)
 : CWindow(wid)
 ,_vbuf(0)
+,_cbuf(0)
 ,_gradShader(0)
 ,_walk(0)
 ,_cat(0)

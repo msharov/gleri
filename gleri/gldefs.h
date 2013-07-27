@@ -74,9 +74,10 @@ enum EBufferHint : uint16_t {
 };
 
 enum EStdParameter : uint8_t {
-    VERTEX,
-    TEXTURE_COORD,
-    TEXT_DATA
+    param_Vertex,
+    param_Color,
+    param_TexCoord = param_Color,
+    param_TextData = param_Vertex
 };
 
 enum EFeature : uint16_t {
@@ -110,6 +111,7 @@ enum class EResource : uint16_t {
 
 enum EDefaultResource : goid_t {
     default_FlatShader,
+    default_GradientShader,
     default_TextureShader,
     default_FontShader,
     default_Font,
@@ -249,6 +251,8 @@ inline void erase_if (Ctr& v, Condition f)
 /// Creates uint32_t color value from components
 inline constexpr G::color_t RGBA (uint8_t r, uint8_t g, uint8_t b, uint8_t a)
     { return (vpack4(r,g,b,a)); }
+inline constexpr G::color_t RGBA (G::color_t c)
+    { return (__builtin_bswap32(c)); }
 
 /// Creates uint32_t color value from components
 inline static G::color_t ARGB (G::color_t c)
@@ -257,17 +261,11 @@ inline static G::color_t ARGB (G::color_t c)
     if (!__builtin_constant_p(c)) asm("rol\t$8,%0":"+r"(c)); else
 #endif
 	c = (c<<8)|(c>>24);
-    return (__builtin_bswap32(c));
+    return (RGBA(c));
 }
 
 /// Creates uint32_t color value from components
 inline constexpr G::color_t RGB (uint8_t r, uint8_t g, uint8_t b)
     { return (RGBA(r,g,b,UINT8_MAX)); }
-
-/// Creates uint32_t color value from components
-inline static G::color_t RGB (G::color_t c)
-#if USTL_BYTE_ORDER == USTL_LITTLE_ENDIAN
-    { return (ARGB((UINT8_MAX<<24)|c)); }
-#else
-    { return (ARGB(UINT8_MAX|c)); }
-#endif
+inline constexpr G::color_t RGB (G::color_t c)
+    { return (RGBA((c<<8)|UINT8_MAX)); }
