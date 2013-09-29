@@ -158,6 +158,13 @@ struct alignas(8) STextureHeader {
     G::Pixel::EFmt	fmt;
 };
 
+struct SFontInfo {
+    inline dim_t	Height (void) const		{ return (h); }
+    inline dim_t	Width (void) const		{ return (w); }
+    inline dim_t	Width (const char* s) const	{ return (Width()*strlen(s)); }
+    dim_t		w,h;
+};
+
 struct alignas(4) SWinInfo {
     coord_t	x,y;
     dim_t	w,h;
@@ -201,7 +208,7 @@ struct alignas(4) SWinInfo {
 	flag_Sticky		= (1<<3),
 	flag_NotOnTaskbar	= (1<<4),
 	flag_NotOnPager		= (1<<5),
-	flag_Above		= (1<<5),
+	flag_Above		= (1<<6),
 	flag_Below		= (1<<7)
     };
     uint8_t	flags;

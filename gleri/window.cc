@@ -17,6 +17,8 @@ void CWindow::OnEvent (const CEvent& e)
 	case CEvent::ButtonDown:	OnButton (e.key, e.x, e.y);	break;
 	case CEvent::ButtonUp:		OnButtonUp (e.key, e.x, e.y);	break;
 	case CEvent::Motion:		OnMotion (e.x, e.y, e.key);	break;
+	case CEvent::Command:		OnCommand (e.CommandName());	break;
+	case CEvent::UIChange:		OnUIChange (e.CommandName());	break;
     }
 }
 
@@ -34,9 +36,4 @@ bool CWindow::WaitingForVSync (void)
 	return (_drawPending = true);
     WaitForTime (_nextVSync = NowMS() + RefreshTimeNS()/1000000 + 1);
     return (_drawPending = false);
-}
-
-void CWindow::Close (void)
-{
-    CGLApp::Instance().DeleteWindow (this);
 }

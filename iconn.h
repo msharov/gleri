@@ -31,7 +31,8 @@ class CIConn : public CCmdBuf {
 public:
     inline		CIConn (iid_t iid, int fd, bool fdpass)	: CCmdBuf(iid,fd,fdpass),_cidmap(),_argv(),_hostname(),_pid(0) {}
     void		MapId (goid_t cid, GLuint sid) noexcept;
-    GLuint		LookupId (goid_t cid) const noexcept;
+    GLuint		LookupId (uint32_t cid) const;
+    void		VerifyFreeId (uint32_t cid) const;
     void		UnmapId (goid_t cid) noexcept;
     inline bool		Authenticated (void) const	{ return (_authenticated); }
     inline void		SetAuthenticated (void)		{ _authenticated = true; }
@@ -49,6 +50,8 @@ public:
     inline GLuint	FontShader (void) const		{ return (_defres [G::default_FontShader]); }
     inline GLuint	DefaultFontId (void) const	{ return (_defres [G::default_Font]); }
     inline const CFont*	DefaultFont (void) const	{ return (_deffont); }
+private:
+    GLuint		FindCid (uint32_t cid) const noexcept;
 private:
     bool		_authenticated	= false;
     set<SIdMap>		_cidmap;

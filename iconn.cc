@@ -13,7 +13,7 @@ void CIConn::MapId (uint32_t cid, GLuint sid) noexcept
     _cidmap.insert (SIdMap(cid,sid));
 }
 
-GLuint CIConn::LookupId (uint32_t cid) const noexcept
+GLuint CIConn::FindCid (uint32_t cid) const noexcept
 {
     auto fi = _cidmap.lower_bound (SIdMap(cid,0));
     if (fi != _cidmap.end() && fi->_cid == cid)
@@ -21,6 +21,20 @@ GLuint CIConn::LookupId (uint32_t cid) const noexcept
     if (cid < G::default_Resources)
 	return (_defres[cid]);
     return (CGObject::NoObject);
+}
+
+GLuint CIConn::LookupId (uint32_t cid) const
+{
+    GLuint id = FindCid (cid);
+    if (id == CGObject::NoObject)
+	throw XError ("no object with id 0x%x\n", cid);
+    return (id);
+}
+
+void CIConn::VerifyFreeId (uint32_t cid) const
+{
+    if (FindCid(cid) != CGObject::NoObject)
+	throw XError ("object 0x%x already exists\n", cid);
 }
 
 void CIConn::UnmapId (uint32_t cid) noexcept

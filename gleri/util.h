@@ -15,8 +15,6 @@
 #include <stdio.h>
 #include <errno.h>
 
-namespace {
-
 /// Returns the number of elements in a static vector
 template <typename T, size_t N> constexpr static inline size_t ArraySize (T(&)[N]) { return (N); }
 /// Returns the end() for a static vector
@@ -30,6 +28,27 @@ template <typename T, size_t N> constexpr static inline T* ArrayEnd (T(&a)[N]) {
 #define PP_STRINGIFY(x)		#x
 #define PP_STRINGIFY_I(x)	PP_STRINGIFY(x)
 
+#define PP_COUNT_ARGS(...)		\
+    _PP_COUNT_ARGS_COUNT(,##__VA_ARGS__,\
+			  63,62,61,60,	\
+	59,58,57,56,55,54,53,52,51,50,	\
+	49,48,47,46,45,44,43,42,41,40,	\
+	39,38,37,36,35,34,33,32,31,30,	\
+	29,28,27,26,25,24,23,22,21,20,	\
+	19,18,17,16,15,14,13,12,11,10,	\
+	 9, 8, 7, 6, 5, 4, 3, 2, 1, 0	\
+    )
+#define _PP_COUNT_ARGS_COUNT(			\
+				a63,a62,a61,a60,\
+	a59,a58,a57,a56,a55,a54,a53,a52,a51,a50,\
+	a49,a48,a47,a46,a45,a44,a43,a42,a41,a40,\
+	a39,a38,a37,a36,a35,a34,a33,a32,a31,a30,\
+	a29,a28,a27,a26,a25,a24,a23,a22,a21,a20,\
+	a19,a18,a17,a16,a15,a14,a13,a12,a11,a10,\
+	a09,a08,a07,a06,a05,a04,a03,a02,a01,a00,\
+	n,...)					n
+
+namespace {
 // Endian-dependent stuff
 #if USTL_BYTE_ORDER == USTL_LITTLE_ENDIAN
 constexpr static inline uint16_t vpack2 (uint8_t a, uint8_t b)
@@ -68,6 +87,7 @@ constexpr static inline uint64_t bole_swap8 (uint64_t v)
 #endif
 constexpr static inline uint32_t vpack4 (uint8_t a, uint8_t b, uint8_t c, uint8_t d)
     { return (vpack4(vpack2(a,b),vpack2(c,d))); }
+} // namespace
 
 inline const char* strnext (const char* s, unsigned& n)
 {
@@ -80,4 +100,44 @@ inline const char* strnext (const char* s, unsigned& n)
     return (s);
 }
 
-} // namespace
+#if USE_USTL
+template <typename T> struct remove_const { typedef T type; };
+template <typename T> struct remove_const<const T> { typedef T type; };
+template <typename T> struct remove_pointer { typedef T type; };
+template <typename T> struct remove_pointer<T*> { typedef typename remove_const<T>::type type; };
+#endif
+
+/// Dereferencing iterator for containers of pointers
+template <typename I>
+class dereferencing_iterator {
+    I _i;
+public:
+#if !USE_USTL
+    typedef typename I::iterator_category iterator_category;
+#endif
+    typedef I				iterator_type;
+    typedef typename iterator_traits<iterator_type>::difference_type difference_type;
+    typedef typename iterator_traits<iterator_type>::value_type pointer;
+    typedef typename remove_pointer<pointer>::type value_type;
+    typedef const value_type*		const_pointer;
+    typedef value_type&			reference;
+    typedef const value_type&		const_reference;
+public:
+    inline				dereferencing_iterator (iterator_type i) :_i(i) {}
+    inline iterator_type		base (void)		{ return (_i); }
+    inline const iterator_type&		base (void) const	{ return (_i); }
+    inline bool				operator== (const dereferencing_iterator& i) const { return (base() == i.base()); }
+    inline bool				operator!= (const dereferencing_iterator& i) const { return (base() != i.base()); }
+    inline bool				operator< (const dereferencing_iterator& i) const { return (base() < i.base()); }
+    inline reference			operator* (void)	{ return (**_i); }
+    inline const_reference		operator* (void) const	{ return (**_i); }
+    inline pointer			operator-> (void)	{ return (*_i); }
+    inline const_pointer		operator-> (void) const	{ return (*_i); }
+    inline dereferencing_iterator&	operator++ (void)	{ ++_i; return (*this); }
+    inline dereferencing_iterator&	operator-- (void)	{ --_i; return (*this); }
+    inline dereferencing_iterator&	operator+= (int n)	{ _i += n; return (*this); }
+    inline dereferencing_iterator&	operator-= (int n)	{ _i -= n; return (*this); }
+    inline dereferencing_iterator	operator+ (int n) const	{ return (dereferencing_iterator(*this) += n); }
+    inline dereferencing_iterator	operator- (int n) const	{ return (dereferencing_iterator(*this) -= n); }
+    inline difference_type		operator- (const dereferencing_iterator& i)	{ return (base()-i.base()); }
+};

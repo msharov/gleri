@@ -19,6 +19,7 @@ public:
     typedef G::dim_t		dim_t;
     typedef G::color_t		color_t;
     enum : uint32_t { c_ObjectName = vpack4('R','G','L',0) };
+    typedef const G::SFontInfo*	pfontinfo_t;
 private:
     enum class ECmd : cmd_t {
 	Auth,
@@ -73,6 +74,8 @@ public:
     inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
+    inline pfontinfo_t		Font (void) const		{ static constexpr G::SFontInfo s_DefaultFontInfo = {10,18}; return (&s_DefaultFontInfo); }
+    inline pfontinfo_t		Font (goid_t) const		{ return (nullptr); }
 				// Command writing
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
@@ -87,7 +90,7 @@ public:
     inline goid_t		BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline goid_t		BufferData (const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline goid_t		BufferData (goid_t pak, const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
-    inline void			BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0, G::EBufferType btype = G::ARRAY_BUFFER, G::EBufferHint hint = G::STATIC_DRAW);
+    inline void			BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
     inline void			FreeBuffer (goid_t id);
     inline goid_t		LoadDatapak (const void* d, uint32_t dsz);
     inline goid_t		LoadDatapak (const char* f);
@@ -167,7 +170,7 @@ inline PRGL::goid_t PRGL::BufferData (const char* f, G::EBufferHint hint, G::EBu
     { return (LoadFile (G::EResource(btype), f, hint)); }
 inline PRGL::goid_t PRGL::BufferData (goid_t pak, const char* f, G::EBufferHint hint, G::EBufferType btype)
     { return (LoadPakFile (G::EResource(btype), pak, f, hint)); }
-inline void PRGL::BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset, G::EBufferType btype, G::EBufferHint hint)
+inline void PRGL::BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset, G::EBufferHint hint, G::EBufferType btype)
     { Cmd (ECmd::BufferSubData, id, btype, hint, offset, SDataBlock (data, dsz)); }
 inline void PRGL::FreeBuffer (goid_t id)
     { FreeResource (id, G::EResource::BUFFER_VERTEX); }
@@ -262,9 +265,8 @@ template <typename F>
 	case ECmd::LoadFile: {
 	    goid_t id; G::EBufferHint hint; G::EResource dtype;
 	    Args (cmdis, id, dtype, hint);
-	    uint32_t sid = clir->LookupId (id);
-	    if (sid != GoidNull)
-		clir->FreeResource (dtype, sid);
+	    clir->VerifyFreeId (id);
+	    uint32_t sid;
 	    if (cmd == ECmd::LoadPakFile) {
 		goid_t pak; const char* filename = nullptr;
 		Args (cmdis, pak, filename);

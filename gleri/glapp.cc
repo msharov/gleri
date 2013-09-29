@@ -31,21 +31,6 @@ void CGLApp::OpenWindow (CWindow* w)
     w->WriteCmds();
 }
 
-void CGLApp::DeleteWindow (const CWindow* p)
-{
-    foreach (auto,w,_wins) {
-	if (*w == p) {
-	    (*w)->PostClose();
-	    (*w)->WriteCmds();
-	    delete (*w);
-	    (*w) = nullptr;
-	    --(w = _wins.erase(w));
-	}
-    }
-    if (_wins.empty())
-	Quit();
-}
-
 CWindow* CGLApp::ClientRecord (int fd, CWindow::wid_t wid)
 {
     for (auto w : _wins)
@@ -134,8 +119,7 @@ void CGLApp::OnFd (int fd)
     if (fd != _srvbuf.Fd()) return;
     _srvbuf.ReadCmds();
     _srvbuf.ProcessMessages<PRGLR> (*this);
-    for (auto w : _wins)
-	w->WriteCmds();
+    FinishWindowProcessing();
 }
 
 void CGLApp::OnFdError (int fd)
@@ -148,8 +132,32 @@ void CGLApp::OnFdError (int fd)
 
 void CGLApp::OnTimer (uint64_t tms)
 {
-    for (auto w : _wins) {
+    for (auto w : _wins)
 	w->OnTimer (tms);
-	w->WriteCmds();
+    FinishWindowProcessing();
+}
+
+void CGLApp::FinishWindowProcessing (void)
+{
+    // Check for windows that asked to be deleted
+    foreach (auto,w,_wins) {
+	if ((*w)->ClosePending())
+	    (*w)->PostClose();
+	(*w)->WriteCmds();	// Write queued commands from all windows
+	if ((*w)->ClosePending()) {
+	    delete (*w);
+	    (*w) = nullptr;
+	    --(w = _wins.erase(w));
+	}
     }
+    if (_wins.empty())
+	Quit();
+}
+
+void CGLApp::SendUIEvent (CEvent::EType et, const char* cmd)
+{
+    uintptr_t cmdn = (uintptr_t) cmd;
+    CEvent e = { uint32_t(cmdn), 0, 0, et, uint32_t(cmdn>>32) };
+    for (auto w : _wins)
+	w->OnEvent (e);
 }

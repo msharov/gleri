@@ -5,3 +5,4 @@
 
 #pragma once
 #include "gleri/glapp.h"
+#include "gleri/menu.h"

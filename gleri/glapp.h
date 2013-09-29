@@ -15,9 +15,10 @@ public:
     static inline CGLApp&	Instance (void)		{ return (static_cast<CGLApp&>(CApp::Instance())); }
     template <typename WC, typename... A>
     inline WC*			CreateWindow (A... a)	{ WC* w = new WC (GenWId(), a...); OpenWindow(w); return (w); }
-    void			DeleteWindow (const CWindow* p);
     inline void			ForwardError (const CCmd::SMsgHeader&, const XError& e, int) const { throw e; }
     inline void			OnExport (const char*, int) {}
+    inline void			SendUICommand (const char* cmd)	{ SendUIEvent (CEvent::Command, cmd); }
+    inline void			SendUIChange (const char* cmd)	{ SendUIEvent (CEvent::UIChange, cmd); }
 protected:
     inline			CGLApp (void);
     virtual void		OnFd (int fd);
@@ -28,6 +29,8 @@ private:
     void			ConnectToServer (void);
     static int			LaunchServer (void);
     void			OpenWindow (CWindow* w);
+    void			FinishWindowProcessing (void);
+    void			SendUIEvent (CEvent::EType et, const char* cmd);
 private:
     vector<CWindow*>		_wins;
     CCmdBuf			_srvbuf;

@@ -68,7 +68,9 @@ The target platform is a POSIX compliant architecture, such as Linux
 or BSD. Windows and embedded platforms are absolutely not supported.
 Other minimum requirements are Linux kernel 2.6.28, GCC 4.6 or clang++
 3.2. Wayland will likely be supported in the future when it supports
-OpenGL (currently it only has OpenGL ES support).
+OpenGL (currently it only has OpenGL ES support). zlib is required.
+libpng and libjpeg are needed to load textures (although GLERI will
+build without them).
 
 OpenGL 3.3+ is required. Due to the still dire driver situation on Linux,
 this means that only the proprietary fglrx and nvidia drivers work. Mesa

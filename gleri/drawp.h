@@ -62,6 +62,7 @@ public:
 			// Base drawing commands. See PDrawR reading equivalents below.
     inline void		Clear (color_t c = 0)					{ Cmd (ECmd::Clear, c); }
     inline void		Viewport (coord_t x, coord_t y, dim_t w, dim_t h)	{ Cmd (ECmd::Viewport, x,y,w,h); }
+    inline void		ResetViewport (void)					{ Viewport (0,0,0,0); }
     inline void		Offset (coord_t x, coord_t y)				{ Cmd (ECmd::Offset, x,y); }
     inline void		Color (color_t c)					{ Cmd (ECmd::Color, c); }
     inline void		Enable (G::EFeature f)					{ Cmd (ECmd::Enable, f, uint16_t(1)); }
@@ -174,7 +175,7 @@ template <typename F>
 {
     while (is.remaining() >= sizeof(ECmd)) {
 	ECmd cmd; is >> cmd;
-	if (cmd >= ECmd::DrawArrays && cmd <= ECmd::MultiDrawArraysIndirect)
+	if (cmd >= ECmd::BindBuffer && cmd <= ECmd::MultiDrawArraysIndirect)
 	    f.DrawCmdInit();
 	switch (cmd) {
 	    case ECmd::Clear: { color_t c; Args(is,c); f.Clear(c); } break;
@@ -210,6 +211,9 @@ template <typename F>
 		{ G::EShape t; uint16_t n,minv,maxv; G::EType it; uint32_t o,bv; Args(is,t,n,it,minv,maxv,o,bv); f.DrawRangeElements(t,minv,maxv,n,it,o,bv); } break;
 	    default: XError::emit ("drawlist parse error");
 	}
+	#ifndef NDEBUG
+	    f.CheckForErrors();
+	#endif
     }
 }
 

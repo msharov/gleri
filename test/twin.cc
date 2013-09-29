@@ -4,7 +4,6 @@
 // This file is free software, distributed under the MIT License.
 
 #include "twin.h"
-#include "menu.h"
 #include "../config.h"	// to see which image libraries are linked in
 
 //{{{ Vertex data ------------------------------------------------------
@@ -15,7 +14,7 @@ static const CTestWindow::coord_t _vdata1[] = {
     50,50, 50,300, 150,300, 150,50,
     100,100, 200,200, 300,200, 300,300,
     250,250, 250,400, 350,250, 500,450,
-    250,50, 300,100, 300,50, 350,75,
+    200,60, 270,120, 300,50, 400,100,
     0,0, 0,-1, 1,0, 1,-1
 };
 static constexpr CTestWindow::color_t _cdata1[] = {
@@ -113,41 +112,44 @@ void CTestWindow::OnKey (key_t key)
 	    _wy = 0;
 	_wsy = walk_StripUp;
 	_wsx += walk_SpriteW;
-	if (_wsx >= walk_StripLength)
-	    _wsx = 0;
-	Draw();
     } else if (key == Key::Down) {
 	if (++_wy > Info().h-walk_SpriteH)
 	    _wy = Info().h-walk_SpriteH;
 	_wsy = walk_StripDown;
 	_wsx += walk_SpriteW;
-	if (_wsx >= walk_StripLength)
-	    _wsx = 0;
-	Draw();
     } else if (key == Key::Left) {
 	if (--_wx < 0)
 	    _wx = 0;
 	_wsy = walk_StripLeft;
 	_wsx += walk_SpriteW;
-	if (_wsx >= walk_StripLength)
-	    _wsx = 0;
-	Draw();
     } else if (key == Key::Right) {
 	if (++_wx > Info().w-walk_SpriteW)
 	    _wx = Info().w-walk_SpriteW;
 	_wsy = walk_StripRight;
 	_wsx += walk_SpriteW;
-	if (_wsx >= walk_StripLength)
-	    _wsx = 0;
-	Draw();
     }
+    if (_wsx >= walk_StripLength)
+	_wsx = 0;
+    Draw();
 }
 
 void CTestWindow::OnButton (key_t b, coord_t x, coord_t y)
 {
     CWindow::OnButton (b,x,y);
-    if (b == 3)
-	CPopupMenu::Create (IId(), x, y);
+    if (b == Button::Right) {
+	BEGIN_MENU (c_TestMenu)
+	    MENUITEM ("Entry 1", "1", "entry1")
+	    MENUITEM ("Entry 2", "2", "entry2")
+	    MENUITEM ("Entry 3", "3", "entry3")
+	END_MENU
+	CPopupMenu::Create (IId(), x, y, c_TestMenu);
+    }
+}
+
+void CTestWindow::OnCommand (const char* cmd)
+{
+    CWindow::OnCommand (cmd);
+    strcpy (_hellomsg, cmd);
 }
 
 void CTestWindow::OnTimer (uint64_t tms)
@@ -204,7 +206,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.VertexPointer (_vbuf);
 
     drw.Color (0,240,255,128);
-    drw.Text (300, 250, "Hello world from OpenGL!");
+    drw.Text (300, 250, _hellomsg);
 
     drw.Color (255,255,255);
     drw.Text (300, 420, "A quick brown fox jumps over the lazy dog");

@@ -35,17 +35,20 @@ public:
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
     inline bool		Matches (int fd, iid_t iid)const{ return (PRGL::Matches(fd,iid)); }
     inline bool		Matches (int fd) const		{ return (PRGL::Matches(fd)); }
+    inline void		Close (void)			{ _closePending = true; }
     inline void		PostClose (void)		{ PRGL::Close(); }
+    inline bool		ClosePending (void) const	{ return (_closePending); }
 protected:
     inline rcwininfo_t	Info (void) const		{ return (_info); }
-    void		Close (void);
     inline uint32_t	LastRenderTimeNS (void) const	{ return (_fsync.time); }
     inline uint32_t	RefreshTimeNS (void) const	{ return (_fsync.key); }
-    inline virtual void	OnKey (key_t)			{ }
-    inline virtual void	OnKeyUp (key_t)			{ }
+    inline virtual void	OnKey (key_t)				{ }
+    inline virtual void	OnKeyUp (key_t)				{ }
     inline virtual void	OnButton (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnButtonUp (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnMotion (coord_t, coord_t, key_t)	{ }
+    inline virtual void	OnCommand (const char*)			{ }
+    inline virtual void	OnUIChange (const char*)		{ }
     template <typename W>
     inline void		DrawT (const W& w);
     template <typename Drw>
@@ -58,6 +61,7 @@ private:
     CEvent		_fsync;
     uint64_t		_nextVSync;
     bool		_drawPending;
+    bool		_closePending;
 };
 
 //----------------------------------------------------------------------
@@ -67,6 +71,7 @@ inline CWindow::CWindow (wid_t wid) noexcept
 ,_fsync()
 ,_nextVSync (NotWaitingForVSync)
 ,_drawPending (false)
+,_closePending (false)
 {
     memset (&_info,0,sizeof(_info));
     _fsync.key = 1000000000/60;

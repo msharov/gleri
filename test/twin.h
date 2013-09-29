@@ -11,10 +11,12 @@ public:
     inline explicit	CTestWindow (wid_t wid);
     virtual void	OnInit (void);
     virtual void	OnResize (dim_t w, dim_t h);
-    virtual void	OnKey (key_t key);
-    virtual void	OnButton (key_t b, coord_t x, coord_t y);
     virtual void	OnTimer (uint64_t tms);
     ONDRAWDECL		OnDraw (Drw& drw) const;
+protected:
+    virtual void	OnKey (key_t key);
+    virtual void	OnButton (key_t b, coord_t x, coord_t y);
+    virtual void	OnCommand (const char* cmd);
 private:
     goid_t		_vbuf;
     goid_t		_cbuf;
@@ -26,6 +28,7 @@ private:
     coord_t		_wsx;
     coord_t		_wsy;
     uint64_t		_wtimer;
+    char		_hellomsg [48];
 };
 
 inline CTestWindow::CTestWindow (wid_t wid)
@@ -41,4 +44,5 @@ inline CTestWindow::CTestWindow (wid_t wid)
 ,_wsy(0)
 ,_wtimer(NotWaitingForVSync)
 {
+    strcpy (_hellomsg, "Hello world from OpenGL!");
 }

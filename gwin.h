@@ -39,7 +39,8 @@ public:
     void			CheckForErrors (void);
 				// Client-side id map, forwarded to the connection object
     inline void			MapId (goid_t cid, GLuint sid) noexcept	{ _pconn->MapId (cid, sid); }
-    inline GLuint		LookupId (goid_t cid) const noexcept	{ return (_pconn->LookupId (cid)); }
+    inline GLuint		LookupId (goid_t cid) const		{ return (_pconn->LookupId (cid)); }
+    inline void			VerifyFreeId (goid_t cid) const		{ return (_pconn->VerifyFreeId (cid)); }
     inline void			UnmapId (goid_t cid) noexcept		{ _pconn->UnmapId (cid); }
 				// State variables
     inline const float*		Proj (void) const		{ return (&_proj[0][0]); }

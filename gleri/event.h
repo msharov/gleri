@@ -18,9 +18,12 @@ struct CEvent {
 	KeyUp,
 	ButtonDown,
 	ButtonUp,
-	Motion
+	Motion,
+	Command,
+	UIChange
     }		type;
     uint32_t	time;
+    inline const char* CommandName (void) const { return ((const char*)(uintptr_t(time)<<32|key)); }
 };
 
 namespace Key {
@@ -59,8 +62,8 @@ namespace Key {
 
 namespace Button {
     enum : uint32_t {
-	Left, Middle, Right, Wheel, WheelUp,
-	WheelDown, Back, Forward, Search
+	Left = 1, Middle, Right, Wheel,
+	WheelUp, WheelDown, Back, Forward, Search
     };
 } // namespace Button
 

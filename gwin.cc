@@ -71,6 +71,8 @@ void CGLWindow::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
 
 void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 {
+    if (!w) w = _winfo.w;
+    if (!h) h = _winfo.h;
     DTRACE ("[%x] Viewport %hux%hu+%hd+%hd\n", IId(), w,h,x,y);
     _viewport.x = x;
     _viewport.y = y;
@@ -88,8 +90,8 @@ void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 void CGLWindow::Offset (GLint x, GLint y) noexcept
 {
     DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
-    _proj[3][0] = -float(_viewport.w-2*x-1)/_viewport.w;
-    _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;
+    _proj[3][0] = -(_viewport.w-2*x-0.5f)/_viewport.w;	// 0.5 points to pixel center
+    _proj[3][1] = (_viewport.h-2*y-0.5f)/_viewport.h;
     UniformMatrix ("Transform", Proj());
 }
 
@@ -271,6 +273,7 @@ void CGLWindow::BindBuffer (GLuint id)
 
 void CGLWindow::BindBuffer (GLuint id, G::EBufferType btype) noexcept
 {
+    assert (id != CGObject::NoObject);
     if (Buffer() == id)
 	return;
     DTRACE ("[%x] BindBuffer %x\n", IId(), id);
@@ -317,9 +320,8 @@ void CGLWindow::FreeShader (GLuint sh) noexcept
 
 void CGLWindow::Shader (GLuint id) noexcept
 {
+    assert (id != CGObject::NoObject);
     if (Shader() == id)
-	return;
-    if (id == CGObject::NoObject)
 	return;
     bool bInternal = (id == _pconn->TextureShader() || id == _pconn->FontShader());
     DTRACE ("[%x] SetShader %x\n", IId(), id);
@@ -337,8 +339,8 @@ void CGLWindow::Parameter (const char* varname, GLuint buf, G::EType type, GLuin
 
 void CGLWindow::Parameter (GLuint slot, GLuint buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
+    assert (buf != CGObject::NoObject);
     BindBuffer (buf, G::ARRAY_BUFFER);
-    if (slot >= MAX_VAO_SLOTS) return;
     DTRACE ("[%x] Parameter %u set to %x, type %s[%u], +%u/%u\n", IId(), slot, buf, G::TypeName(type), nels, offset, stride);
     glEnableVertexAttribArray (slot);
     glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));
@@ -560,7 +562,7 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
     GLuint buf = CreateBuffer();
     BufferData (buf, v, sizeof(v), G::STREAM_DRAW);
     UniformTexture ("Texture", pfont->Id());
-    Uniform4f ("FontSize", fw-1,fh-1, 256,256);
+    Uniform4f ("FontSize", fw,fh, 256,256);
     Parameter (G::param_TextData, buf, G::SHORT, 4);
 
     glDrawArrays (GL_POINTS, 0, nChars);
@@ -601,7 +603,8 @@ void CGLWindow::CheckForErrors (void)
     unsigned e = glGetError(), etxtsz = sizeof(c_ErrorText);
     if (e == GL_NO_ERROR)
 	return;
-    e = min (7, e-(GL_INVALID_ENUM-1));
+    while (glGetError() != GL_NO_ERROR) {}	// Clear all subsequent errors
+    e = min (7u, e-(GL_INVALID_ENUM-1));	// Report only first error
     const char* etxt = c_ErrorText;
     for (unsigned i = 0; i < e; ++i)
 	etxt = strnext(etxt, etxtsz);
