@@ -101,8 +101,16 @@ void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 void CGLWindow::Offset (GLint x, GLint y) noexcept
 {
     DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
-    _proj[3][0] = -(_viewport.w-2*x-0.51f)/_viewport.w;	// 0.5 points to pixel center
-    _proj[3][1] = (_viewport.h-2*y-0.51f)/_viewport.h;
+    _proj[3][0] = float(-(_viewport.w-2*x-1))/_viewport.w;	// 0.5 pixel center adjustment, 0.5*(2/w)=1/w
+    _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;
+    UniformMatrix ("Transform", Proj());
+}
+
+void CGLWindow::Scale (float x, float y) noexcept
+{
+    DTRACE ("[%x] Scale %g:%g\n", IId(), x,y);
+    _proj[0][0] = 2.f*x/_viewport.w;
+    _proj[1][1] = -2.f*y/_viewport.h;
     UniformMatrix ("Transform", Proj());
 }
 
@@ -573,7 +581,7 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
     GLuint buf = CreateBuffer();
     BufferData (buf, v, sizeof(v), G::STREAM_DRAW);
     UniformTexture ("Texture", pfont->Id());
-    Uniform4f ("FontSize", fw,fh, 256,256);
+    Uniform4f ("FontSize", fw-1,fh-1, 256,256);
     Parameter (G::param_TextData, buf, G::SHORT, 4);
 
     glDrawArrays (GL_POINTS, 0, nChars);

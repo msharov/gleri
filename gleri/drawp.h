@@ -30,6 +30,7 @@ private:
 	Clear,
 	Viewport,
 	Offset,
+	Scale,
 	Enable,
 	Color,
 	Text,
@@ -64,6 +65,7 @@ public:
     inline void		Viewport (coord_t x, coord_t y, dim_t w, dim_t h)	{ Cmd (ECmd::Viewport, x,y,w,h); }
     inline void		ResetViewport (void)					{ Viewport (0,0,0,0); }
     inline void		Offset (coord_t x, coord_t y)				{ Cmd (ECmd::Offset, x,y); }
+    inline void		Scale (float x, float y)				{ Cmd (ECmd::Scale, x,y); }
     inline void		Color (color_t c)					{ Cmd (ECmd::Color, c); }
     inline void		Enable (G::EFeature f)					{ Cmd (ECmd::Enable, f, uint16_t(1)); }
     inline void		Disable (G::EFeature f)					{ Cmd (ECmd::Enable, f, uint16_t(0)); }
@@ -182,6 +184,7 @@ template <typename F>
 	    case ECmd::Viewport: { coord_t x,y; dim_t w,h; Args(is,x,y,w,h); f.Viewport(x,y,w,h); } break;
 	    case ECmd::Color: { color_t c; Args(is,c); f.Color(c); } break;
 	    case ECmd::Offset: { coord_t x,y; Args(is,x,y); f.Offset(x,y); } break;
+	    case ECmd::Scale: { float x,y; Args(is,x,y); f.Scale(x,y); } break;
 	    case ECmd::Enable: { G::EFeature feat; uint16_t o; Args(is,feat,o); f.Enable(feat,o); } break;
 	    case ECmd::Text: { coord_t x,y; const char* s = nullptr; Args(is,x,y,s); if (s) f.Text(x,y,s); } break;
 	    case ECmd::Image: { coord_t x,y; goid_t s; Args(is,x,y,s); f.Sprite(x,y,f.LookupId(s)); } break;
