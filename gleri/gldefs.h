@@ -188,8 +188,10 @@ struct alignas(4) SWinInfo {
 	type_Dragged,
 	type_FirstParented = type_Dialog,
 	type_FirstDecoless = type_PopupMenu,
+	type_FirstPopupMenu = type_PopupMenu,
 	type_LastParented = type_Splash,
-	type_LastDecoless = type_Dragged
+	type_LastDecoless = type_Dragged,
+	type_LastPopupMenu = type_ComboMenu
     }		wtype;
     enum EWinState : uint8_t {
 	state_Normal,
@@ -214,6 +216,7 @@ struct alignas(4) SWinInfo {
     uint8_t	flags;
     inline bool	Parented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
     inline bool	Decoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
+    inline bool	PopupMenu (void) const	{ return (wtype >= type_FirstPopupMenu && wtype <= type_LastPopupMenu); }
 };
 
 // These are in rglp.cc

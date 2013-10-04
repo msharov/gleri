@@ -31,6 +31,17 @@ CGLWindow::CGLWindow (iid_t iid, const SWinInfo& winfo, Window win, GLXContext c
     _query[query_FrameEnd] = 0;
     _syncEvent.type = CEvent::FrameSync;
     _syncEvent.key = 1000000000/60;
+    _vao[0] = CGObject::NoObject;
+    _vao[1] = CGObject::NoObject;
+}
+
+void CGLWindow::Activate (void)
+{
+    GLuint dsh = _pconn->DefaultShader();
+    if (dsh != CGObject::NoObject &&_vao[0] != CGObject::NoObject) {
+	Shader (dsh);
+	CheckForErrors();
+    }
 }
 
 void CGLWindow::Init (void)
@@ -44,7 +55,7 @@ void CGLWindow::Init (void)
     glXSwapIntervalSGI (1);
     glGenQueries (ArraySize(_query), _query);
     glGenVertexArrays (ArraySize(_vao), _vao);
-    SetDefaultShader();
+    Activate();
 }
 
 CGLWindow::~CGLWindow (void) noexcept
@@ -90,8 +101,8 @@ void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 void CGLWindow::Offset (GLint x, GLint y) noexcept
 {
     DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
-    _proj[3][0] = -(_viewport.w-2*x-0.5f)/_viewport.w;	// 0.5 points to pixel center
-    _proj[3][1] = (_viewport.h-2*y-0.5f)/_viewport.h;
+    _proj[3][0] = -(_viewport.w-2*x-0.51f)/_viewport.w;	// 0.5 points to pixel center
+    _proj[3][1] = (_viewport.h-2*y-0.51f)/_viewport.h;
     UniformMatrix ("Transform", Proj());
 }
 
@@ -250,7 +261,7 @@ const CDatapak* CGLWindow::Datapak (GLuint id) const
 
 GLuint CGLWindow::CreateBuffer (G::EBufferType btype) noexcept
 {
-    DTRACE ("[%x] CreateBuffer type %u\n", IId(), btype);
+    DTRACE ("[%x] CreateBuffer type %x\n", IId(), btype);
     return (_buffer.emplace (_buffer.end(), ContextId(), btype)->Id());
 }
 
@@ -608,5 +619,6 @@ void CGLWindow::CheckForErrors (void)
     const char* etxt = c_ErrorText;
     for (unsigned i = 0; i < e; ++i)
 	etxt = strnext(etxt, etxtsz);
+    DTRACE ("GLError: %s\n", etxt);
     XError::emit (etxt);
 }

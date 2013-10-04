@@ -231,7 +231,7 @@ template <typename F>
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
     ECmd cmd = LookupCmd (h.Cmdname(), h.hsz);
     if (!clir ^ (cmd == ECmd::Open || cmd == ECmd::Auth))
-	XError::emit ("no such client");
+	return (f.OnNoClient (h));
 
     switch (cmd) {
 	case ECmd::Auth: {
@@ -245,7 +245,7 @@ template <typename F>
 	    SWinInfo winfo;
 	    const char* title = nullptr;
 	    Args (cmdis, winfo, title);
-	    f.CreateClient (h.iid, winfo, title, &cmdbuf);
+	    clir = f.CreateClient (h.iid, winfo, title, &cmdbuf);
 	    } break;
 	case ECmd::Close:
 	    f.CloseClient (clir);
@@ -306,6 +306,10 @@ template <typename F>
 	    XError::emit ("invalid protocol command");
 	    break;
     }
+    #ifndef NDEBUG
+    if (clir)
+	clir->CheckForErrors();
+    #endif
 }
 
 //}}}-------------------------------------------------------------------

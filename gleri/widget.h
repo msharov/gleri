@@ -33,6 +33,7 @@ public:
     virtual void	OnResize (dim_t w, dim_t h)	{ _w = w; _h = h; }
     template <typename Drw>
     inline void		OnDraw (Drw&) const		{}
+    virtual void	OnFocus (bool b) noexcept	{ SetFlag (f_Focused, b); }
     virtual void	Draw (PDraw<bstrs>& drw) const = 0;
     virtual void	Draw (PDraw<bstro>& drw) const = 0;
     virtual SSize	OnMeasure (void) const = 0;

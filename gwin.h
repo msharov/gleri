@@ -25,10 +25,12 @@ public:
 				CGLWindow (iid_t iid, const SWinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn);
 				~CGLWindow (void) noexcept;
     void			Init (void);
+    void			Activate (void);
     void			Deactivate (void);
     inline const CContext&	Context (void) const		{ return (_ctx); }
     inline GLXContext		ContextId (void) const		{ return (_ctx.Context()); }
     inline Window		Drawable (void) const		{ return (_ctx.Drawable()); }
+    inline void			SetDrawable (Window w)		{ _ctx.SetDrawable (w); }
     inline const SWinInfo&	WinInfo (void) const		{ return (_winfo); }
     void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
     uint64_t			DrawFrame (bstri cmdis, Display* dpy);

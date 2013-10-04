@@ -36,6 +36,13 @@ the mistake of putting driver guts into user application process space.
 The driver initialization sequence can also be slow (~.3s), and must be
 done every time you start your application.
 
+Finally, one must mention the problem of debugging an OpenGL application.
+If you happen to hit a breakpoint at some location unexpected by the
+driver developers, sometimes you would not be able to switch to the
+debugger because you've just trapped something critical in the driver
+and stopped all X rendering. Often, this situation requires a hard power
+cycle. After a while you give up trying the debugger at all.
+
 Now, wouldn't it be nice if there was a network protocol letting us
 write applications that use OpenGL remotely, without linking to the
 entire graphics driver? Well, GLERI is it.

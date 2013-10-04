@@ -46,10 +46,10 @@ void CMenuEntry::OnKey (key_t key)
     }
 }
 
-void CMenuEntry::OnButton (key_t b, coord_t x, coord_t y)
+void CMenuEntry::OnButtonUp (key_t b, coord_t x, coord_t y)
 {
-    CWidget::OnButton (b, x, y);
-    if (Flag(f_Focused) && b == Button::Left) {
+    CWidget::OnButtonUp (b, x, y);
+    if (Flag(f_Focused) && (b == Button::Left || b == Button::Right)) {
 	CGLApp::Instance().SendUICommand (_id);
 	Close();
     }
@@ -71,9 +71,7 @@ void CPopupMenu::OnInit (void)
 	if (*mtype == 'm')
 	    _items.emplace_back<CMenuEntry> (mtext, mid, maccel);
     }
-    _focus = 0;
-    if (!_items.empty())
-	_items[0].SetFlag (CWidget::f_Focused);
+    _items.SetFocus (0);
 
     CWidget::SSize isz = _items.OnMeasure();
     Open ("Menu", (SWinInfo){ _x,_y,isz.w,isz.h,_parent,0x33,0,0,SWinInfo::type_PopupMenu,SWinInfo::state_Normal,SWinInfo::flag_None });
@@ -100,13 +98,10 @@ void CPopupMenu::OnEvent (const CEvent& e)
 void CPopupMenu::OnKey (key_t key)
 {
     CWindow::OnKey (key);
-    if (key == Key::Up && _focus > 0) {
-	_items[_focus].SetFlag (CWidget::f_Focused, false);
-	_items[--_focus].SetFlag (CWidget::f_Focused);
-    } else if (key == Key::Down && _focus < _items.size()-1) {
-	_items[_focus].SetFlag (CWidget::f_Focused, false);
-	_items[++_focus].SetFlag (CWidget::f_Focused);
-    }
+    if (key == Key::Up)
+	_items.SetFocus (_items.Focus()-1);
+    else if (key == Key::Down)
+	_items.SetFocus (_items.Focus()+1);
     Draw();
 }
 
@@ -114,10 +109,8 @@ void CPopupMenu::OnMotion (coord_t x, coord_t y, key_t b)
 {
     CWindow::OnMotion (x, y, b);
     auto t = _items.FindEnclosing (x,y);
-    if (t < _items.end() && !t->Flag(CWidget::f_Focused)) {
-	_items[_focus].SetFlag (CWidget::f_Focused, false);
-	t->SetFlag (CWidget::f_Focused);
-	_focus = distance (_items.begin(), t);
+    if (t < _items.end() && !t->Flag (CWidget::f_Focused)) {
+	_items.SetFocus (distance (_items.begin(), t));
 	Draw();
     }
 }

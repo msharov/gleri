@@ -11,9 +11,11 @@ struct CEvent {
     int16_t	x;
     int16_t	y;
     enum EType : uint32_t {
+	Destroy,
 	Close,
 	Ping,
 	FrameSync,
+	Focus,
 	KeyDown,
 	KeyUp,
 	ButtonDown,

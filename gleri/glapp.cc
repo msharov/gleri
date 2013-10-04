@@ -141,10 +141,8 @@ void CGLApp::FinishWindowProcessing (void)
 {
     // Check for windows that asked to be deleted
     foreach (auto,w,_wins) {
-	if ((*w)->ClosePending())
-	    (*w)->PostClose();
 	(*w)->WriteCmds();	// Write queued commands from all windows
-	if ((*w)->ClosePending()) {
+	if ((*w)->DestroyPending()) {
 	    delete (*w);
 	    (*w) = nullptr;
 	    --(w = _wins.erase(w));

@@ -6,12 +6,21 @@
 #include "window.h"
 #include "glapp.h"
 
+void CWindow::Close (void)
+{
+    PRGL::Close();
+    PRGL::WriteCmds();
+    _closePending = true;	// Prevents further writes
+}
+
 void CWindow::OnEvent (const CEvent& e)
 {
     switch (e.type) {
+	case CEvent::Destroy:		_destroyPending = true;		break;
 	case CEvent::Close:		Close();			break;
 	case CEvent::Ping:		Event (e);			break;
 	case CEvent::FrameSync:		_fsync = e;			break;
+	case CEvent::Focus:		OnFocus (e.x);			break;
 	case CEvent::KeyDown:		OnKey (e.key);			break;
 	case CEvent::KeyUp:		OnKeyUp (e.key);		break;
 	case CEvent::ButtonDown:	OnButton (e.key, e.x, e.y);	break;

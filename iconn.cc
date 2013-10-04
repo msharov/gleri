@@ -44,7 +44,13 @@ void CIConn::UnmapId (uint32_t cid) noexcept
 }
 
 /*static*/ const CFont* CIConn::_deffont = nullptr;
-/*static*/ GLuint CIConn::_defres [G::default_Resources] = {};
+/*static*/ GLuint CIConn::_defres [G::default_Resources] = {
+    CGObject::NoObject,
+    CGObject::NoObject,
+    CGObject::NoObject,
+    CGObject::NoObject,
+    CGObject::NoObject
+};
 
 /*static*/ void CIConn::LoadDefaultResources (CGLWindow* w)
 {

@@ -31,17 +31,17 @@ public:
     virtual void	OnError (const char* m)		{ XError::emit (m); }
     virtual void	OnEvent (const CEvent& e);
     inline virtual void	Draw (void)			{ }
-    inline void		WriteCmds (void)		{ PRGL::WriteCmds(); }
+    inline void		WriteCmds (void)		{ if (!_closePending) PRGL::WriteCmds(); }
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
     inline bool		Matches (int fd, iid_t iid)const{ return (PRGL::Matches(fd,iid)); }
     inline bool		Matches (int fd) const		{ return (PRGL::Matches(fd)); }
-    inline void		Close (void)			{ _closePending = true; }
-    inline void		PostClose (void)		{ PRGL::Close(); }
-    inline bool		ClosePending (void) const	{ return (_closePending); }
+    void		Close (void);
+    inline bool		DestroyPending (void) const	{ return (_destroyPending); }
 protected:
     inline rcwininfo_t	Info (void) const		{ return (_info); }
     inline uint32_t	LastRenderTimeNS (void) const	{ return (_fsync.time); }
     inline uint32_t	RefreshTimeNS (void) const	{ return (_fsync.key); }
+    inline virtual void	OnFocus (bool)				{ }
     inline virtual void	OnKey (key_t)				{ }
     inline virtual void	OnKeyUp (key_t)				{ }
     inline virtual void	OnButton (key_t, coord_t, coord_t)	{ }
@@ -62,6 +62,7 @@ private:
     uint64_t		_nextVSync;
     bool		_drawPending;
     bool		_closePending;
+    bool		_destroyPending;
 };
 
 //----------------------------------------------------------------------
@@ -72,6 +73,7 @@ inline CWindow::CWindow (wid_t wid) noexcept
 ,_nextVSync (NotWaitingForVSync)
 ,_drawPending (false)
 ,_closePending (false)
+,_destroyPending (false)
 {
     memset (&_info,0,sizeof(_info));
     _fsync.key = 1000000000/60;

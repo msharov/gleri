@@ -87,12 +87,13 @@ public:
     CGLWindow*		ClientRecord (int fd, iid_t iid) noexcept;
     CGLWindow*		ClientRecordForWindow (Window w) noexcept;
     void		Authenticate (CCmdBuf& cmdbuf, uint32_t pid, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth);
-    void		CreateClient (iid_t iid, SWinInfo winfo, const char* title = nullptr, CCmdBuf* piconn = nullptr);
-    void		CloseClient (const CGLWindow* pcli) noexcept;
+    CGLWindow*		CreateClient (iid_t iid, SWinInfo winfo, const char* title = nullptr, CCmdBuf* piconn = nullptr);
+    void		CloseClient (CGLWindow* pcli) noexcept;
     void		ClientDraw (CGLWindow& cli, bstri cmdis);
     void		ClientEvent (const CGLWindow& cli, const CEvent& e);
     void		ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept;
     void		OnExport (const char*, int fd);
+    inline void		OnNoClient (const CCmd::SMsgHeader& h) const noexcept { DTRACE("Error: received command %s for a nonexistent object", h.Cmdname()); }
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     Window		CreateWindow (rcwininfo_t winfo);

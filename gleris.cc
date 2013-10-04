@@ -154,7 +154,7 @@ void CGleris::ForwardError (const char* cmdname, const XError& e, int fd, iid_t 
 	DTRACE ("[%x] Forwarding error: %s\n", pcli->IId(), buf);
 	pcli->ForwardError (buf);
 	pcli->WriteCmds();
-	CloseClient (static_cast<const CGLWindow*>(pcli));
+	CloseClient (static_cast<CGLWindow*>(pcli));
     } catch (...) {}	// fd errors will be caught by poll
 }
 
@@ -380,8 +380,7 @@ Window CGleris::CreateWindow (const SWinInfo& winfo)
     swa.border_pixel = BlackPixel (_dpy, _screen);
     swa.event_mask =
 	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
-	ButtonPressMask| ButtonReleaseMask| PointerMotionMask|
-	VisibilityChangeMask| FocusChangeMask| PropertyChangeMask;
+	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask;
     swa.save_under = swa.override_redirect = winfo.Decoless();
 
     Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
@@ -392,7 +391,8 @@ Window CGleris::CreateWindow (const SWinInfo& winfo)
     if (!win)
 	XError::emit ("failed to create window");
     XSync (_dpy, False);
-    OnXEvent();
+    if (_xlib_error)
+	throw XError (true, _xlib_error);
     return (win);
 }
 
@@ -471,22 +471,47 @@ void CGleris::OnXEvent (void)
 	if (xev.type == Expose)
 	    icli->Draw();
 	else if (xev.type == ConfigureNotify) {
-	    ActivateClient (*icli);
-	    icli->Resize (xev.xconfigure.x, xev.xconfigure.y, xev.xconfigure.width, xev.xconfigure.height);
+	    try {
+		ActivateClient (*icli);
+		icli->Resize (xev.xconfigure.x, xev.xconfigure.y, xev.xconfigure.width, xev.xconfigure.height);
+	    } catch (XError& e) {
+		DTRACE ("[%x] GL error while resizing: %s\n", e.what());
+	    }
 	} else if (xev.type == KeyPress || xev.type == KeyRelease) {
 	    DTRACE ("[%x] Receive keypress %u\n", icli->IId(), xev.xkey.keycode);
 	    icli->Event (EventFromXKey (xev.xkey));
 	} else if (xev.type == ButtonPress || xev.type == ButtonRelease) {
-	    DTRACE ("[%x] Receive button press %u at %u:%u for %x\n", icli->IId(), xev.xbutton.button, xev.xbutton.x, xev.xbutton.y);
+	    DTRACE ("[%x] Receive button press %x at %d:%d\n", icli->IId(), xev.xbutton.button, xev.xbutton.x, xev.xbutton.y);
 	    icli->Event (EventFromButton (xev.xbutton));
 	} else if (xev.type == MotionNotify) {
-	    DTRACE ("[%x] Receive motion event to %u:%u\n", icli->IId(), xev.xmotion.x, xev.xmotion.y);
+	    DTRACE ("[%x] Receive motion event to %d:%d\n", icli->IId(), xev.xmotion.x, xev.xmotion.y);
 	    icli->Event (EventFromMotion (xev.xmotion));
+	} else if (xev.type == FocusIn || xev.type == FocusOut) {
+	    bool bFocusIn = (xev.type == FocusIn);
+	    DTRACE ("[%x] %s focus\n", icli->IId(), bFocusIn ? "Receive" : "Lose");
+	    icli->Event ((CEvent){0,bFocusIn,0,CEvent::Focus,0});
 	} else if (xev.type == MapNotify) {
 	    DTRACE ("[%x] Receive map notification\n", icli->IId());
-	    if (icli->WinInfo().Decoless()) {	// override-redirect windows do not automatically get focus
-		DTRACE ("[%x] Requesting input focus for window %x\n", icli->IId(), icli->Drawable());
+	    if (icli->WinInfo().PopupMenu()) {	// override-redirect windows do not automatically get focus
+		DTRACE ("[%x] Requesting input focus for popup menu %x\n", icli->IId(), icli->Drawable());
 		XSetInputFocus (_dpy, icli->Drawable(), RevertToParent, CurrentTime);
+		if (GrabSuccess != XGrabPointer (_dpy, icli->Drawable(), false,	// false = restrict events to target
+						 ButtonPressMask| ButtonReleaseMask| PointerMotionMask,
+						 GrabModeAsync, GrabModeAsync, None, None, CurrentTime)) {
+		    DTRACE ("[%x] Pointer grab failed\n", icli->IId());
+		    icli->Event ((CEvent){0,0,0,CEvent::Close,0});
+		}
+	    }
+	} else if (xev.type == DestroyNotify) {
+	    DTRACE ("[%x] Receive destroy notification\n", icli->IId());
+	    icli->SetDrawable (None);
+	    icli->Event ((CEvent){0,0,0,CEvent::Destroy,0});
+	    try { icli->WriteCmds(); } catch (...) {};	// If this fails, the client is already disconnected
+	    foreach (auto,c,_win) {
+		if (*c == icli) {
+		    DestroyClient (*c);
+		    --(c = _win.erase(c));
+		}
 	    }
 	} else if (xev.type == ClientMessage) {
 	    if ((Atom) xev.xclient.data.l[0] == _atoms[a_WM_DELETE_WINDOW]) {
@@ -505,8 +530,11 @@ void CGleris::OnXEvent (void)
     }
     for (auto c : _win)
 	try { c->WriteCmds(); } catch (...) {}	// fd errors will be caught by poll
-    if (_xlib_error)
-	throw XError (true, _xlib_error);
+    if (_xlib_error) {
+	DTRACE ("Xlib error: %s\n", _xlib_error);
+	syslog (LOG_ERR, "Xlib error: %s", _xlib_error);
+	_xlib_error = nullptr;
+    }
 }
 
 /*static*/ uint32_t CGleris::ModsFromXState (uint32_t state) noexcept
@@ -581,7 +609,7 @@ void CGleris::OnXEvent (void)
 /*static*/ inline CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept
 {
     CEvent e;
-    e.key = xev.button| ModsFromXState(xev.state);
+    e.key = xev.button| (ModsFromXState(xev.state) & (KMod::Shift| KMod::Ctrl| KMod::Alt));
     e.x = xev.x;
     e.y = xev.y;
     e.type = (xev.type == ButtonRelease) ? CEvent::ButtonUp : CEvent::ButtonDown;
@@ -644,7 +672,7 @@ void CGleris::OnTimer (uint64_t tms)
 //----------------------------------------------------------------------
 // Client records, selection and forwarding
 
-void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBuf* piconn)
+CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBuf* piconn)
 {
     CIConn* pconn = static_cast<CIConn*>(piconn);
     if (pconn && !pconn->Authenticated())
@@ -725,39 +753,44 @@ void CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBu
 
     // Check for X errors in all of the above
     XSync (_dpy, False);
-    OnXEvent();
+    if (_xlib_error)
+	throw XError (true, _xlib_error);
+    return (_curCli);
 }
 
 inline void CGleris::ActivateClient (CGLWindow& rcli) noexcept
 {
     if (_curCli == &rcli)
 	return;
-    DTRACE ("Activate client window %x, context %x\n", rcli.Drawable(), rcli.ContextId());
-    if (_curCli)
+    if (_curCli) {
+	DTRACE ("Deactivate client window %x, context %x\n", _curCli->Drawable(), _curCli->ContextId());
 	_curCli->Deactivate();
-    _curCli = &rcli;
+	_curCli = nullptr;
+    }
+    DTRACE ("Activate client window %x, context %x\n", rcli.Drawable(), rcli.ContextId());
     glXMakeCurrent (_dpy, rcli.Drawable(), rcli.ContextId());
+    _curCli = &rcli;
+    rcli.Activate();
 }
 
-void CGleris::CloseClient (const CGLWindow* pcli) noexcept
+void CGleris::CloseClient (CGLWindow* pcli) noexcept
 {
-    auto ic = find (_win.begin(), _win.end(), pcli);
-    if (ic < _win.end()) {
-	DestroyClient (*ic);
-	_win.erase (ic);
+    if (pcli->Drawable() != None) {
+	DTRACE ("Destroying client window %x, context %x\n", pcli->Drawable(), pcli->ContextId());
+	XDestroyWindow (_dpy, pcli->Drawable());
     }
 }
 
 void CGleris::DestroyClient (CGLWindow*& pc) noexcept
 {
     if (_dpy) {
-	DTRACE ("Destroying client window %x, context %x\n", pc->Drawable(), pc->ContextId());
+	DTRACE ("Erasing client with window %x, context %x\n", pc->Drawable(), pc->ContextId());
 	if (_curCli == pc) {
 	    glXMakeCurrent (_dpy, None, nullptr);
 	    _curCli = nullptr;
 	}
 	glXDestroyContext (_dpy, pc->ContextId());
-	XDestroyWindow (_dpy, pc->Drawable());
+	CloseClient (pc);
     }
     delete pc;
     pc = nullptr;

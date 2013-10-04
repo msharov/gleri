@@ -15,7 +15,7 @@ public:
     virtual SSize	OnMeasure (void) const;
     virtual void	OnResize (dim_t w, dim_t h);
     virtual void	OnKey (key_t key);
-    virtual void	OnButton (key_t b, coord_t x, coord_t y);
+    virtual void	OnButtonUp (key_t b, coord_t x, coord_t y);
 private:
     const char*		_text;
     const char*		_id;
@@ -28,7 +28,7 @@ private:
 class CPopupMenu : public CWindow {
 public:
     static inline CPopupMenu*	Create (wid_t parent, coord_t x, coord_t y, const char* mdef)		{ return (CGLApp::Instance().CreateWindow<CPopupMenu>(parent,x,y,mdef)); }
-    inline explicit	CPopupMenu (wid_t wid, wid_t parent, coord_t x, coord_t y, const char* mdef)	: CWindow(wid), _parent(parent),_focus(0),_border(0),_x(x),_y(y),_mdef(mdef),_items(this) {}
+    inline explicit	CPopupMenu (wid_t wid, wid_t parent, coord_t x, coord_t y, const char* mdef)	: CWindow(wid), _parent(parent),_border(0),_x(x),_y(y),_mdef(mdef),_items(this) {}
     virtual void	OnInit (void);
     virtual void	OnResize (dim_t w, dim_t h);
     ONDRAWDECL		OnDraw (Drw& drw) const;
@@ -38,7 +38,6 @@ protected:
     virtual void	OnMotion (coord_t x, coord_t y, key_t b);
 private:
     wid_t		_parent;
-    uint16_t		_focus;
     goid_t		_border;
     coord_t		_x,_y;
     const char*		_mdef;

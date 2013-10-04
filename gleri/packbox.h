@@ -37,6 +37,8 @@ public:
     inline iterator		erase (iterator ep)		{ return (_wigv.erase (ep.base())); }
     inline iterator		erase (iterator f, iterator l)			{ return (_wigv.erase (f.base(), l.base())); }
     iterator			FindEnclosing (coord_t x, coord_t y) noexcept;
+    size_type			Focus (void) const noexcept;
+    void			SetFocus (size_type f) noexcept;
     inline void			push_back (pointer&& v)				{ _wigv.push_back (forward<pointer>(v)); }
     inline iterator		insert (iterator ip, pointer v)			{ return (_wigv.insert (ip.base(), v)); }
     inline iterator		insert (iterator ip, pointer&& v)		{ return (_wigv.insert (ip.base(), forward<pointer>(v))); }

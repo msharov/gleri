@@ -48,7 +48,7 @@ public:
     inline GLXContext	Context (void) const			{ return (_ctx); }
     inline GLuint	Id (void) const				{ return (_id); }
 protected:
-    inline void		ResetId (void)				{ _id = NoObject; }
+    inline void		ResetId (GLuint id = NoObject)		{ _id = id; }
 private:
     GLXContext		_ctx;
     GLuint		_id;
@@ -59,7 +59,8 @@ private:
 class CContext : public CGObject {
 public:
     inline		CContext (GLXContext ctx, Window win)	: CGObject(ctx, win) {}
-    Window		Drawable (void) const			{ return (Id()); }
+    inline Window	Drawable (void) const			{ return (Id()); }
+    inline void		SetDrawable (Window w)			{ ResetId (w); }
 };
 
 //----------------------------------------------------------------------
