@@ -9,15 +9,14 @@
 class CWidget {
 public:
     typedef PRGL::iid_t		iid_t;
-    typedef iid_t		wid_t;
     typedef PRGL::draww_t	draww_t;
     typedef PRGL::SWinInfo	SWinInfo;
     typedef PRGL::goid_t	goid_t;
-    enum : goid_t { GoidNull = PRGL::GoidNull };
     typedef PRGL::coord_t	coord_t;
     typedef PRGL::dim_t		dim_t;
     typedef PRGL::color_t	color_t;
     typedef PRGL::pfontinfo_t	pfontinfo_t;
+    typedef CWindow::key_t	key_t;
     enum EFlags {
 	f_Focused
     };

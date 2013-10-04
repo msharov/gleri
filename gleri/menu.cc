@@ -40,7 +40,7 @@ ONWIGDRAWIMPL(CMenuEntry)::OnDraw (Drw& drw) const
 void CMenuEntry::OnKey (key_t key)
 {
     CWidget::OnKey (key);
-    if (Flag(f_Focused) && key == Key::Enter) {
+    if (key == KMod::Alt+_accel[0] || (key == Key::Enter && Flag(f_Focused))) {
 	CGLApp::Instance().SendUICommand (_id);
 	Close();
     }

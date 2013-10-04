@@ -9,7 +9,7 @@
 
 class PRGLR : private CCmdBuf {
 public:
-    typedef CCmdBuf::iid_t	iid_t;
+    using CCmdBuf::iid_t;
     typedef G::SWinInfo		SWinInfo;
     typedef G::goid_t		goid_t;
     typedef G::coord_t		coord_t;

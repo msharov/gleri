@@ -9,16 +9,16 @@
 
 class CWindow : protected PRGL {
 public:
-    typedef iid_t		wid_t;
+    using PRGL::iid_t;
+    using PRGL::coord_t;
+    using PRGL::dim_t;
+    using PRGL::color_t;
+    using PRGL::SWinInfo;
     typedef uint32_t		key_t;
-    typedef PRGL::coord_t	coord_t;
-    typedef PRGL::dim_t		dim_t;
-    typedef PRGL::color_t	color_t;
-    typedef PRGL::SWinInfo	SWinInfo;
     typedef const SWinInfo&	rcwininfo_t;
     enum { NotWaitingForVSync = UINT64_MAX };
 public:
-    inline explicit	CWindow (wid_t wid) noexcept;
+    inline explicit	CWindow (iid_t wid) noexcept;
     inline virtual	~CWindow (void)			{ }
     inline void		Export (const char* ol)		{ PRGL::Export (ol); }
     inline void		Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, const void* ad, uint32_t adsz)	{ PRGL::Authenticate(argc,argv,hostname,pid,ad,adsz); }
@@ -67,7 +67,7 @@ private:
 
 //----------------------------------------------------------------------
 
-inline CWindow::CWindow (wid_t wid) noexcept
+inline CWindow::CWindow (iid_t wid) noexcept
 : PRGL(wid)
 ,_fsync()
 ,_nextVSync (NotWaitingForVSync)

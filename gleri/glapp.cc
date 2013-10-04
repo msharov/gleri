@@ -31,7 +31,7 @@ void CGLApp::OpenWindow (CWindow* w)
     w->WriteCmds();
 }
 
-CWindow* CGLApp::ClientRecord (int fd, CWindow::wid_t wid)
+CWindow* CGLApp::ClientRecord (int fd, CWindow::iid_t wid)
 {
     for (auto w : _wins)
 	if (w->Matches (fd, wid))

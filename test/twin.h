@@ -8,7 +8,7 @@
 
 class CTestWindow : public CWindow {
 public:
-    inline explicit	CTestWindow (wid_t wid);
+    inline explicit	CTestWindow (iid_t wid);
     virtual void	OnInit (void);
     virtual void	OnResize (dim_t w, dim_t h);
     virtual void	OnTimer (uint64_t tms);
@@ -31,7 +31,7 @@ private:
     char		_hellomsg [48];
 };
 
-inline CTestWindow::CTestWindow (wid_t wid)
+inline CTestWindow::CTestWindow (iid_t wid)
 : CWindow(wid)
 ,_vbuf(0)
 ,_cbuf(0)

@@ -12,8 +12,7 @@ class CGLWindow;
 
 class CIConn : public CCmdBuf {
     typedef PDraw<bstro>	draww_t;
-    typedef draww_t::goid_t	goid_t;
-    enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
+    typedef G::goid_t		goid_t;
     struct SIdMap {
 	union {
 	    struct {

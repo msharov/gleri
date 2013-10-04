@@ -16,6 +16,8 @@ typedef int16_t		coord_t;
 typedef uint16_t	dim_t;
 typedef uint32_t	color_t;
 
+enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
+
 enum EType : uint16_t {
     BYTE = 0x1400,
     UNSIGNED_BYTE,

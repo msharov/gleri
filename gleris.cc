@@ -776,6 +776,12 @@ inline void CGleris::ActivateClient (CGLWindow& rcli) noexcept
 void CGleris::CloseClient (CGLWindow* pcli) noexcept
 {
     if (pcli->Drawable() != None) {
+	for (auto c = _win.begin(), p = _win.end(); c < _win.end(); ++c) {
+	    if (*c == pcli)	// To break dependency loops only
+		p = c;		// look for children after parent
+	    else if (p < c && (*c)->WinInfo().parent == pcli->IId())
+		CloseClient (*c);
+	}
 	DTRACE ("Destroying client window %x, context %x\n", pcli->Drawable(), pcli->ContextId());
 	XDestroyWindow (_dpy, pcli->Drawable());
     }

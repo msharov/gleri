@@ -10,11 +10,10 @@
 
 class PRGL : private CCmdBuf {
 public:
-    typedef CCmdBuf::iid_t	iid_t;
+    using CCmdBuf::iid_t;
     typedef PDraw<bstro>	draww_t;
     typedef G::SWinInfo		SWinInfo;
     typedef G::goid_t		goid_t;
-    enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
     typedef G::coord_t		coord_t;
     typedef G::dim_t		dim_t;
     typedef G::color_t		color_t;
@@ -272,13 +271,13 @@ template <typename F>
 		Args (cmdis, pak, filename);
 		uint32_t flnsz = cmdis.ipos()-(const uint8_t*)filename;
 		sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
-		if (sid == GoidNull)
+		if (sid == G::GoidNull)
 		    throw XError ("failed to load datapak resource %s", filename);
 	    } else if (cmd == ECmd::LoadData) {
 		uint32_t tsz, toff; SDataBlock d;
 		Args (cmdis, tsz, toff, d);
 		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
-		if (sid == GoidNull)
+		if (sid == G::GoidNull)
 		    XError::emit ("failed to load resource from data");
 	    } else {
 		int fd;
@@ -286,7 +285,7 @@ template <typename F>
 		CMMFile recvf (fd);
 		bstri dfis (recvf.MMData(), recvf.MMSize());
 		sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
-		if (sid == GoidNull)
+		if (sid == G::GoidNull)
 		    XError::emit ("failed to load resource from file");
 	    }
 	    clir->MapId (id, sid);
