@@ -69,7 +69,7 @@ private:
     };
     //}}}
 public:
-    inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_nextid(iid<<16) {}
+    inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_lastid(iid<<16) {}
     inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
@@ -121,7 +121,7 @@ private:
     template <typename... Arg>
     inline void			CmdU (ECmd cmd, size_type unwritten, const Arg&... args);
     bstro			CreateCmd (ECmd cmd, size_type sz, size_type unwritten = 0) noexcept;
-    inline goid_t		GenId (void)			{ return (++_nextid); }
+    inline goid_t		GenId (void)			{ return (++_lastid); }
     static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
     static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
 				// Generic loader interface
@@ -130,7 +130,7 @@ private:
     goid_t			LoadFile (G::EResource dtype, const char* filename, G::EBufferHint hint = G::STATIC_DRAW);
     inline void			FreeResource (goid_t id, G::EResource dtype);
 private:
-    goid_t			_nextid;
+    goid_t			_lastid;
     static const char		_cmdNames[];
 };
 
@@ -161,7 +161,7 @@ inline PRGL::goid_t PRGL::LoadData (G::EResource dtype, const void* data, uint32
 inline PRGL::goid_t PRGL::LoadPakFile (G::EResource dtype, goid_t pak, const char* filename, G::EBufferHint hint)
     { goid_t id = GenId(); Cmd (ECmd::LoadPakFile, id, dtype, hint, pak, filename); return (id); }
 inline void PRGL::FreeResource (goid_t id, G::EResource dtype)
-    { Cmd (ECmd::FreeResource, id, dtype); }
+    { Cmd (ECmd::FreeResource, id, dtype); if (id==_lastid) --_lastid; }
 
 inline PRGL::goid_t PRGL::BufferData (const void* data, uint32_t dsz, G::EBufferHint hint, G::EBufferType btype)
     { return (LoadData (G::EResource(btype), data, dsz, hint)); }
