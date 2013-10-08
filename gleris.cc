@@ -287,7 +287,13 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	DTRACE ("Single client mode. Listening on stdin.\n");
 	AddConnection (STDIN_FILENO, true);
     } else {
-	snprintf (ArrayBlock(s_SocketPath), GLERIS_SOCKET, getenv("HOME"), dinfo.display);
+	const char* sockfmt = GLERIS_XDG_SOCKET;
+	const char* sockdir = getenv ("XDG_RUNTIME_DIR");
+	if (!sockdir) {
+	    sockfmt = GLERIS_SOCKET;
+	    sockdir = getenv("HOME");
+	}
+	snprintf (ArrayBlock(s_SocketPath), sockfmt, sockdir, dinfo.display);
 	if (0 == access (s_SocketPath, F_OK))
 	    throw XError ("gleris is already running on socket %s", s_SocketPath);
 	DTRACE ("Listening on local socket %s\n", s_SocketPath);

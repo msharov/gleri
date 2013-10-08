@@ -7,16 +7,17 @@
 #pragma once
 
 // Define to the one symbol short name of this package.
-#define GLERI_NAME	"@PKG_NAME@"
+#define GLERI_NAME		"@PKG_NAME@"
 // Define to the version string of this package.
-#define GLERI_VERSTRING	"@PKG_VERSTR@"
+#define GLERI_VERSTRING		"@PKG_VERSTR@"
 // Define to the address where bug reports for this package should be sent.
-#define GLERI_BUGREPORT	"@PKG_BUGREPORT@"
+#define GLERI_BUGREPORT		"@PKG_BUGREPORT@"
 
 // Define to the name of the service executable
-#define GLERIS_NAME	"@PKG_NAME@s"
-#define GLERIS_SOCKET	"%s/.config/" GLERIS_NAME "-%u.socket"
-#define GLERIS_PORT	6540
+#define GLERIS_NAME		"@PKG_NAME@s"
+#define GLERIS_SOCKET		"%s/.config/" GLERIS_NAME "-%u.socket"
+#define GLERIS_XDG_SOCKET	"%s/" GLERIS_NAME "-%u.socket"
+#define GLERIS_PORT		6540
 enum {
     GLERI_VERSION = @PKG_VERSION@,
     GLERI_PROTOCOL_VERSION = 0
