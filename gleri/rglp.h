@@ -83,7 +83,7 @@ public:
     inline void			Export (const char* ol)		{ CCmdBuf::Export (ol); }
     inline void			Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, const void* ad, uint32_t adsz)	{ Cmd (ECmd::Auth, SArgv(argc,argv), hostname, pid, SDataBlock(ad,adsz)); }
     inline void			Open (const char* title, const SWinInfo& winfo)			{ Cmd(ECmd::Open,winfo,title); }
-    inline void			Open (const char* title, dim_t w, dim_t h, uint8_t glver =0x33)	{ Open (title, (SWinInfo){ 0,0,w,h,0,glver,0,0,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }); }
+    inline void			Open (const char* title, dim_t w, dim_t h, uint8_t mingl = 0x33, uint8_t maxgl = 0, SWinInfo::EMSAA aa = SWinInfo::MSAA_OFF)	{ Open (title, (SWinInfo){ 0,0,w,h,0,mingl,maxgl,aa,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }); }
     inline void			Close (void)			{ Cmd(ECmd::Close); }
     inline draww_t		Draw (size_type sz);
     inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }

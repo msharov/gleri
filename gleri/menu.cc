@@ -74,7 +74,7 @@ void CPopupMenu::OnInit (void)
     _items.SetFocus (0);
 
     CWidget::SSize isz = _items.OnMeasure();
-    Open ("Menu", (SWinInfo){ _x,_y,isz.w,isz.h,_parent,0x33,0,0,SWinInfo::type_PopupMenu,SWinInfo::state_Normal,SWinInfo::flag_None });
+    Open ("Menu", (SWinInfo){ _x,_y,isz.w,isz.h,_parent,0x33,0,SWinInfo::MSAA_OFF,SWinInfo::type_PopupMenu,SWinInfo::state_Normal,SWinInfo::flag_None });
 }
 
 void CPopupMenu::OnResize (dim_t w, dim_t h)

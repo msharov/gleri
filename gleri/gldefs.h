@@ -312,7 +312,14 @@ struct alignas(4) SWinInfo {
     dim_t	w,h;
     uint16_t	parent;
     uint8_t	mingl,maxgl;
-    uint8_t	aa;
+    enum EMSAA : uint8_t {
+	MSAA_OFF,
+	MSAA_2X,
+	MSAA_4X,
+	MSAA_8X,
+	MSAA_16X,
+	MSAA_MAX = MSAA_16X,
+    }		aa;
     enum EWinType : uint8_t {
 	type_Normal,
 	type_Desktop,

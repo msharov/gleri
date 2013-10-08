@@ -16,20 +16,17 @@
 
 CGleris::CGleris (void) noexcept
 : CApp()
-,_fbconfig (nullptr)
 ,_curCli (nullptr)
 ,_win()
 ,_iconn()
 ,_dpy (nullptr)
-,_visinfo (nullptr)
-,_colormap (None)
-,_screen (None)
 ,_rootWindow (None)
 ,_nextiid (0)
 ,_localSocket()
 ,_tcpSocket()
 ,_glversion (0)
 ,_options (0)
+,_fbconfig()
 {
     DTRACE ("gleris " GLERI_VERSTRING " started\n");
     syslog (LOG_INFO, "gleris " GLERI_VERSTRING " started");
@@ -203,40 +200,55 @@ void CGleris::Init (argc_t argc, argv_t argv)
     if (!glXQueryVersion (_dpy, &glx_major, &glx_minor) || (glx_major<<4|glx_minor) < 0x14)
 	XError::emit ("X server does not support GLX 1.4");
     DTRACE("Opened X server connection. GLX %d.%d available\n", glx_major, glx_minor);
-
+    //
+    // Get fbconfigs and visuals
+    //
     static const int fbconfattr[] = {
 	GLX_DRAWABLE_TYPE,	GLX_WINDOW_BIT,
 	GLX_X_VISUAL_TYPE,	GLX_TRUE_COLOR,
 	GLX_RENDER_TYPE,	GLX_RGBA_BIT,
 	GLX_DOUBLEBUFFER,	True,
-	GLX_DEPTH_SIZE,		16,
 	GLX_RED_SIZE,		8,
 	GLX_GREEN_SIZE,		8,
 	GLX_BLUE_SIZE,		8,
 	GLX_ALPHA_SIZE,		8,
+	GLX_DEPTH_SIZE,		16,
 	0
     };
     int fbcount;
     GLXFBConfig* fbcs = glXChooseFBConfig (_dpy, DefaultScreen(_dpy), fbconfattr, &fbcount);
     if (!fbcs || !fbcount)
 	XError::emit ("no suitable visuals available");
-    _fbconfig = fbcs[0];
+    DTRACE("%d fbconfigs available\n", fbcount);
+    for (int i = 0, ss = 0, sn = 0; i < fbcount; ++i) {
+	glXGetFBConfigAttrib (_dpy, fbcs[i], GLX_SAMPLES, &sn);
+	if (ss <= (int) ArraySize(_fbconfig) && !_fbconfig[ss] && sn >= ((!!ss)<<ss)) {
+	    _fbconfig[ss++] = fbcs[i];
+	    #ifndef NDEBUG
+		int id = 0; glXGetFBConfigAttrib (_dpy, fbcs[i], GLX_VISUAL_ID, &id);
+		DTRACE("FBConfig %x: MSAA %d\n", id, sn);
+	    #endif
+	}
+    }
+    for (unsigned i = 0; i < ArraySize(_fbconfig); ++i)	// Check for unavailable MSAA configs
+	if (!_fbconfig[i])				// [0] is always valid at this point, so propagate
+	    _fbconfig[i] = _fbconfig[i-1];
     XFree (fbcs);
 
-    _visinfo = glXGetVisualFromFBConfig (_dpy, _fbconfig);
-    if (!_visinfo)
-	XError::emit ("no suitable visuals available");
-    _screen = _visinfo->screen;
-    _rootWindow = RootWindow(_dpy, _screen);
+    for (unsigned i = 0; i < ArraySize(_visinfo); ++i)
+	if (!(_visinfo[i] = glXGetVisualFromFBConfig (_dpy, _fbconfig[i])))
+	    XError::emit ("no suitable visuals available");
+    _rootWindow = RootWindow(_dpy, _visinfo[0]->screen);
     //
     // Create global resources
     //
-    _colormap = XCreateColormap(_dpy, _rootWindow, _visinfo->visual, AllocNone);
+    for (unsigned i = 0; i < ArraySize(_colormap); ++i)
+	_colormap[i] = XCreateColormap(_dpy, _rootWindow, _visinfo[i]->visual, AllocNone);
 
     // Create the root gl context (share root)
-    static const SWinInfo rootinfo = { 0, 0, 1, 1, 0, 0x33, 0x43, 0, SWinInfo::type_Normal, SWinInfo::state_Hidden, SWinInfo::flag_None };
+    static const SWinInfo rootinfo = { 0, 0, 1, 1, 0, 0x33, 0x43, SWinInfo::MSAA_OFF, SWinInfo::type_Normal, SWinInfo::state_Hidden, SWinInfo::flag_None };
     Window rctxw = CreateWindow (rootinfo);	// Temporary window to create the root gl context
-    GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig, GLX_RGBA_TYPE, nullptr, True);
+    GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig[0], GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
 	XError::emit ("failed to create an OpenGL context");
     glXMakeCurrent (_dpy, rctxw, ctx);
@@ -380,17 +392,17 @@ unsigned CGleris::WinStateAtoms (const SWinInfo& winfo, uint32_t a[16]) const no
 Window CGleris::CreateWindow (const SWinInfo& winfo)
 {
     XSetWindowAttributes swa;
-    swa.colormap = _colormap;
+    swa.colormap = _colormap[winfo.aa];
     swa.background_pixmap = None;
     swa.backing_store = NotUseful;
-    swa.border_pixel = BlackPixel (_dpy, _screen);
+    swa.border_pixel = BlackPixel (_dpy, _visinfo[winfo.aa]->screen);
     swa.event_mask =
 	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
 	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask;
     swa.save_under = swa.override_redirect = winfo.Decoless();
 
     Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
-				_visinfo->depth, InputOutput, _visinfo->visual,
+				_visinfo[winfo.aa]->depth, InputOutput, _visinfo[winfo.aa]->visual,
 				CWBackPixmap| CWBackingStore| CWOverrideRedirect|
 				CWSaveUnder| CWBorderPixel| CWColormap| CWEventMask, &swa);
     DTRACE ("Created window %x, %ux%u+%d+%d\n", win, winfo.w,winfo.h, winfo.x,winfo.y);
@@ -690,6 +702,8 @@ CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, 
     if (reqver < winfo.mingl)
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
     winfo.mingl = 0x33; winfo.maxgl = reqver;
+    if (winfo.aa > SWinInfo::MSAA_MAX)
+	winfo.aa = SWinInfo::MSAA_MAX;
 
     // Create the window
     Window wid = CreateWindow (winfo);
@@ -702,7 +716,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, 
 	GLX_CONTEXT_PROFILE_MASK_ARB,	GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 	None
     };
-    GLXContext ctx = glXCreateContextAttribsARB (_dpy, _fbconfig, _win.empty() ? nullptr : _win[0]->ContextId(), True, context_attribs);
+    GLXContext ctx = glXCreateContextAttribsARB (_dpy, _fbconfig[winfo.aa], _win.empty() ? nullptr : _win[0]->ContextId(), True, context_attribs);
     if (!ctx)
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
     if (!glXIsDirect (_dpy, ctx)) {

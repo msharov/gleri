@@ -120,21 +120,20 @@ private:
     inline void		OnXlibIOError (void) { _dpy = nullptr; }
     static inline void	DTRACE_EventType (const XEvent& e) noexcept;
 private:
-    GLXFBConfig		_fbconfig;
     CGLWindow*		_curCli;
     vector<CGLWindow*>	_win;
     vector<CIConn*>	_iconn;
     Display*		_dpy;
-    XVisualInfo*	_visinfo;
-    Colormap		_colormap;
-    XID			_screen;
     Window		_rootWindow;
-    Atom		_atoms [a_Last];
     iid_t		_nextiid;
     CFile		_localSocket;
     CFile		_tcpSocket;
     uint8_t		_glversion;
     uint8_t		_options;
+    Atom		_atoms [a_Last];
+    GLXFBConfig		_fbconfig[G::SWinInfo::MSAA_MAX+1];
+    XVisualInfo*	_visinfo[G::SWinInfo::MSAA_MAX+1];
+    Colormap		_colormap[G::SWinInfo::MSAA_MAX+1];
     char		_xauth [XAUTH_DATA_LEN];
     static char*	_xlib_error;
     static char		s_SocketPath [c_SocketPathLen];
