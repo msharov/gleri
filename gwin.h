@@ -59,8 +59,8 @@ public:
     inline GLuint		LastRenderTime (void) const	{ return (_syncEvent.time); }
     inline GLuint		LastFrameTime (void) const	{ return (_syncEvent.key); }
 				// Resource loader by enum
-    GLuint			LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz);
-    GLuint			LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLuint pak, const char* filename, GLuint flnsz);
+    GLuint			LoadResource (G::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz);
+    GLuint			LoadPakResource (G::EResource dtype, uint16_t hint, GLuint pak, const char* filename, GLuint flnsz);
     void			FreeResource (G::EResource dtype, GLuint id);
 				// Datapak
     GLuint			LoadDatapak (const char* filename);
@@ -147,9 +147,10 @@ public:
 				}
 				//}}}
 				// Texture
-    GLuint			LoadTexture (const GLubyte* d, GLuint dsz);
-    GLuint			LoadTexture (const char* filename);
+    GLuint			LoadTexture (const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas);
+    GLuint			LoadTexture (const char* filename, G::Pixel::Fmt storeas);
     void			FreeTexture (GLuint id);
+    inline void			TexParameter (G::Texture::Type t, G::Texture::Parameter p, int v)	{ _texparam.Set(t,p,v); }
     const CTexture*		Texture (GLuint id) const;
     void			Sprite (coord_t x, coord_t y, GLuint id);
     void			Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy, dim_t sw, dim_t sh);
@@ -187,4 +188,5 @@ private:
     GLuint			_curFont;
     SWinInfo			_winfo;
     struct { coord_t x,y,w,h; }	_viewport;
+    CTexture::CParam		_texparam;
 };

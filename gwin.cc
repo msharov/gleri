@@ -182,7 +182,7 @@ uint64_t CGLWindow::DrawPendingFrame (Display* dpy) noexcept
     }
 }
 
-GLuint CGLWindow::LoadResource (G::EResource dtype, G::EBufferHint hint, const GLubyte* d, GLuint dsz)
+GLuint CGLWindow::LoadResource (G::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz)
 {
     GLuint sid = CGObject::NoObject;
     switch (dtype) {
@@ -195,19 +195,19 @@ GLuint CGLWindow::LoadResource (G::EResource dtype, G::EBufferHint hint, const G
 	    sid = LoadShader (shs[0],shs[1],shs[2],shs[3],shs[4]);
 	    } break;
 	case G::EResource::TEXTURE:
-	    sid = LoadTexture (d, dsz);
+	    sid = LoadTexture (d, dsz, G::Pixel::Fmt(hint));
 	    break;
 	case G::EResource::FONT:
 	    sid = LoadFont (d, dsz);
 	    break;
 	default:
-	    BufferData (sid = CreateBuffer(G::EBufferType(dtype)), d, dsz, hint, G::EBufferType(dtype)); break;
+	    BufferData (sid = CreateBuffer(G::EBufferType(dtype)), d, dsz, G::EBufferHint(hint), G::EBufferType(dtype)); break;
 	    break;
     }
     return (sid);
 }
 
-GLuint CGLWindow::LoadPakResource (G::EResource dtype, G::EBufferHint hint, GLuint pak, const char* filename, GLuint flnsz)
+GLuint CGLWindow::LoadPakResource (G::EResource dtype, uint16_t hint, GLuint pak, const char* filename, GLuint flnsz)
 {
     if (dtype == G::EResource::SHADER) {
 	const char* shs[5];
@@ -466,18 +466,18 @@ void CGLWindow::Enable (G::EFeature f, uint16_t o) noexcept
 //----------------------------------------------------------------------
 // Texture
 
-GLuint CGLWindow::LoadTexture (const GLubyte* d, GLuint dsz)
+GLuint CGLWindow::LoadTexture (const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas)
 {
     DTRACE ("[%x] LoadTexture %u bytes\n", IId(), dsz);
-    _texture.emplace_back (ContextId(), d, dsz);
+    _texture.emplace_back (ContextId(), d, dsz, storeas, _texparam);
     return (_texture.back().Id());
 }
 
-GLuint CGLWindow::LoadTexture (const char* filename)
+GLuint CGLWindow::LoadTexture (const char* filename, G::Pixel::Fmt storeas)
 {
     CMMFile f (filename);
     DTRACE ("[%x] LoadTexture from file %s\n", IId(), filename);
-    return (LoadTexture (f.MMData(), f.MMSize()));
+    return (LoadTexture (f.MMData(), f.MMSize(), storeas));
 }
 
 void CGLWindow::FreeTexture (GLuint id)
@@ -499,7 +499,7 @@ void CGLWindow::Sprite (coord_t x, coord_t y, GLuint id)
     SetTextureShader();
     UniformTexture ("Texture", pimg->Id());
     Uniform4f ("ImageRect", x, y, pimg->Width(), pimg->Height());
-    Uniform4f ("SpriteRect", 0, 0, pimg->Width(), pimg->Height());
+    Uniform4f ("SpriteRect", 0, 0, pimg->Width()-1, pimg->Height()-1);
     glDrawArrays (GL_POINTS, 0, 1);
 }
 
@@ -511,7 +511,7 @@ void CGLWindow::Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy,
     SetTextureShader();
     UniformTexture ("Texture", pimg->Id());
     Uniform4f ("ImageRect", x, y, pimg->Width(), pimg->Height());
-    Uniform4f ("SpriteRect", sx, sy, sw, sh);
+    Uniform4f ("SpriteRect", sx, sy, sw-1, sh-1);
     glDrawArrays (GL_POINTS, 0, 1);
 }
 

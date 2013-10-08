@@ -121,15 +121,136 @@ enum EDefaultResource : goid_t {
 };
 
 namespace Pixel {
-enum EComp : uint16_t {
-    RED		= 0x1903,
-    RG		= 0x8227,
-    RGB		= 0x1907,
-    BGR		= 0x80e0,
-    RGBA	= 0x1908,
-    BGRA	= 0x80e1
+enum Fmt : uint16_t {
+    // Core formats
+    STENCIL_INDEX	= 0x1901,
+    DEPTH_COMPONENT	= 0x1902,
+    DEPTH_STENCIL	= 0x84f9,
+    RED			= 0x1903,
+    RG			= 0x8227,
+    RGB			= 0x1907,
+    BGR			= 0x80e0,
+    RGBA		= 0x1908,
+    BGRA		= 0x80e1,
+    RED_INTEGER		= 0x8d94,
+    RG_INTEGER		= 0x8228,
+    RGB_INTEGER		= 0x8d98,
+    BGR_INTEGER		= 0x8d9a,
+    RGBA_INTEGER	= 0x8d99,
+    BGRA_INTEGER	= 0x8d9b,
+    //{{{ Sized formats
+    // Red
+    R8			= 0x8229,
+    R8I			= 0x8231,
+    R8UI		= 0x8232,
+    R8_SNORM		= 0x8F94,
+    R3_G3_B2		= 0x2A10,
+    R11F_G11F_B10F	= 0x8C3A,
+    R16			= 0x822A,
+    R16F		= 0x822D,
+    R16I		= 0x8233,
+    R16UI		= 0x8234,
+    R16_SNORM		= 0x8F98,
+    R32F		= 0x822E,
+    R32I		= 0x8235,
+    R32UI		= 0x8236,
+    // RG
+    RG8			= 0x822B,
+    RG8I		= 0x8237,
+    RG8UI		= 0x8238,
+    RG8_SNORM		= 0x8F95,
+    RG16		= 0x822C,
+    RG16F		= 0x822F,
+    RG16I		= 0x8239,
+    RG16UI		= 0x823A,
+    RG16_SNORM		= 0x8F99,
+    RG32F		= 0x8230,
+    RG32I		= 0x823B,
+    RG32UI		= 0x823C,
+    // RGB
+    RGB4		= 0x804F,
+    RGB5		= 0x8050,
+    RGB8		= 0x8051,
+    RGB10		= 0x8052,
+    RGB12		= 0x8053,
+    RGB16		= 0x8054,
+    RGB8I		= 0x8D8F,
+    RGB8UI		= 0x8D7D,
+    RGB8_SNORM		= 0x8F96,
+    RGB9_E5		= 0x8C3D,
+    RGB10_A2UI		= 0x906F,
+    RGB16F		= 0x881B,
+    RGB16I		= 0x8D89,
+    RGB16UI		= 0x8D77,
+    RGB16_SNORM		= 0x8F9A,
+    RGB565		= 0x8D62,
+    RGB32F		= 0x8815,
+    RGB32I		= 0x8D83,
+    RGB32UI		= 0x8D71,
+    // RGBA
+    RGBA2		= 0x8055,
+    RGBA4		= 0x8056,
+    RGBA8		= 0x8058,
+    RGBA12		= 0x805A,
+    RGBA16		= 0x805B,
+    RGBA8I		= 0x8D8E,
+    RGBA8UI		= 0x8D7C,
+    RGBA8_SNORM		= 0x8F97,
+    RGB10_A2		= 0x8059,
+    RGB5_A1		= 0x8057,
+    RGBA16F		= 0x881A,
+    RGBA16I		= 0x8D88,
+    RGBA16UI		= 0x8D76,
+    RGBA16_SNORM	= 0x8F9B,
+    RGBA32F		= 0x8814,
+    RGBA32I		= 0x8D82,
+    RGBA32UI		= 0x8D70,
+    SRGB		= 0x8C40,
+    SRGB8		= 0x8C41,
+    SRGB8_ALPHA8	= 0x8C43,
+    SRGB_ALPHA		= 0x8C42,
+    //}}}
+    //{{{ Compressed formats
+    // Generic compressed formats
+    COMPRESSED_RED			= 0x8225,
+    COMPRESSED_RG			= 0x8226,
+    COMPRESSED_RGB			= 0x84ED,
+    COMPRESSED_RGBA			= 0x84EE,
+    COMPRESSED_SRGB			= 0x8C48,
+    COMPRESSED_SRGB_ALPHA		= 0x8C49,
+    COMPRESSED_RED_RGTC1		= 0x8DBB,
+    COMPRESSED_SIGNED_RED_RGTC1		= 0x8DBC,
+    COMPRESSED_RG_RGTC2			= 0x8DBD,
+    COMPRESSED_SIGNED_RG_RGTC2		= 0x8DBE,
+    COMPRESSED_RGBA_BPTC_UNORM		= 0x8E8C,
+    COMPRESSED_SRGB_ALPHA_BPTC_UNORM	= 0x8E8D,
+    COMPRESSED_RGB_BPTC_SIGNED_FLOAT	= 0x8E8E,
+    COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT	= 0x8E8F,
+    // ETC2 compression
+    COMPRESSED_RGB8_ETC2		= 0x9274,
+    COMPRESSED_SRGB8_ETC2		= 0x9275,
+    COMPRESSED_RGBA8_ETC2_EAC		= 0x9278,
+    COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9276,
+    COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2 = 0x9277,
+    COMPRESSED_R11_EAC			= 0x9270,
+    COMPRESSED_SIGNED_R11_EAC		= 0x9271,
+    COMPRESSED_SIGNED_RG11_EAC		= 0x9273,
+    // 3DFX extensions
+    COMPRESSED_RGB_FXT1_3DFX		= 0x86B0,
+    COMPRESSED_RGBA_FXT1_3DFX		= 0x86B1,
+    // S3TC extensions
+    COMPRESSED_RGB_S3TC_DXT1_EXT	= 0x83F0,
+    COMPRESSED_RGBA_S3TC_DXT1_EXT	= 0x83F1,
+    COMPRESSED_RGBA_S3TC_DXT3_EXT	= 0x83F2,
+    COMPRESSED_RGBA_S3TC_DXT5_EXT	= 0x83F3,
+    COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT	= 0x8C4D,
+    COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT	= 0x8C4E,
+    COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT	= 0x8C4F,
+    COMPRESSED_SRGB_S3TC_DXT1_EXT	= 0x8C4C,
+    //}}}
 };
-enum EFmt : uint16_t {
+
+enum Comp : uint16_t {
     BYTE = 0x1400,
     UNSIGNED_BYTE,
     SHORT,
@@ -152,12 +273,31 @@ enum EFmt : uint16_t {
 };
 } // namespace G::Pixel
 
+namespace Texture {
+enum Type : uint16_t {
+    TEXTURE_2D	= 0x0DE1
+};
+enum Parameter : uint16_t {
+    MAG_FILTER,
+    MIN_FILTER,
+    NPARAMS
+};
+enum Filter : uint16_t {
+    NEAREST = 0x2600,
+    LINEAR,
+    NEAREST_MIPMAP_NEAREST = 0x2700,
+    LINEAR_MIPMAP_NEAREST,
+    NEAREST_MIPMAP_LINEAR,
+    LINEAR_MIPMAP_LINEAR
+};
+} // namespace G::Texture
+
 struct alignas(8) STextureHeader {
     enum { Magic = vpack4('G','L','T','X') };
     uint32_t		magic,w;
     uint16_t		h,d;
-    G::Pixel::EComp	comp;
-    G::Pixel::EFmt	fmt;
+    G::Pixel::Fmt	fmt;
+    G::Pixel::Comp	comp;
 };
 
 struct SFontInfo {

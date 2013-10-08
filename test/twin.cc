@@ -81,7 +81,8 @@ void CTestWindow::OnInit (void)
     _vbuf = BufferData (_vdata1, sizeof(_vdata1));
     _cbuf = BufferData (_cdata1, sizeof(_cdata1));
 #if HAVE_PNG_H
-    _walk = LoadTexture ("test/princess.png");
+    TexParameter (G::Texture::MAG_FILTER, G::Texture::LINEAR);
+    _walk = LoadTexture ("test/princess.png", G::Pixel::COMPRESSED_RGBA);
 #endif
 #if HAVE_JPEGLIB_H
     _cat = LoadTexture ("test/pgcat.jpg");

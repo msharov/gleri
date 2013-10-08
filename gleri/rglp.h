@@ -31,6 +31,7 @@ private:
 	LoadPakFile,
 	FreeResource,
 	BufferSubData,
+	TexParameter,
 	NCmds,
     };
     //{{{ Serialization helper objects: SShader, SArgv
@@ -95,10 +96,12 @@ public:
     inline goid_t		LoadDatapak (const char* f);
     inline goid_t		LoadDatapak (goid_t pak, const char* f);
     inline void			FreeDatapak (goid_t id);
-    inline goid_t		LoadTexture (const void* d, uint32_t dsz);
-    inline goid_t		LoadTexture (const char* f);
-    inline goid_t		LoadTexture (goid_t pak, const char* f);
+    inline goid_t		LoadTexture (const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA);
+    inline goid_t		LoadTexture (const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
+    inline goid_t		LoadTexture (goid_t pak, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline void			FreeTexture (goid_t id);
+    inline void			TexParameter (G::Texture::Type t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
+    inline void			TexParameter (G::Texture::Parameter p, int v)				{ TexParameter (G::Texture::TEXTURE_2D,p,v); }
     inline goid_t		LoadFont (const void* d, uint32_t dsz);
     inline goid_t		LoadFont (const char* f);
     inline goid_t		LoadFont (goid_t pak, const char* f);
@@ -125,9 +128,9 @@ private:
     static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
     static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
 				// Generic loader interface
-    inline goid_t		LoadData (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW);
-    inline goid_t		LoadPakFile (G::EResource dtype, goid_t pak, const char* filename, G::EBufferHint hint = G::STATIC_DRAW);
-    goid_t			LoadFile (G::EResource dtype, const char* filename, G::EBufferHint hint = G::STATIC_DRAW);
+    inline goid_t		LoadData (G::EResource dtype, const void* data, uint32_t dsz, uint16_t hint);
+    inline goid_t		LoadPakFile (G::EResource dtype, goid_t pak, const char* filename, uint16_t hint);
+    goid_t			LoadFile (G::EResource dtype, const char* filename, uint16_t hint);
     inline void			FreeResource (goid_t id, G::EResource dtype);
 private:
     goid_t			_lastid;
@@ -156,9 +159,9 @@ inline void PRGL::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
 
 inline PRGL::draww_t PRGL::Draw (size_type sz)
     { bstro os = CreateCmd (ECmd::Draw,sz+sizeof(size_type)); os << sz; return (draww_t(os)); }
-inline PRGL::goid_t PRGL::LoadData (G::EResource dtype, const void* data, uint32_t dsz, G::EBufferHint hint)
+inline PRGL::goid_t PRGL::LoadData (G::EResource dtype, const void* data, uint32_t dsz, uint16_t hint)
     { goid_t id = GenId(); Cmd (ECmd::LoadData, id, dtype, hint, dsz, uint32_t(0), SDataBlock (data, dsz)); return (id); }
-inline PRGL::goid_t PRGL::LoadPakFile (G::EResource dtype, goid_t pak, const char* filename, G::EBufferHint hint)
+inline PRGL::goid_t PRGL::LoadPakFile (G::EResource dtype, goid_t pak, const char* filename, uint16_t hint)
     { goid_t id = GenId(); Cmd (ECmd::LoadPakFile, id, dtype, hint, pak, filename); return (id); }
 inline void PRGL::FreeResource (goid_t id, G::EResource dtype)
     { Cmd (ECmd::FreeResource, id, dtype); if (id==_lastid) --_lastid; }
@@ -175,29 +178,29 @@ inline void PRGL::FreeBuffer (goid_t id)
     { FreeResource (id, G::EResource::BUFFER_VERTEX); }
 
 inline PRGL::goid_t PRGL::LoadDatapak (const void* d, uint32_t dsz)
-    { return (LoadData (G::EResource::DATAPAK, d, dsz)); }
+    { return (LoadData (G::EResource::DATAPAK, d, dsz, 0)); }
 inline PRGL::goid_t PRGL::LoadDatapak (const char* f)
-    { return (LoadFile (G::EResource::DATAPAK, f)); }
+    { return (LoadFile (G::EResource::DATAPAK, f, 0)); }
 inline PRGL::goid_t PRGL::LoadDatapak (goid_t pak, const char* f)
-    { return (LoadPakFile (G::EResource::DATAPAK, pak, f)); }
+    { return (LoadPakFile (G::EResource::DATAPAK, pak, f, 0)); }
 inline void PRGL::FreeDatapak (goid_t id)
     { FreeResource (id, G::EResource::DATAPAK); }
 
-inline PRGL::goid_t PRGL::LoadTexture (const void* d, uint32_t dsz)
-    { return (LoadData (G::EResource::TEXTURE, d, dsz)); }
-inline PRGL::goid_t PRGL::LoadTexture (const char* filename)
-    { return (LoadFile (G::EResource::TEXTURE, filename)); }
-inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, const char* f)
-    { return (LoadPakFile (G::EResource::TEXTURE, pak, f)); }
+inline PRGL::goid_t PRGL::LoadTexture (const void* d, uint32_t dsz, G::Pixel::Fmt storeas)
+    { return (LoadData (G::EResource::TEXTURE, d, dsz, storeas)); }
+inline PRGL::goid_t PRGL::LoadTexture (const char* filename, G::Pixel::Fmt storeas)
+    { return (LoadFile (G::EResource::TEXTURE, filename, storeas)); }
+inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, const char* f, G::Pixel::Fmt storeas)
+    { return (LoadPakFile (G::EResource::TEXTURE, pak, f, storeas)); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, G::EResource::TEXTURE); }
 
 inline PRGL::goid_t PRGL::LoadFont (const void* d, uint32_t dsz)
-    { return (LoadData (G::EResource::FONT, d, dsz)); }
+    { return (LoadData (G::EResource::FONT, d, dsz, 0)); }
 inline PRGL::goid_t PRGL::LoadFont (const char* f)
-    { return (LoadFile (G::EResource::FONT, f)); }
+    { return (LoadFile (G::EResource::FONT, f, 0)); }
 inline PRGL::goid_t PRGL::LoadFont (goid_t pak, const char* f)
-    { return (LoadPakFile (G::EResource::FONT, pak, f)); }
+    { return (LoadPakFile (G::EResource::FONT, pak, f, 0)); }
 inline void PRGL::FreeFont (goid_t id)
     { FreeResource (id, G::EResource::FONT); }
 
@@ -262,7 +265,7 @@ template <typename F>
 	case ECmd::LoadData:
 	case ECmd::LoadPakFile:
 	case ECmd::LoadFile: {
-	    goid_t id; G::EBufferHint hint; G::EResource dtype;
+	    goid_t id; G::EResource dtype; uint16_t hint;
 	    Args (cmdis, id, dtype, hint);
 	    clir->VerifyFreeId (id);
 	    uint32_t sid;
@@ -300,6 +303,11 @@ template <typename F>
 	    goid_t id; G::EBufferType btype; G::EBufferHint hint; uint32_t offset; SDataBlock d;
 	    Args (cmdis, id, btype, hint, offset, d);
 	    clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
+	    } break;
+	case ECmd::TexParameter: {
+	    G::Texture::Type t; G::Texture::Parameter p; int v;
+	    Args (cmdis, t,p,v);
+	    clir->TexParameter (t,p,v);
 	    } break;
 	default:
 	    XError::emit ("invalid protocol command");

@@ -54,9 +54,9 @@ public:
     inline goid_t	LoadDatapak (const char* f)			{ return (_prgl->LoadDatapak(f)); }
     inline goid_t	LoadDatapak (goid_t pak, const char* f)		{ return (_prgl->LoadDatapak(pak,f)); }
     inline void		FreeDatapak (goid_t id)				{ _prgl->FreeDatapak(id); }
-    inline goid_t	LoadTexture (const void* d, uint32_t dsz)	{ return (_prgl->LoadTexture(d,dsz)); }
-    inline goid_t	LoadTexture (const char* f)			{ return (_prgl->LoadTexture(f)); }
-    inline goid_t	LoadTexture (goid_t pak, const char* f)		{ return (_prgl->LoadTexture(pak,f)); }
+    inline goid_t	LoadTexture (const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(d,dsz,storeas)); }
+    inline goid_t	LoadTexture (const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)			{ return (_prgl->LoadTexture(f,storeas)); }
+    inline goid_t	LoadTexture (goid_t pak, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)		{ return (_prgl->LoadTexture(pak,f,storeas)); }
     inline void		FreeTexture (goid_t id)				{ _prgl->FreeTexture(id); }
     inline goid_t	LoadFont (const void* d, uint32_t dsz)		{ return (_prgl->LoadFont(d,dsz)); }
     inline goid_t	LoadFont (const char* f)			{ return (_prgl->LoadFont(f)); }

@@ -5,7 +5,16 @@
 
 #include "gotex.h"
 
-CTexture::CTexture (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept
+//----------------------------------------------------------------------
+
+/*static*/ const int CTexture::CParam::c_Defaults [G::Texture::NPARAMS] = {
+    GL_NEAREST,		// MAG_FILTER
+    GL_NEAREST		// MIN_FILTER
+};
+
+//----------------------------------------------------------------------
+
+CTexture::CTexture (GLXContext ctx, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, const CParam& param) noexcept
 : CGObject (ctx, GenId())
 ,_width(0)
 ,_height(0)
@@ -20,10 +29,10 @@ CTexture::CTexture (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept
 	return;
     }
     glBindTexture (GL_TEXTURE_2D, Id());
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, param.Get (G::Texture::TEXTURE_2D, G::Texture::MAG_FILTER));
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, param.Get (G::Texture::TEXTURE_2D, G::Texture::MIN_FILTER));
     const G::STextureHeader& h = tbuf.Header();
-    glTexImage2D (GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA, h.w, h.h, 0, h.comp, h.fmt, tbuf.Data());
+    glTexImage2D (GL_TEXTURE_2D, 0, storeas, h.w, h.h, 0, h.fmt, h.comp, tbuf.Data());
     _width = h.w; _height = h.h;
 }
 

@@ -8,7 +8,17 @@
 
 class CTexture : public CGObject {
 public:
-			CTexture (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept;
+    class CParam {
+    public:
+	inline		CParam (void)	{ copy_n (c_Defaults, G::Texture::NPARAMS, _p); }
+	inline int	Get (G::Texture::Type, G::Texture::Parameter p) const	{ assert (p < G::Texture::NPARAMS); return (_p[p]); }
+	inline void	Set (G::Texture::Type, G::Texture::Parameter p, int v)	{ if (p < G::Texture::NPARAMS) _p[p] = v; }
+    private:
+	int		_p [G::Texture::NPARAMS];
+	static const int c_Defaults [G::Texture::NPARAMS];
+    };
+public:
+			CTexture (GLXContext ctx, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, const CParam& param) noexcept;
     inline		~CTexture (void) noexcept { Free(); }
     inline explicit	CTexture (CTexture&& v)	: CGObject(forward<CTexture>(v)),_width(v._width),_height(v._height) {}
     inline CTexture&	operator= (CTexture&& v){ CGObject::operator= (forward<CTexture>(v)); _width = v._width; _height = v._height; return (*this); }
@@ -25,8 +35,8 @@ private:
 	inline constexpr	CTexBuf (void)		:_h(),_sz(0),_p(nullptr) {}
 	inline constexpr	CTexBuf (const texhdr_t& h)
 				    :_h(h),_sz(0),_p((pointer)const_cast<texhdr_t*>(&h+1)) {}
-	inline			CTexBuf (G::Pixel::EComp comp, G::Pixel::EFmt fmt, uint32_t w, uint16_t h=1, uint16_t d=1)
-				    :_h { texhdr_t::Magic, w,h,d,comp,fmt }
+	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint32_t w, uint16_t h=1, uint16_t d=1)
+				    :_h { texhdr_t::Magic, w,h,d,fmt,comp }
 				    ,_sz (w*h*sizeof(value_type))
 				    ,_p ((pointer)malloc(_sz)) {}
 	inline			~CTexBuf (void)		{ if (_p && _sz) free(_p); }

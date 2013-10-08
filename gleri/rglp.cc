@@ -21,6 +21,7 @@
      N(LoadPakFile,uqqus)
      N(FreeResource,uq)
      N(BufferSubData,uqquay)
+     N(TexParameter,qqi)
 ;
 #undef N
 
@@ -41,7 +42,7 @@ bstro PRGL::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
     return (CCmdBuf::CreateCmd (c_ObjectName, m, msz, sz, unwritten));
 }
 
-PRGL::goid_t PRGL::LoadFile (G::EResource dtype, const char* filename, G::EBufferHint hint)
+PRGL::goid_t PRGL::LoadFile (G::EResource dtype, const char* filename, uint16_t hint)
 {
     goid_t id = GenId();
     CFile f (filename, O_RDONLY);
