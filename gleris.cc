@@ -118,13 +118,14 @@ CCmdBuf* CGleris::LookupConnection (int fd) noexcept
     return (nullptr);
 }
 
-void CGleris::Authenticate (CCmdBuf& cmdbuf, uint32_t pid, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth)
+void CGleris::Authenticate (CCmdBuf& cmdbuf, uint32_t pid, uint32_t screen, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth)
 {
     CIConn& pconn = static_cast<CIConn&>(cmdbuf);
     if (!xauth._p || xauth._sz != ArraySize(_xauth) || 0 != memcmp(_xauth, xauth._p, ArraySize(_xauth)))
 	XError::emit ("invalid xauth token");
     pconn.SetAuthenticated();
     pconn.SetPid (pid);
+    pconn.SetScreen (screen);
     pconn.SetHostname (hostname);
     pconn.SetArgv (argv);
 }
@@ -289,7 +290,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
     uint32_t mypid = getpid();
     char hostname [HOST_NAME_MAX];
     gethostname (ArrayBlock(hostname));
-    Authenticate (*_iconn.back(), mypid, hostname, CCmd::SDataBlock(argv[0],strlen(argv[0])), CCmd::SDataBlock(_xauth,sizeof(_xauth)));
+    Authenticate (*_iconn.back(), mypid, 0, hostname, CCmd::SDataBlock(argv[0],strlen(argv[0])), CCmd::SDataBlock(_xauth,sizeof(_xauth)));
     CreateClient (0, rootinfo, "gleris", _iconn.back());
     _iconn.back()->LoadDefaultResources (_curCli);
 

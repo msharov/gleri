@@ -21,7 +21,7 @@ public:
     inline explicit	CWindow (iid_t wid) noexcept;
     inline virtual	~CWindow (void)			{ }
     inline void		Export (const char* ol)		{ PRGL::Export (ol); }
-    inline void		Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, const void* ad, uint32_t adsz)	{ PRGL::Authenticate(argc,argv,hostname,pid,ad,adsz); }
+    inline void		Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, uint32_t screen, const void* ad, uint32_t adsz)	{ PRGL::Authenticate(argc,argv,hostname,pid,screen,ad,adsz); }
     inline virtual void	OnExpose (void)			{ Draw(); }
     inline virtual void	OnInit (void)			{ }
     virtual void	OnTimer (uint64_t tms);

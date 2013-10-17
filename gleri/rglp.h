@@ -81,7 +81,7 @@ public:
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
 				// Commands
     inline void			Export (const char* ol)		{ CCmdBuf::Export (ol); }
-    inline void			Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, const void* ad, uint32_t adsz)	{ Cmd (ECmd::Auth, SArgv(argc,argv), hostname, pid, SDataBlock(ad,adsz)); }
+    inline void			Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, uint32_t screen, const void* ad, uint32_t adsz)	{ Cmd (ECmd::Auth, SArgv(argc,argv), hostname, pid, screen, SDataBlock(ad,adsz)); }
     inline void			Open (const char* title, const SWinInfo& winfo)			{ Cmd(ECmd::Open,winfo,title); }
     inline void			Open (const char* title, dim_t w, dim_t h, uint8_t mingl = 0x33, uint8_t maxgl = 0, SWinInfo::EMSAA aa = SWinInfo::MSAA_OFF)	{ Open (title, (SWinInfo){ 0,0,w,h,0,mingl,maxgl,aa,SWinInfo::type_Normal,SWinInfo::state_Normal,SWinInfo::flag_None }); }
     inline void			Close (void)			{ Cmd(ECmd::Close); }
@@ -239,9 +239,9 @@ template <typename F>
 	case ECmd::Auth: {
 	    SDataBlock argv,b;
 	    const char* hostname = nullptr;
-	    uint32_t pid;
-	    Args (cmdis, argv, hostname, pid, b);
-	    f.Authenticate (cmdbuf, pid, hostname, argv, b);
+	    uint32_t pid,screen;
+	    Args (cmdis, argv, hostname, pid, screen, b);
+	    f.Authenticate (cmdbuf, pid, screen, hostname, argv, b);
 	    } break;
 	case ECmd::Open: {
 	    SWinInfo winfo;

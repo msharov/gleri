@@ -29,6 +29,8 @@ public:
     inline uint32_t		Pid (void) const		{ return (_pid); }
     const uint32_t*		PidPtr (void) const		{ return (&_pid); }
     inline void			SetPid (uint32_t pid)		{ _pid = pid; }
+    inline uint32_t		Screen (void) const		{ return (_screen); }
+    inline void			SetScreen (uint32_t screen)	{ _screen = screen; }
 				// Shared resources
     void			LoadDefaultResources (CGLWindow* w);
     inline static bool		HaveDefaultResources (void)	{ return (_shwin); }
@@ -72,6 +74,7 @@ private:
     argv_t			_argv;
     string			_hostname;
     uint32_t			_pid;
+    uint32_t			_screen;
     static const CGLWindow*	_shwin;
     static const CIConn*	_shconn;
 };

@@ -24,7 +24,7 @@ void CGLApp::OpenWindow (CWindow* w)
 	w->Export (GLERIS_EXPORTS);
 	char hostname [HOST_NAME_MAX];
 	gethostname (ArrayBlock(hostname));
-	w->Authenticate (_argc, _argv, hostname, getpid(), ArrayBlock(_xauth));
+	w->Authenticate (_argc, _argv, hostname, getpid(), 0, ArrayBlock(_xauth));
     }
     _wins.push_back (w);
     w->OnInit();
