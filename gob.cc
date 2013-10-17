@@ -13,9 +13,20 @@ bool g_bDebugTrace = false;
 #endif
 //----------------------------------------------------------------------
 
-CBuffer::CBuffer (GLXContext ctx, G::EBufferType btype) noexcept : CGObject(ctx, GenId()), _btype(btype) {}
+CBuffer::CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::EBufferHint hint, G::EBufferType btype) noexcept
+: CGObject(ctx, cid, GenId())
+,_btype(btype)
+{
+    glBindBuffer (_btype, Id());
+    glBufferData (_btype, dsz, data, hint);
+}
+
 CBuffer::~CBuffer (void) noexcept
-    { GLuint id = Id(); if (id != NoObject) glDeleteBuffers (1, &id); }
+{
+    GLuint id = Id();
+    if (id != NoObject)
+	glDeleteBuffers (1, &id);
+}
 
 //{{{ CPIO file format definitions -------------------------------------
 namespace {
@@ -48,8 +59,8 @@ protected:
 } // namespace
 //}}}-------------------------------------------------------------------
 
-CDatapak::CDatapak (GLXContext ctx, GLubyte* p, GLuint psz) noexcept
-: CGObject(ctx, GenId())
+CDatapak::CDatapak (GLXContext ctx, goid_t cid, GLubyte* p, GLuint psz) noexcept
+: CGObject(ctx, cid, GenId())
 ,_sz (psz)
 ,_p (p)
 {

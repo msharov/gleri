@@ -86,7 +86,8 @@ void CGleris::AddConnection (int fd, bool canPassFd)
 {
     DTRACE("Incoming connection on %d, %s pass fds\n", fd, canPassFd ? "can" : "can't");
     _iconn.push_back (new CIConn (GenIId(), fd, canPassFd));
-    WatchFd (fd);
+    if (fd >= 0)
+	WatchFd (fd);
 }
 
 void CGleris::RemoveConnection (int fd) noexcept
@@ -103,7 +104,7 @@ void CGleris::RemoveConnection (int fd) noexcept
 	delete (*i);
 	--(i = _iconn.erase(i));
     }
-    if (_iconn.empty() && Option (opt_SingleClient)) {
+    if (_iconn.size() <= 1 && Option (opt_SingleClient)) {
 	DTRACE("Last connection terminated in single-client mode; quitting\n");
 	Quit();
     }
@@ -186,6 +187,20 @@ void CGleris::Init (argc_t argc, argv_t argv)
 {
     CApp::Init (argc, argv, LOG_DAEMON, LOG_CONS);
     OnArgs (argc, argv);
+    //
+    // Cache xauth information
+    //
+    const char* xdispstr = getenv("GLERI_DISPLAY");
+    if (!xdispstr) xdispstr = getenv("DISPLAY");
+    if (!xdispstr) xdispstr = ":0";
+    SXDisplay dinfo;
+    ParseXDisplay (xdispstr, dinfo);
+    if (XAUTH_DATA_LEN != GetXauthData (dinfo, _xauth))
+	DTRACE ("Error: failed to load xauth key for %s:%hu.%hu; defaulting to zero\n", dinfo.host, dinfo.display, dinfo.screen);
+    else {
+	DTRACE ("Successfully loaded xauth key for %s:%hu.%hu\n", dinfo.host, dinfo.display, dinfo.screen);
+	DHEXDUMP (ArrayBlock(_xauth));
+    }
     //
     // Connect to X display and get server information
     //
@@ -270,29 +285,18 @@ void CGleris::Init (argc_t argc, argv_t argv)
     glXDestroyContext (_dpy, ctx);
     XDestroyWindow (_dpy, rctxw);
 
-    CreateClient (0, rootinfo);
-    CIConn::LoadDefaultResources (_curCli);
+    AddConnection (-1, false);			// Dummy connection object for the share root window
+    uint32_t mypid = getpid();
+    char hostname [HOST_NAME_MAX];
+    gethostname (ArrayBlock(hostname));
+    Authenticate (*_iconn.back(), mypid, hostname, CCmd::SDataBlock(argv[0],strlen(argv[0])), CCmd::SDataBlock(_xauth,sizeof(_xauth)));
+    CreateClient (0, rootinfo, "gleris", _iconn.back());
+    _iconn.back()->LoadDefaultResources (_curCli);
 
     // Set WM properties on the root context's window
     Xutf8SetWMProperties (_dpy, _curCli->Drawable(), GLERIS_NAME, nullptr, const_cast<char**>(argv), argc, nullptr, nullptr, nullptr);
-    char hostname [HOST_NAME_MAX];
-    gethostname (ArrayBlock(hostname));
     XChangeProperty (_dpy, _curCli->Drawable(), _atoms[a_WM_CLIENT_MACHINE], _atoms[a_STRING], 8, PropModeReplace, (unsigned char*) hostname, strlen(hostname));
-    uint32_t mypid = getpid();
     XChangeProperty (_dpy, _curCli->Drawable(), _atoms[a_NET_WM_PID], _atoms[a_CARDINAL], 32, PropModeReplace, (unsigned char*) &mypid, 1);
-
-    // Cache xauth information
-    const char* xdispstr = getenv("GLERI_DISPLAY");
-    if (!xdispstr) xdispstr = getenv("DISPLAY");
-    if (!xdispstr) xdispstr = ":0";
-    SXDisplay dinfo;
-    ParseXDisplay (xdispstr, dinfo);
-    if (XAUTH_DATA_LEN != GetXauthData (dinfo, _xauth))
-	DTRACE ("Error: failed to load xauth key for %s:%hu.%hu; defaulting to zero\n", dinfo.host, dinfo.display, dinfo.screen);
-    else {
-	DTRACE ("Successfully loaded xauth key for %s:%hu.%hu\n", dinfo.host, dinfo.display, dinfo.screen);
-	DHEXDUMP (ArrayBlock(_xauth));
-    }
 
     // Start listening on server sockets
     if (Option (opt_SingleClient)) {

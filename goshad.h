@@ -58,8 +58,8 @@ public:
     };
     //}}}
 public:
-    inline		CShader (GLXContext ctx, const Sources& src)
-			    : CGObject(ctx,glCreateProgram())	{ Load(src); }
+    inline		CShader (GLXContext ctx, goid_t cid, const Sources& src)
+			    : CGObject(ctx,cid,glCreateProgram()) { Load(src); }
     inline		CShader (CShader&& v)			: CGObject(forward<CShader>(v)) {}
     inline CShader&	operator= (CShader&& v)			{ CGObject::operator= (forward<CShader>(v)); return (*this); }
 			~CShader (void) noexcept;

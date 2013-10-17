@@ -5,10 +5,10 @@
 
 #include "gofont.h"
 
-CFont::CFont (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept
-: CGObject (ctx, GenId())
-,_width(8)
-,_height(0)
+CFont::CFont (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz) noexcept
+: CTexture (ctx, cid)
+,_letterw(8)
+,_letterh(0)
 ,_rowwidth(0)
 {
     //{{{ PSF format definitions ------------------------------------------
@@ -50,30 +50,30 @@ CFont::CFont (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept
     const SPsf2Header* ph2 = (const SPsf2Header*) p;
     GLuint nChars = 256;
     if (ph1->magic == PSF1_MAGIC) {
-	_height = ph1->height;
+	_letterh = ph1->height;
 	p += sizeof(*ph1);
     } else if (ph2->magic == PSF2_MAGIC) {
-	_width = ph2->width;
-	_height = ph2->height;
+	_letterw = ph2->width;
+	_letterh = ph2->height;
 	nChars = ph2->length;
 	p += ph2->headersize;
     }
-    if (!_width) return;
-    _rowwidth = 256/_width;
+    if (!_letterw) return;
+    _rowwidth = 256/_letterw;
 
     GLubyte* ftexbmp = (GLubyte*) malloc (256*256);
     GLubyte *rowo = ftexbmp, *colo = ftexbmp;
-    const GLuint rowskip = _height*256, lineskip = 256-_width;
-    for (GLuint c = 0, col = 0; c < nChars && p < pend; ++c, ++col, colo += _width) {
+    const GLuint rowskip = _letterh*256, lineskip = 256-_letterw;
+    for (GLuint c = 0, col = 0; c < nChars && p < pend; ++c, ++col, colo += _letterw) {
 	if (col >= _rowwidth) {
 	    col = 0;
 	    rowo += rowskip;
 	    colo = rowo;
 	}
 	GLubyte* o = colo;
-	for (GLuint y = 0; y < _height; ++y, ++p, o += lineskip) {
+	for (GLuint y = 0; y < _letterh; ++y, ++p, o += lineskip) {
 	    GLubyte mask = 0x80;
-	    for (GLuint x = 0; x < _width; ++x) {
+	    for (GLuint x = 0; x < _letterw; ++x) {
 		*o++ = (p[0] & mask) ? 0xff : 0;
 		if (!(mask >>= 1)) {
 		    mask = 0x80;
@@ -88,11 +88,4 @@ CFont::CFont (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexImage2D (GL_TEXTURE_2D, 0, GL_COMPRESSED_RED, 256, 256, 0, GL_RED, GL_UNSIGNED_BYTE, ftexbmp);
     free (ftexbmp);
-}
-
-CFont::~CFont (void) noexcept
-{
-    GLuint id = Id();
-    if (id != NoObject)
-	glDeleteTextures (1, &id);
 }

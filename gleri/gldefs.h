@@ -78,8 +78,7 @@ enum EBufferHint : uint16_t {
 enum EStdParameter : uint8_t {
     param_Vertex,
     param_Color,
-    param_TexCoord = param_Color,
-    param_TextData = param_Vertex
+    param_TexCoord = param_Color
 };
 
 enum EFeature : uint16_t {
@@ -117,7 +116,8 @@ enum EDefaultResource : goid_t {
     default_TextureShader,
     default_FontShader,
     default_Font,
-    default_Resources
+    default_ResourcePak,
+    default_ResourceMaxId = 0x10000
 };
 
 namespace Pixel {

@@ -268,41 +268,32 @@ template <typename F>
 	    goid_t id; G::EResource dtype; uint16_t hint;
 	    Args (cmdis, id, dtype, hint);
 	    clir->VerifyFreeId (id);
-	    uint32_t sid;
 	    if (cmd == ECmd::LoadPakFile) {
-		goid_t pak; const char* filename = nullptr;
-		Args (cmdis, pak, filename);
+		goid_t pakid; const char* filename = nullptr;
+		Args (cmdis, pakid, filename);
 		uint32_t flnsz = cmdis.ipos()-(const uint8_t*)filename;
-		sid = clir->LoadPakResource (dtype, hint, clir->LookupId(pak), filename, flnsz);
-		if (sid == G::GoidNull)
-		    throw XError ("failed to load datapak resource %s", filename);
+		clir->LoadPakResource (id, dtype, hint, clir->LookupDatapak(pakid), filename, flnsz);
 	    } else if (cmd == ECmd::LoadData) {
 		uint32_t tsz, toff; SDataBlock d;
 		Args (cmdis, tsz, toff, d);
-		sid = clir->LoadResource (dtype, hint, (const uint8_t*) d._p, d._sz);
-		if (sid == G::GoidNull)
-		    XError::emit ("failed to load resource from data");
+		clir->LoadResource (id, dtype, hint, (const uint8_t*) d._p, d._sz);
 	    } else {
 		int fd;
 		Args (cmdis, fd);
 		CMMFile recvf (fd);
 		bstri dfis (recvf.MMData(), recvf.MMSize());
-		sid = clir->LoadResource (dtype, hint, dfis.ipos(), dfis.remaining());
-		if (sid == G::GoidNull)
-		    XError::emit ("failed to load resource from file");
+		clir->LoadResource (id, dtype, hint, dfis.ipos(), dfis.remaining());
 	    }
-	    clir->MapId (id, sid);
 	    } break;
 	case ECmd::FreeResource: {
 	    goid_t id; G::EResource dtype;
 	    Args (cmdis, id, dtype);
-	    clir->FreeResource (dtype, clir->LookupId(id));
-	    clir->UnmapId (id);
+	    clir->FreeResource (id, dtype);
 	    } break;
 	case ECmd::BufferSubData: {
 	    goid_t id; G::EBufferType btype; G::EBufferHint hint; uint32_t offset; SDataBlock d;
 	    Args (cmdis, id, btype, hint, offset, d);
-	    clir->BufferSubData (clir->LookupId(id), (const uint8_t*) d._p, d._sz, offset, btype);
+	    clir->BufferSubData (clir->LookupBuffer(id), (const uint8_t*) d._p, d._sz, offset, btype);
 	    } break;
 	case ECmd::TexParameter: {
 	    G::Texture::Type t; G::Texture::Parameter p; int v;

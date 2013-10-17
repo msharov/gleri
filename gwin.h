@@ -5,9 +5,6 @@
 
 #pragma once
 #include "iconn.h"
-#include "goshad.h"
-#include "gotex.h"
-#include "gofont.h"
 
 class CGLWindow : public PRGLR {
 private:
@@ -32,6 +29,7 @@ public:
     inline Window		Drawable (void) const		{ return (_ctx.Drawable()); }
     inline void			SetDrawable (Window w)		{ _ctx.SetDrawable (w); }
     inline const SWinInfo&	WinInfo (void) const		{ return (_winfo); }
+    inline const CTexture::CParam& TexParams (void) const	{ return (_texparam); }
     void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
     uint64_t			DrawFrame (bstri cmdis, Display* dpy);
     uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy);
@@ -40,58 +38,37 @@ public:
     uint64_t			NextFrameTime (void) const	{ return (_nextVSync); }
     void			CheckForErrors (void);
 				// Client-side id map, forwarded to the connection object
-    inline void			MapId (goid_t cid, GLuint sid) noexcept	{ _pconn->MapId (cid, sid); }
-    inline GLuint		LookupId (goid_t cid) const		{ return (_pconn->LookupId (cid)); }
-    inline void			VerifyFreeId (goid_t cid) const		{ return (_pconn->VerifyFreeId (cid)); }
-    inline void			UnmapId (goid_t cid) noexcept		{ _pconn->UnmapId (cid); }
-				// State variables
-    inline const float*		Proj (void) const		{ return (&_proj[0][0]); }
-    inline GLuint		Color (void) const		{ return (_color); }
-    inline void			SetColor (GLuint c)		{ _color = c; }
-    inline GLuint		Shader (void) const		{ return (_curShader); }
-    inline void			SetShader (GLuint s)		{ _curShader = s; }
-    inline GLuint		Buffer (void) const		{ return (_curBuffer); }
-    inline void			SetBuffer (GLuint b)		{ _curBuffer = b; }
-    inline GLuint		Texture (void) const		{ return (_curTexture); }
-    inline void			SetTexture (GLuint t)		{ _curTexture = t; }
-    inline GLuint		Font (void) const		{ return (_curFont); }
-    inline void			SetFont (GLuint f)		{ _curFont = f; }
+    inline void			VerifyFreeId (goid_t cid) const	{ return (_pconn->VerifyFreeId (cid)); }
+    inline void			SetFont (goid_t f)		{ _curFont = f; }
     inline GLuint		LastRenderTime (void) const	{ return (_syncEvent.time); }
     inline GLuint		LastFrameTime (void) const	{ return (_syncEvent.key); }
 				// Resource loader by enum
-    GLuint			LoadResource (G::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz);
-    GLuint			LoadPakResource (G::EResource dtype, uint16_t hint, GLuint pak, const char* filename, GLuint flnsz);
-    void			FreeResource (G::EResource dtype, GLuint id);
+    inline void			LoadResource (goid_t id, G::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz)
+				    { _pconn->LoadResource (this, id, dtype, hint, d, dsz); }
+    inline void			LoadPakResource (goid_t id, G::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz)
+				    { _pconn->LoadPakResource (this, id, dtype, hint, pak, filename, flnsz); }
+    inline void			FreeResource (goid_t id, G::EResource dtype)
+				    { _pconn->FreeResource (id, dtype); }
 				// Datapak
-    GLuint			LoadDatapak (const char* filename);
-    GLuint			LoadDatapak (const GLubyte* p, GLuint psz);
-    void			FreeDatapak (GLuint id);
-    const CDatapak*		Datapak (GLuint id) const;
+    inline const CDatapak&	LookupDatapak (goid_t id) const	{ return (_pconn->LookupDatapak (id)); }
 				// Buffer
-    GLuint			CreateBuffer (G::EBufferType btype = G::ARRAY_BUFFER) noexcept;
-    void			BindBuffer (GLuint id);
-    void			BindBuffer (GLuint id, G::EBufferType btype) noexcept;
-    void			FreeBuffer (GLuint buf) noexcept;
-    void			BufferSubData (GLuint buf, const void* data, GLuint size, GLuint offset = 0, G::EBufferType btype = G::ARRAY_BUFFER);
-    void			BufferData (GLuint buf, const void* data, GLuint size, G::EBufferHint mode = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER);
+    inline void			BindBuffer (const CBuffer& buf)	{ BindBuffer (buf, buf.Type()); }
+    inline const CBuffer&	LookupBuffer (goid_t id) const	{ return (_pconn->LookupBuffer (id)); }
+    void			BufferSubData (const CBuffer& buf, const void* data, GLuint dsz, GLuint offset, G::EBufferType btype) const noexcept {
+				    DTRACE ("[%x] BufferSubData %u bytes at %u into %x\n", IId(), dsz, offset, buf.Id());
+				    glBindBuffer (btype, buf.Id());
+				    glBufferSubData (btype, offset, dsz, data);
+				}
 				// Shader
-    GLuint			LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f);
-    GLuint			LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* g, const char* f);
-    inline GLuint		LoadShader (GLuint pak, const char* v, const char* tc, const char* te, const char* f) noexcept	{ return (LoadShader(pak,v,tc,te,nullptr,f)); }
-    inline GLuint		LoadShader (GLuint pak, const char* v, const char* g, const char* f) noexcept	{ return (LoadShader(pak,v,nullptr,nullptr,g,f)); }
-    inline GLuint		LoadShader (GLuint pak, const char* v, const char* f) noexcept	{ return (LoadShader(pak,v,nullptr,nullptr,nullptr,f)); }
-    void			FreeShader (GLuint sh) noexcept;
-    inline void			SetDefaultShader (void) noexcept	{ Shader (_pconn->DefaultShader()); }
-    inline void			SetTextureShader (void) noexcept	{ Shader (_pconn->TextureShader()); }
-    inline void			SetFontShader (void) noexcept		{ Shader (_pconn->FontShader()); }
-    void			Shader (GLuint id) noexcept;
-    void			Parameter (const char* name, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
-    void			Parameter (GLuint slot, GLuint buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
+    void			Shader (const CShader& sh) noexcept;
+    inline const CShader&	LookupShader (goid_t id) const	{ return (_pconn->LookupShader (id)); }
+    void			Parameter (const char* name, const CBuffer& buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
+    void			Parameter (GLuint slot, const CBuffer& buf, G::EType type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
     void			Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept;
     inline void			Uniform4fv (const char* varname, const GLfloat* v) const noexcept	{ Uniform4f(varname,v[0],v[1],v[2],v[3]); }
     void			Uniform4iv (const char* varname, const GLint* v) const noexcept;
     void			UniformMatrix (const char* varname, const GLfloat* mat) const noexcept;
-    void			UniformTexture (const char* varname, GLuint img, GLuint itex = 0) noexcept;
+    void			UniformTexture (const char* varname, const CTexture& tex, GLuint itex = 0) noexcept;
     void			Color (GLuint c) noexcept;
     inline void			Color (GLubyte r, GLubyte g, GLubyte b, GLubyte a =255)	{ Color (RGBA(r,g,b,a)); }
     void			Clear (GLuint c) noexcept;
@@ -147,33 +124,37 @@ public:
 				}
 				//}}}
 				// Texture
-    GLuint			LoadTexture (const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas);
-    GLuint			LoadTexture (const char* filename, G::Pixel::Fmt storeas);
-    void			FreeTexture (GLuint id);
+    inline const CTexture&	LookupTexture (goid_t id) const	{ return (_pconn->LookupTexture (id)); }
     inline void			TexParameter (G::Texture::Type t, G::Texture::Parameter p, int v)	{ _texparam.Set(t,p,v); }
-    const CTexture*		Texture (GLuint id) const;
-    void			Sprite (coord_t x, coord_t y, GLuint id);
-    void			Sprite (coord_t x, coord_t y, GLuint id, coord_t sx, coord_t sy, dim_t sw, dim_t sh);
+    void			Sprite (const CTexture& t, coord_t x, coord_t y);
+    void			Sprite (const CTexture& t, coord_t x, coord_t y, coord_t sx, coord_t sy, dim_t sw, dim_t sh);
 				// Font
-    GLuint			LoadFont (const char* filename);
-    GLuint			LoadFont (GLuint pak, const char* filename);
-    GLuint			LoadFont (const GLubyte* p, GLuint psz);
-    void			FreeFont (GLuint id);
-    const CFont*		Font (GLuint id) const noexcept;
+    inline const CFont&		LookupFont (goid_t id) const	{ return (_pconn->LookupFont (id)); }
     void			Text (coord_t x, coord_t y, const char* s);
 private:
     static inline const void*	BufferOffset (unsigned o)	{ return ((const void*)(uintptr_t(o))); }
-    static void			ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept;
+    void			BindBuffer (const CBuffer& id, G::EBufferType btype) noexcept;
+    inline void			SetDefaultShader (void)noexcept	{ Shader (_pconn->DefaultShader()); }
+    inline void			SetTextureShader (void)noexcept	{ Shader (_pconn->TextureShader()); }
+    inline void			SetFontShader (void) noexcept	{ Shader (_pconn->FontShader()); }
+				// State variables
+    inline const float*		Proj (void) const		{ return (&_proj[0][0]); }
+    inline GLuint		Color (void) const		{ return (_color); }
+    inline void			SetColor (GLuint c)		{ _color = c; }
+    inline GLuint		ShaderId (void) const		{ return (_curShaderId); }
+    inline void			SetShaderId (GLuint sid)	{ _curShaderId = sid; }
+    inline goid_t		Shader (void) const		{ return (_curShader); }
+    inline void			SetShader (goid_t s)		{ _curShader = s; }
+    inline goid_t		Buffer (void) const		{ return (_curBuffer); }
+    inline void			SetBuffer (goid_t b)		{ _curBuffer = b; }
+    inline goid_t		Texture (void) const		{ return (_curTexture); }
+    inline void			SetTexture (goid_t t)		{ _curTexture = t; }
+    inline goid_t		Font (void) const		{ return (_curFont); }
 				// Queries
     inline void			PostQuery (GLuint q);
     inline bool			QueryResultAvailable (GLuint q) const;
 private:
     CContext			_ctx;
-    vector<CBuffer>		_buffer;
-    vector<CShader>		_shader;
-    vector<CTexture>		_texture;
-    vector<CFont>		_font;
-    vector<CDatapak>		_pak;
     vector<GLubyte>		_pendingFrame;
     CIConn*			_pconn;
     matrix4f_t			_proj;
@@ -182,10 +163,11 @@ private:
     GLuint			_vao[2];
     CEvent			_syncEvent;
     uint64_t			_nextVSync;
-    GLuint			_curShader;
-    GLuint			_curBuffer;
-    GLuint			_curTexture;
-    GLuint			_curFont;
+    GLuint			_curShaderId;
+    goid_t			_curShader;
+    goid_t			_curBuffer;
+    goid_t			_curTexture;
+    goid_t			_curFont;
     SWinInfo			_winfo;
     struct { coord_t x,y,w,h; }	_viewport;
     CTexture::CParam		_texparam;

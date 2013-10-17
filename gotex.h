@@ -18,13 +18,16 @@ public:
 	static const int c_Defaults [G::Texture::NPARAMS];
     };
 public:
-			CTexture (GLXContext ctx, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, const CParam& param) noexcept;
+			CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, const CParam& param) noexcept;
     inline		~CTexture (void) noexcept { Free(); }
     inline explicit	CTexture (CTexture&& v)	: CGObject(forward<CTexture>(v)),_width(v._width),_height(v._height) {}
     inline CTexture&	operator= (CTexture&& v){ CGObject::operator= (forward<CTexture>(v)); _width = v._width; _height = v._height; return (*this); }
     inline GLushort	Width (void) const	{ return (_width); }
     inline GLushort	Height (void) const	{ return (_height); }
     void		Free (void) noexcept;
+protected:
+    inline		CTexture (GLXContext ctx, goid_t cid) : CGObject(ctx,cid,GenId()),_width(0),_height(0) {}
+    inline GLuint	GenId (void) const	{ GLuint id; glGenTextures (1, &id); return (id); }
 private:
     class CTexBuf {
 	typedef G::STextureHeader	texhdr_t;
@@ -50,7 +53,6 @@ private:
 	pointer			_p;
     };
 private:
-    inline GLuint		GenId (void) const	{ GLuint id; glGenTextures (1, &id); return (id); }
     static inline CTexBuf	Load (const GLubyte* p, GLuint psz) noexcept;
     static inline CTexBuf	LoadPNG (const GLubyte* p, GLuint psz) noexcept;
     static inline CTexBuf	LoadJPG (const GLubyte* p, GLuint psz) noexcept;

@@ -87,6 +87,31 @@ constexpr static inline uint64_t bole_swap8 (uint64_t v)
 #endif
 constexpr static inline uint32_t vpack4 (uint8_t a, uint8_t b, uint8_t c, uint8_t d)
     { return (vpack4(vpack2(a,b),vpack2(c,d))); }
+
+inline void UnpackColorToFloats (uint32_t c, float& r, float& g, float& b, float& a)
+{
+    static const float convf = 1.f/255;
+#if __x86_64__
+    asm("movd	%4, %0\n\t"	// r(c000)
+	"xorps	%1, %1\n\t"	// g(0000)
+	"punpcklbw %1, %0\n\t"	// c 1->2 expand
+	"shufps	$0, %5, %5\n\t"	// a(ffff)
+	"punpcklwd %1, %0\n\t"	// c 2->4 expand
+	"cvtdq2ps %0, %0\n\t"	// c to float r(rgba)
+	"mulps	%5, %0\n\t"	// normalize to 0..1
+	"movaps	%0, %1\n\t"	// r(rgba) g(rgba)
+	"movaps	%0, %3\n\t"	// a(rgba)
+	"movhlps %0, %2\n\t"	// b(ba..)
+	"shufps	$1, %1, %1\n\t"	// g(g...)
+	"shufps	$3, %3, %3"	// a(a...)
+	:"=x"(r),"=x"(g),"=x"(b),"=x"(a):"r"(c),"3"(convf));
+#else
+    uint8_t rb, gb, bb, ab;
+    vunpack4(c,rb,gb,bb,ab);
+    r = rb*convf; g = gb*convf; b = bb*convf; a = ab*convf;
+#endif
+}
+
 } // namespace
 
 inline const char* strnext (const char* s, unsigned& n)
@@ -140,4 +165,14 @@ public:
     inline dereferencing_iterator	operator+ (int n) const	{ return (dereferencing_iterator(*this) += n); }
     inline dereferencing_iterator	operator- (int n) const	{ return (dereferencing_iterator(*this) -= n); }
     inline difference_type		operator- (const dereferencing_iterator& i)	{ return (base()-i.base()); }
+};
+
+template <typename T>
+struct auto_free {
+    inline constexpr auto_free (T* p) : _p(p) {}
+    inline ~auto_free (void) noexcept { if (_p) free(_p); }
+    inline bool operator! (void) { return (!_p); }
+    inline operator T* (void) { return (_p); }
+    inline operator const T* (void) const { return (_p); }
+    T* _p;
 };

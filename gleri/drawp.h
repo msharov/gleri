@@ -33,6 +33,7 @@ private:
 	Scale,
 	Enable,
 	Color,
+	SetFont,
 	Text,
 	Image,
 	Sprite,
@@ -67,6 +68,7 @@ public:
     inline void		Offset (coord_t x, coord_t y)				{ Cmd (ECmd::Offset, x,y); }
     inline void		Scale (float x, float y)				{ Cmd (ECmd::Scale, x,y); }
     inline void		Color (color_t c)					{ Cmd (ECmd::Color, c); }
+    inline void		Font (goid_t f)						{ Cmd (ECmd::SetFont, f); }
     inline void		Enable (G::EFeature f)					{ Cmd (ECmd::Enable, f, uint16_t(1)); }
     inline void		Disable (G::EFeature f)					{ Cmd (ECmd::Enable, f, uint16_t(0)); }
     inline void		Text (coord_t x, coord_t y, const char* s)		{ Cmd (ECmd::Text, x, y, s); }
@@ -183,23 +185,24 @@ template <typename F>
 	    case ECmd::Clear: { color_t c; Args(is,c); f.Clear(c); } break;
 	    case ECmd::Viewport: { coord_t x,y; dim_t w,h; Args(is,x,y,w,h); f.Viewport(x,y,w,h); } break;
 	    case ECmd::Color: { color_t c; Args(is,c); f.Color(c); } break;
+	    case ECmd::SetFont: { goid_t fid; Args(is,fid); f.SetFont(fid); } break;
 	    case ECmd::Offset: { coord_t x,y; Args(is,x,y); f.Offset(x,y); } break;
 	    case ECmd::Scale: { float x,y; Args(is,x,y); f.Scale(x,y); } break;
 	    case ECmd::Enable: { G::EFeature feat; uint16_t o; Args(is,feat,o); f.Enable(feat,o); } break;
 	    case ECmd::Text: { coord_t x,y; const char* s = nullptr; Args(is,x,y,s); if (s) f.Text(x,y,s); } break;
-	    case ECmd::Image: { coord_t x,y; goid_t s; Args(is,x,y,s); f.Sprite(x,y,f.LookupId(s)); } break;
-	    case ECmd::Sprite: { coord_t x,y,sx,sy; dim_t sw,sh; goid_t s; Args(is,x,y,s,sx,sy,sw,sh); f.Sprite(x,y,f.LookupId(s),sx,sy,sw,sh); } break;
-	    case ECmd::Shader: { goid_t id; Args(is,id); f.Shader(f.LookupId(id)); } break;
-	    case ECmd::BindBuffer: { goid_t id; Args(is,id); f.BindBuffer(f.LookupId(id)); } break;
+	    case ECmd::Image: { coord_t x,y; goid_t s; Args(is,x,y,s); f.Sprite(f.LookupTexture(s),x,y); } break;
+	    case ECmd::Sprite: { coord_t x,y,sx,sy; dim_t sw,sh; goid_t s; Args(is,x,y,s,sx,sy,sw,sh); f.Sprite(f.LookupTexture(s),x,y,sx,sy,sw,sh); } break;
+	    case ECmd::Shader: { goid_t id; Args(is,id); f.Shader(f.LookupShader(id)); } break;
+	    case ECmd::BindBuffer: { goid_t id; Args(is,id); f.BindBuffer(f.LookupBuffer(id)); } break;
 	    case ECmd::Parameter: {
 		goid_t buf; uint32_t offset, stride; G::EType type; uint8_t slot, size;
 		Args(is,buf,type,slot,size,offset,stride);
-		f.Parameter (slot, f.LookupId(buf), type, size, offset, stride);
+		f.Parameter (slot, f.LookupBuffer(buf), type, size, offset, stride);
 	    } break;
 	    case ECmd::Uniformf: { const char* name = nullptr; ArrayArg<float,4> uv; Args(is,name,uv); f.Uniform4fv (name, uv._v); } break;
 	    case ECmd::Uniformi: { const char* name = nullptr; ArrayArg<int,4> uv; Args(is,name,uv); f.Uniform4iv (name, uv._v); } break;
 	    case ECmd::Uniformm: { const char* name = nullptr; ArrayArg<float,16> uv; Args(is,name,uv); f.UniformMatrix (name, uv._v); } break;
-	    case ECmd::Uniformt: { const char* name = nullptr; goid_t id,slot; Args (is,name,id,slot); f.UniformTexture (name, id, slot); } break;
+	    case ECmd::Uniformt: { const char* name = nullptr; goid_t id,slot; Args (is,name,id,slot); f.UniformTexture (name, f.LookupTexture(id), slot); } break;
 	    case ECmd::DrawArrays: { G::EShape t; uint32_t s,z; Args(is,t,s,z); f.DrawArrays(t,s,z); } break;
 	    case ECmd::DrawArraysIndirect: { G::EShape t; uint32_t offset; Args(is,t,offset); f.DrawArraysIndirect (t, offset); } break;
 	    case ECmd::DrawArraysInstanced:

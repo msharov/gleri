@@ -4,22 +4,19 @@
 // This file is free software, distributed under the MIT License.
 
 #pragma once
-#include "gob.h"
+#include "gotex.h"
 
-class CFont : public CGObject {
+class CFont : public CTexture {
 public:
-			CFont (GLXContext ctx, const GLubyte* p, GLuint psz) noexcept;
-			~CFont (void) noexcept;
-    inline explicit	CFont (CFont&& v)		: CGObject(forward<CFont>(v)),_width(v._width),_height(v._height),_rowwidth(v._rowwidth) {}
-    inline CFont&	operator= (CFont&& v)		{ CGObject::operator= (forward<CFont>(v)); _width = v._width; _height = v._height; _rowwidth = v._rowwidth; return (*this); }
-    inline GLubyte	Width (void) const		{ return (_width); }
-    inline GLubyte	Height (void) const		{ return (_height); }
-    inline GLushort	LetterX (GLubyte c) const	{ return ((c%_rowwidth)*_width); }
-    inline GLushort	LetterY (GLubyte c) const	{ return ((c/_rowwidth)*_height); }
+			CFont (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz) noexcept;
+    inline explicit	CFont (CFont&& v)		: CTexture(forward<CTexture>(v)),_letterw(v._letterw),_letterh(v._letterh),_rowwidth(v._rowwidth) {}
+    inline CFont&	operator= (CFont&& v)		{ CGObject::operator= (forward<CFont>(v)); _letterw = v._letterw; _letterh = v._letterh; _rowwidth = v._rowwidth; return (*this); }
+    inline GLubyte	LetterW (void) const		{ return (_letterw); }
+    inline GLubyte	LetterH (void) const		{ return (_letterh); }
+    inline GLushort	LetterX (GLubyte c) const	{ return ((c%_rowwidth)*LetterW()); }
+    inline GLushort	LetterY (GLubyte c) const	{ return ((c/_rowwidth)*LetterH()); }
 private:
-    inline GLuint	GenId (void) const		{ GLuint id; glGenTextures (1, &id); return (id); }
-private:
-    GLubyte		_width;
-    GLubyte		_height;
+    GLubyte		_letterw;
+    GLubyte		_letterh;
     GLushort		_rowwidth;
 };

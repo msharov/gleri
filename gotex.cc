@@ -14,8 +14,8 @@
 
 //----------------------------------------------------------------------
 
-CTexture::CTexture (GLXContext ctx, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, const CParam& param) noexcept
-: CGObject (ctx, GenId())
+CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, const CParam& param) noexcept
+: CGObject (ctx, cid, GenId())
 ,_width(0)
 ,_height(0)
 {

@@ -7,60 +7,168 @@
 #include "gwin.h"
 #include ".o/data/data.h"
 
-void CIConn::MapId (uint32_t cid, GLuint sid) noexcept
+/*static*/ const CGLWindow* CIConn::_shwin = nullptr;;
+/*static*/ const CIConn* CIConn::_shconn = nullptr;;
+
+CIConn::CIConn (iid_t iid, int fd, bool fdpass)
+: CCmdBuf(iid,fd,fdpass)
+,_obj()
+,_argv()
+,_hostname()
+,_pid(0)
 {
-    DTRACE ("[fd %d] Map cid %x -> sid %x\n", Fd(), cid, sid);
-    _cidmap.insert (SIdMap(cid,sid));
+    if (!_shconn)
+	_shconn = this;
 }
 
-GLuint CIConn::FindCid (uint32_t cid) const noexcept
+CIConn::~CIConn (void) noexcept
 {
-    auto fi = _cidmap.lower_bound (SIdMap(cid,0));
-    if (fi != _cidmap.end() && fi->_cid == cid)
-	return (fi->_sid);
-    if (cid < G::default_Resources)
-	return (_defres[cid]);
-    return (CGObject::NoObject);
+    for (auto o : _obj)
+	delete o;
+    _obj.clear();
 }
 
-GLuint CIConn::LookupId (uint32_t cid) const
+void CIConn::VerifyFreeId (goid_t cid) const
 {
-    GLuint id = FindCid (cid);
-    if (id == CGObject::NoObject)
-	throw XError ("no object with id 0x%x\n", cid);
-    return (id);
-}
-
-void CIConn::VerifyFreeId (uint32_t cid) const
-{
-    if (FindCid(cid) != CGObject::NoObject)
+    if (FindObject (cid))
 	throw XError ("object 0x%x already exists\n", cid);
 }
 
-void CIConn::UnmapId (uint32_t cid) noexcept
+const CGObject* CIConn::FindObject (goid_t cid) const noexcept
 {
-    DTRACE ("[fd %d] Unmapping cid %x\n", Fd(), cid);
-    erase_if (_cidmap, [cid](const SIdMap& i) { return (i._cid == cid); });
+    if (cid < G::default_ResourceMaxId && this != _shconn && HaveDefaultResources())
+	return (_shconn->FindObject (cid));
+    auto io = lower_bound (_obj.begin(), _obj.end(), cid, [](const CGObject* o, goid_t id) { return (o->CId() < id); });
+    return ((io != _obj.end() && (*io)->CId() == cid) ? *io : nullptr);
 }
 
-/*static*/ const CFont* CIConn::_deffont = nullptr;
-/*static*/ GLuint CIConn::_defres [G::default_Resources] = {
-    CGObject::NoObject,
-    CGObject::NoObject,
-    CGObject::NoObject,
-    CGObject::NoObject,
-    CGObject::NoObject
-};
+void CIConn::AddObject (CGObject* o)
+{
+    if (!o || o->CId() == G::GoidNull || o->Id() == CGObject::NoObject)
+	throw XError ("failed to load resource %x", o->CId());
+    auto io = lower_bound (_obj.begin(), _obj.end(), o, [](const CGObject* o1, const CGObject* o2) { return (*o1 < *o2); });
+    _obj.insert (io, o);
+}
 
-/*static*/ void CIConn::LoadDefaultResources (CGLWindow* w)
+//----------------------------------------------------------------------
+
+void CIConn::LoadDefaultResources (CGLWindow* w)
 {
     DTRACE ("Loading shared resources\n");
-    GLuint pak = w->LoadDatapak (ArrayBlock (File_resource));
-    _defres[G::default_FlatShader] = w->LoadShader (pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
-    _defres[G::default_GradientShader] = w->LoadShader (pak, "sh/grad_v.glsl", "sh/grad_f.glsl");
-    _defres[G::default_TextureShader] = w->LoadShader (pak, "sh/image_v.glsl", "sh/image_g.glsl", "sh/image_f.glsl");
-    _defres[G::default_FontShader] = w->LoadShader (pak, "sh/font_v.glsl", "sh/image_g.glsl", "sh/font_f.glsl");
-    _defres[G::default_Font] = w->LoadFont (pak, "ter-d18b.psf");
-    w->FreeDatapak (pak);
-    _deffont = w->Font(_defres[G::default_Font]);
+    const CDatapak& pak = LoadDatapak (w, G::default_ResourcePak, ArrayBlock (File_resource));
+    LoadShader (w, G::default_FlatShader, pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
+    LoadShader (w, G::default_GradientShader, pak, "sh/grad_v.glsl", "sh/grad_f.glsl");
+    LoadShader (w, G::default_TextureShader, pak, "sh/image_v.glsl", "sh/image_g.glsl", "sh/image_f.glsl");
+    LoadShader (w, G::default_FontShader, pak, "sh/font_v.glsl", "sh/image_g.glsl", "sh/font_f.glsl");
+    LoadPakResource (w, G::default_Font, G::EResource::FONT, 0, pak, "ter-d18b.psf", strlen("ter-d18b.psf"));
+    FreeResource (G::default_ResourcePak, G::EResource::DATAPAK);
+    _shwin = w;
+    #ifndef NDEBUG
+	w->CheckForErrors();
+    #endif
+}
+
+//----------------------------------------------------------------------
+// Resource loader by enum
+
+/*static*/ void CIConn::ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept
+{
+    bstri shis (s, ssz);
+    for (unsigned i = 0; i < 5; ++i) {
+	shs[i] = shis.read_strz();
+	if (!*shs[i])
+	    shs[i] = nullptr;
+    }
+}
+
+void CIConn::LoadResource (const CGLWindow* w, goid_t id, G::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz)
+{
+    switch (dtype) {
+	case G::EResource::DATAPAK:
+	    LoadDatapak (w, id, d, dsz);
+	    break;
+	case G::EResource::SHADER: {
+	    const char* shs[5];
+	    ShaderUnpack (d, dsz, shs);
+	    LoadShader (w, id, shs[0],shs[1],shs[2],shs[3],shs[4]);
+	    } break;
+	case G::EResource::TEXTURE:
+	    LoadTexture (w, id, d, dsz, G::Pixel::Fmt(hint));
+	    break;
+	case G::EResource::FONT:
+	    LoadFont (w, id, d, dsz);
+	    break;
+	default:
+	    LoadBuffer (w, id, d, dsz, G::EBufferHint(hint), G::EBufferType(dtype)); break;
+	    break;
+    }
+}
+
+void CIConn::LoadPakResource (const CGLWindow* w, goid_t id, G::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz)
+{
+    if (dtype == G::EResource::SHADER) {
+	const char* shs[5];
+	ShaderUnpack ((const uint8_t*) filename, flnsz, shs);
+	LoadShader (w, id, pak, shs[0],shs[1],shs[2],shs[3],shs[4]);
+    } else {
+	GLuint fsz;
+	const GLubyte* pf = pak.File (filename, fsz);
+	if (!pf) throw XError ("%s is not in the datapak", filename);
+	LoadResource (w, id, dtype, hint, pf, fsz);
+    }
+}
+
+void CIConn::FreeResource (goid_t cid, G::EResource)
+{
+    DTRACE ("[fd %d] FreeResource %x\n", Fd(), cid);
+    auto io = lower_bound (_obj.begin(), _obj.end(), cid, [](const CGObject* o, goid_t id) { return (o->CId() < id); });
+    if (io != _obj.end() && (*io)->CId() == cid)
+	_obj.erase (io);
+}
+
+//----------------------------------------------------------------------
+
+inline const CDatapak& CIConn::LoadDatapak (const CGLWindow* w, goid_t cid, const GLubyte* pi, GLuint isz)
+{
+    DTRACE ("[%x] LoadDatapak %x from %u bytes\n", w->IId(), cid, isz);
+    GLuint osz = 0;
+    GLubyte* po = CDatapak::DecompressBlock (pi, isz, osz);
+    if (!po) XError::emit ("failed to decompress datapak");
+    CDatapak* pdpk = new CDatapak (w->ContextId(), cid, po, osz);
+    AddObject (pdpk);
+    return (*pdpk);
+}
+
+inline void CIConn::LoadBuffer (const CGLWindow* w, goid_t cid, const void* data, GLuint dsz, G::EBufferHint hint, G::EBufferType btype)
+{
+    DTRACE ("[%x] CreateBuffer %x type %x, hint %x, %u bytes\n", w->IId(), cid, btype, hint, dsz);
+    AddObject (new CBuffer (w->ContextId(), cid, data, dsz, hint, btype));
+}
+
+inline void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const char* v, const char* tc, const char* te, const char* g, const char* f)
+{
+    DTRACE ("[%x] LoadShader %x\n", w->IId(), cid);
+    AddObject (new CShader (w->ContextId(), cid, CShader::Sources(v,tc,te,g,f)));
+}
+
+void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
+{
+    DTRACE ("[%x] LoadShader %x from pak %x: %s,%s,%s,%s,%s\n", w->IId(), cid, pak.Id(),v,tc,te,g,f);
+    AddObject (new CShader (w->ContextId(), cid, CShader::Sources(pak,v,tc,te,g,f)));
+}
+inline void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* g, const char* f)
+    { LoadShader(w,cid,pak,v,nullptr,nullptr,g,f); }
+inline void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* f)
+    { LoadShader(w,cid,pak,v,nullptr,nullptr,nullptr,f); }
+
+inline void CIConn::LoadTexture (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas)
+{
+    DTRACE ("[%x] LoadTexture %x from %u bytes\n", w->IId(), cid, dsz);
+    AddObject (new CTexture (w->ContextId(), cid, d, dsz, storeas, w->TexParams()));
+}
+
+inline void CIConn::LoadFont (const CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz)
+{
+    DTRACE ("[%x] LoadFont %x from %u bytes\n", w->IId(), cid, psz);
+    AddObject (new CFont (w->ContextId(), cid, p, psz));
 }

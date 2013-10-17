@@ -34,7 +34,7 @@ LDFLAGS		:= @CUSTOMLIBDIR@
 LIBS		:= @libGL@ @libX11@ @libpng@ @libjpeg@ @libz@
 ifdef USE_USTL
     LD		:= @CC@
-    LIBS	+= @libustl@
+    LIBS	+= @libustl@ @libsupc++@
 endif
 ifdef DEBUG
     CXXFLAGS	+= -O0 -g

@@ -30,10 +30,16 @@ inline void CShader::Sources::ShaderSource (GLuint id, GLuint idx) const noexcep
 
 void CShader::Sources::LoadFromPak (const CDatapak& pak)
 {
-    GLuint sz;
     for (GLuint i = 0; i < shader_NStages; ++i) {
-	if (!_stage[i]) continue;
-	_stage[i] = (const char*) pak.File (_stage[i], sz);
+	GLuint sz = 0;
+	if (_stage[i]) {
+	    const char* shsrc = (const char*) pak.File (_stage[i], sz);
+	    if (!shsrc) {
+		DTRACE ("Error: no file %s in pak %x\n", _stage[i], pak.CId());
+		throw XError ("no file %s in pak %x", _stage[i], pak.CId());
+	    }
+	    _stage[i] = shsrc;
+	}
 	_stageSize[i] = sz;
     }
 }

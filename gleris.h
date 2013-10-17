@@ -87,7 +87,7 @@ public:
     CGLWindow*		ClientRecord (int fd, iid_t iid) noexcept;
     CGLWindow*		ClientRecordForWindow (Window w) noexcept;
     void		Authenticate (CCmdBuf& cmdbuf, uint32_t pid, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth);
-    CGLWindow*		CreateClient (iid_t iid, SWinInfo winfo, const char* title = nullptr, CCmdBuf* piconn = nullptr);
+    CGLWindow*		CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBuf* piconn);
     void		CloseClient (CGLWindow* pcli) noexcept;
     void		ClientDraw (CGLWindow& cli, bstri cmdis);
     void		ClientEvent (const CGLWindow& cli, const CEvent& e);

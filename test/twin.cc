@@ -221,5 +221,4 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Shader (_gradShader);
     drw.Color (0,128,128);
     drw.TriangleStrip (vb_FanOverlayOffset, vb_FanOverlaySize);
-    drw.DefaultShader();
 }
