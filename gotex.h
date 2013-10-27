@@ -32,14 +32,15 @@ protected:
     inline GLuint	GenId (void) const	{ GLuint id; glGenTextures (1, &id); return (id); }
 private:
     class CTexBuf {
+    public:
 	typedef G::Texture::Header	texhdr_t;
 	typedef uint32_t		value_type;
 	typedef value_type*		pointer;
 	typedef const value_type*	const_pointer;
     public:
 	inline constexpr	CTexBuf (void)		:_h(),_sz(0),_p(nullptr) {}
-	inline constexpr	CTexBuf (const texhdr_t& h)
-				    :_h(h),_sz(0),_p((pointer)const_cast<texhdr_t*>(&h+1)) {}
+	inline constexpr	CTexBuf (const texhdr_t& h, const_pointer p)
+				    :_h(h),_sz(0),_p(const_cast<pointer>(p)) {}
 	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint32_t w, uint16_t h=1, uint16_t d=0)
 				    :_h { texhdr_t::Magic, w,h,d,fmt,comp }
 				    ,_sz (w*h*sizeof(value_type))

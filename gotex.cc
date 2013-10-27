@@ -82,7 +82,7 @@ void CTexture::Free (void) noexcept
     #if HAVE_JPEGLIB_H
 	case vpack4(0xff,0xd8,0xff,0xe0):return (LoadJPG (p, psz));
     #endif
-	case G::Texture::Header::Magic:	return (CTexBuf (inh));
+	case G::Texture::Header::Magic:	return (CTexBuf (inh, psz > sizeof(inh) ? CTexBuf::const_pointer(p+sizeof(inh)) : nullptr));
 	default:			return (CTexBuf());
     };
 }

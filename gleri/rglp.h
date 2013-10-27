@@ -142,6 +142,7 @@ public:
     inline goid_t		LoadTexture (G::TextureType ttype, const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		LoadTexture (G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		LoadTexture (goid_t pak, G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
+    inline goid_t		CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGBA, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE, G::Pixel::Fmt storas = G::Pixel::RGBA);
     inline void			FreeTexture (goid_t id);
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
     inline void			TexParameter (G::Texture::Parameter p, int v)			{ TexParameter (G::TEXTURE_2D,p,v); }
@@ -235,6 +236,8 @@ inline PRGL::goid_t PRGL::LoadTexture (G::TextureType tt, const char* filename, 
     { return (LoadFile (ResourceFromTextureType(tt), filename, storeas)); }
 inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas)
     { return (LoadPakFile (ResourceFromTextureType(tt), pak, f, storeas)); }
+inline PRGL::goid_t PRGL::CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d, G::Pixel::Fmt fmt, G::Pixel::Comp comp, G::Pixel::Fmt storeas)
+    { const G::Texture::Header hdr = { G::Texture::Header::Magic, w, h, d, fmt, comp }; return (LoadTexture (tt, &hdr, sizeof(hdr), storeas)); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, EResource::TEXTURE_2D); }
 
