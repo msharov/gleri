@@ -25,8 +25,8 @@ public:
 private:
     enum { c_SocketPathLen = sizeof(sockaddr_un::sun_path) };
     typedef CGLWindow::iid_t	iid_t;
-    typedef PRGL::SWinInfo	SWinInfo;
-    typedef const SWinInfo&	rcwininfo_t;
+    typedef PRGL::WinInfo	WinInfo;
+    typedef const WinInfo&	rcwininfo_t;
     typedef CCmd::SDataBlock	SDataBlock;
     //{{{ EAtom
     enum EAtom : unsigned {
@@ -87,7 +87,7 @@ public:
     CGLWindow*		ClientRecord (int fd, iid_t iid) noexcept;
     CGLWindow*		ClientRecordForWindow (Window w) noexcept;
     void		Authenticate (CCmdBuf& cmdbuf, uint32_t pid, uint32_t screen, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth);
-    CGLWindow*		CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBuf* piconn);
+    CGLWindow*		CreateClient (iid_t iid, WinInfo winfo, const char* title, CCmdBuf* piconn);
     void		CloseClient (CGLWindow* pcli) noexcept;
     void		ClientDraw (CGLWindow& cli, bstri cmdis);
     void		ClientEvent (const CGLWindow& cli, const CEvent& e);
@@ -106,7 +106,7 @@ private:
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
     inline iid_t	GenIId (void)		{ return (++_nextiid); }
     inline void		GetAtoms (void) noexcept;
-    unsigned		WinStateAtoms (const SWinInfo& winfo, uint32_t a[16]) const noexcept;
+    unsigned		WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noexcept;
     void		OnXEvent (void);
     static uint32_t	ModsFromXState (uint32_t state) noexcept;
    static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
@@ -131,9 +131,9 @@ private:
     uint8_t		_glversion;
     uint8_t		_options;
     Atom		_atoms [a_Last];
-    GLXFBConfig		_fbconfig[G::SWinInfo::MSAA_MAX+1];
-    XVisualInfo*	_visinfo[G::SWinInfo::MSAA_MAX+1];
-    Colormap		_colormap[G::SWinInfo::MSAA_MAX+1];
+    GLXFBConfig		_fbconfig[G::WinInfo::MSAA_MAX+1];
+    XVisualInfo*	_visinfo[G::WinInfo::MSAA_MAX+1];
+    Colormap		_colormap[G::WinInfo::MSAA_MAX+1];
     char		_xauth [XAUTH_DATA_LEN];
     static char*	_xlib_error;
     static char		s_SocketPath [c_SocketPathLen];

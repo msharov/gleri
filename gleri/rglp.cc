@@ -20,7 +20,7 @@
      N(LoadFile,uqqh)
      N(LoadPakFile,uqqus)
      N(FreeResource,uq)
-     N(BufferSubData,uqquay)
+     N(BufferSubData,uuay)
      N(TexParameter,qqi)
 ;
 #undef N
@@ -42,7 +42,7 @@ bstro PRGL::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
     return (CCmdBuf::CreateCmd (c_ObjectName, m, msz, sz, unwritten));
 }
 
-PRGL::goid_t PRGL::LoadFile (G::EResource dtype, const char* filename, uint16_t hint)
+PRGL::goid_t PRGL::LoadFile (EResource dtype, const char* filename, uint16_t hint)
 {
     goid_t id = GenId();
     CFile f (filename, O_RDONLY);
@@ -59,7 +59,7 @@ PRGL::goid_t PRGL::LoadFile (G::EResource dtype, const char* filename, uint16_t 
 //----------------------------------------------------------------------
 
 namespace G {
-const char* TypeName (EType t) noexcept
+const char* TypeName (Type t) noexcept
 {
     switch (t) {
 	case BYTE:		return ("BYTE"); break;
@@ -77,7 +77,7 @@ const char* TypeName (EType t) noexcept
     return ("INVALID_TYPE");
 }
 
-const char* ShapeName (EShape s) noexcept
+const char* ShapeName (Shape s) noexcept
 {
     switch (s) {
 	case POINTS:		return ("POINTS"); break;

@@ -10,12 +10,12 @@
 class PRGLR : private CCmdBuf {
 public:
     using CCmdBuf::iid_t;
-    typedef G::SWinInfo		SWinInfo;
+    typedef G::WinInfo		WinInfo;
     typedef G::goid_t		goid_t;
     typedef G::coord_t		coord_t;
     typedef G::dim_t		dim_t;
     typedef G::color_t		color_t;
-    typedef const SWinInfo&	rcwininfo_t;
+    typedef const WinInfo&	rcwininfo_t;
     enum : uint32_t { c_ObjectName = vpack4('R','G','L','R') };
 private:
     enum class ECmd : cmd_t {
@@ -72,7 +72,7 @@ template <typename F>
     if (!clir)
 	return;
     switch (LookupCmd (h.Cmdname(), h.hsz)) {
-	case ECmd::Restate:	{ SWinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;
+	case ECmd::Restate:	{ WinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;
 	case ECmd::Draw:	clir->OnExpose(); break;
 	case ECmd::Event:	{ CEvent e; Args(cmdis,e); clir->OnEvent(e); } break;
 	default:		XError::emit ("invalid protocol command");

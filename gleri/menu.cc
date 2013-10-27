@@ -18,7 +18,7 @@ void CMenuEntry::OnResize (dim_t w, dim_t h)
     CWidget::OnResize (w, h);
     dim_t rdata[] = { 0,0, 0,h, w,0, w,h };
     if (!_backrect)
-	_backrect = BufferData (rdata, sizeof(rdata));
+	_backrect = BufferData (G::ARRAY_BUFFER, rdata, sizeof(rdata));
     else
 	BufferSubData (_backrect, rdata, sizeof(rdata));
 }
@@ -74,7 +74,7 @@ void CPopupMenu::OnInit (void)
     _items.SetFocus (0);
 
     CWidget::SSize isz = _items.OnMeasure();
-    Open ("Menu", (SWinInfo){ _x,_y,isz.w,isz.h,_parent,0x33,0,SWinInfo::MSAA_OFF,SWinInfo::type_PopupMenu,SWinInfo::state_Normal,SWinInfo::flag_None });
+    Open ("Menu", (WinInfo){ _x,_y,isz.w,isz.h,_parent,0x33,0,WinInfo::MSAA_OFF,WinInfo::type_PopupMenu,WinInfo::state_Normal,WinInfo::flag_None });
 }
 
 void CPopupMenu::OnResize (dim_t w, dim_t h)
@@ -86,7 +86,7 @@ void CPopupMenu::OnResize (dim_t w, dim_t h)
     if (_border)
 	BufferSubData (_border, borderpts, sizeof(borderpts));
     else
-	_border = BufferData (borderpts, sizeof(borderpts));
+	_border = BufferData (G::ARRAY_BUFFER, borderpts, sizeof(borderpts));
 }
 
 void CPopupMenu::OnEvent (const CEvent& e)

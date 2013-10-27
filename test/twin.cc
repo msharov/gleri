@@ -78,14 +78,14 @@ void CTestWindow::OnInit (void)
     CWindow::OnInit();
     Open ("GLERI Test Program", 640, 480);
     printf ("Initializing test window\n");
-    _vbuf = BufferData (_vdata1, sizeof(_vdata1));
-    _cbuf = BufferData (_cdata1, sizeof(_cdata1));
+    _vbuf = BufferData (G::ARRAY_BUFFER, _vdata1, sizeof(_vdata1));
+    _cbuf = BufferData (G::ARRAY_BUFFER, _cdata1, sizeof(_cdata1));
 #if HAVE_PNG_H
     TexParameter (G::Texture::MAG_FILTER, G::Texture::LINEAR);
-    _walk = LoadTexture ("test/princess.png", G::Pixel::COMPRESSED_RGBA);
+    _walk = LoadTexture (G::TEXTURE_2D, "test/princess.png", G::Pixel::COMPRESSED_RGBA);
 #endif
 #if HAVE_JPEGLIB_H
-    _cat = LoadTexture ("test/pgcat.jpg");
+    _cat = LoadTexture (G::TEXTURE_2D, "test/pgcat.jpg");
 #endif
     _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
 }

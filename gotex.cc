@@ -14,12 +14,14 @@
 
 //----------------------------------------------------------------------
 
-CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, const CParam& param) noexcept
+CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param) noexcept
 : CGObject (ctx, cid, GenId())
+,_type (GLenumFromTextureType (ttype))
 ,_width(0)
 ,_height(0)
+,_depth(0)
 {
-    if (psz < sizeof(G::STextureHeader)) {
+    if (psz < sizeof(G::Texture::Header)) {
 	Free();
 	return;
     }
@@ -28,12 +30,37 @@ CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G:
 	Free();
 	return;
     }
-    glBindTexture (GL_TEXTURE_2D, Id());
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, param.Get (G::Texture::TEXTURE_2D, G::Texture::MAG_FILTER));
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, param.Get (G::Texture::TEXTURE_2D, G::Texture::MIN_FILTER));
-    const G::STextureHeader& h = tbuf.Header();
-    glTexImage2D (GL_TEXTURE_2D, 0, storeas, h.w, h.h, 0, h.fmt, h.comp, tbuf.Data());
-    _width = h.w; _height = h.h;
+    glBindTexture (_type, Id());
+    glTexParameteri (_type, GL_TEXTURE_MAG_FILTER, param.Get (ttype, G::Texture::MAG_FILTER));
+    glTexParameteri (_type, GL_TEXTURE_MIN_FILTER, param.Get (ttype, G::Texture::MIN_FILTER));
+    const G::Texture::Header& h = tbuf.Header();
+    _width = h.w;
+    _height = h.h;
+    _depth = h.d;
+    if (ttype >= G::TEXTURE_3D)
+	glTexImage3D (_type, _depth, storeas, _width, _height, _depth, 0, h.fmt, h.comp, tbuf.Data());
+    else if (ttype >= G::TEXTURE_2D)
+	glTexImage2D (_type, _depth, storeas, _width, _height, 0, h.fmt, h.comp, tbuf.Data());
+    else
+	glTexImage1D (_type, _depth, storeas, _width, 0, h.fmt, h.comp, tbuf.Data());
+}
+
+/*static*/ GLenum CTexture::GLenumFromTextureType (G::TextureType ttype) noexcept
+{
+    static const GLenum c_TextureTypeEnum[] = {
+	GL_TEXTURE_1D,
+	GL_TEXTURE_2D,
+	GL_TEXTURE_2D_MULTISAMPLE,
+	GL_TEXTURE_RECTANGLE,
+	GL_TEXTURE_1D_ARRAY,
+	GL_TEXTURE_CUBE_MAP,
+	GL_TEXTURE_CUBE_MAP_ARRAY,
+	GL_TEXTURE_3D,
+	GL_TEXTURE_2D_ARRAY,
+	GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
+	GL_TEXTURE_BUFFER
+    };
+    return (c_TextureTypeEnum[min<uint16_t>(ttype,ArraySize(c_TextureTypeEnum)-1)]);
 }
 
 void CTexture::Free (void) noexcept
@@ -47,7 +74,7 @@ void CTexture::Free (void) noexcept
 
 /*static*/ inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) noexcept
 {
-    const G::STextureHeader& inh = *reinterpret_cast<const G::STextureHeader*>(p);
+    const G::Texture::Header& inh = *reinterpret_cast<const G::Texture::Header*>(p);
     switch (inh.magic) {
     #if HAVE_PNG_H
 	case vpack4(0x89,'P','N','G'):	return (LoadPNG (p, psz));
@@ -55,7 +82,7 @@ void CTexture::Free (void) noexcept
     #if HAVE_JPEGLIB_H
 	case vpack4(0xff,0xd8,0xff,0xe0):return (LoadJPG (p, psz));
     #endif
-	case G::STextureHeader::Magic:	return (CTexBuf (inh));
+	case G::Texture::Header::Magic:	return (CTexBuf (inh));
 	default:			return (CTexBuf());
     };
 }

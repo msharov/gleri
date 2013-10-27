@@ -13,9 +13,9 @@ public:
     using PRGL::coord_t;
     using PRGL::dim_t;
     using PRGL::color_t;
-    using PRGL::SWinInfo;
+    using PRGL::WinInfo;
     typedef uint32_t		key_t;
-    typedef const SWinInfo&	rcwininfo_t;
+    typedef const WinInfo&	rcwininfo_t;
     enum { NotWaitingForVSync = UINT64_MAX };
 public:
     inline explicit	CWindow (iid_t wid) noexcept;
@@ -57,7 +57,7 @@ protected:
     bool		WaitingForVSync (void);
     inline uint64_t	NowMS (void) const noexcept;
 private:
-    SWinInfo		_info;
+    WinInfo		_info;
     CEvent		_fsync;
     uint64_t		_nextVSync;
     bool		_drawPending;

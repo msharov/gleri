@@ -13,12 +13,32 @@ bool g_bDebugTrace = false;
 #endif
 //----------------------------------------------------------------------
 
-CBuffer::CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::EBufferHint hint, G::EBufferType btype) noexcept
+CBuffer::CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::BufferHint hint, G::BufferType btype) noexcept
 : CGObject(ctx, cid, GenId())
-,_btype(btype)
+,_btype(GLenumFromBufferType(btype))
 {
     glBindBuffer (_btype, Id());
     glBufferData (_btype, dsz, data, hint);
+}
+
+/*static*/ GLenum CBuffer::GLenumFromBufferType (G::BufferType btype) noexcept
+{
+    static const GLenum c_BufferTypeEnum[] = {
+	GL_ARRAY_BUFFER,
+	GL_ELEMENT_ARRAY_BUFFER,
+	GL_PIXEL_PACK_BUFFER,
+	GL_PIXEL_UNPACK_BUFFER,
+	GL_ATOMIC_COUNTER_BUFFER,
+	GL_COPY_READ_BUFFER,
+	GL_COPY_WRITE_BUFFER,
+	GL_DISPATCH_INDIRECT_BUFFER,
+	GL_DRAW_INDIRECT_BUFFER,
+	GL_SHADER_STORAGE_BUFFER,
+	GL_TEXTURE_BUFFER,
+	GL_TRANSFORM_FEEDBACK_BUFFER,
+	GL_UNIFORM_BUFFER
+    };
+    return (c_BufferTypeEnum[min<uint16_t>(btype,ArraySize(c_BufferTypeEnum)-1)]);
 }
 
 CBuffer::~CBuffer (void) noexcept

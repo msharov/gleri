@@ -74,15 +74,16 @@ public:
 
 class CBuffer : public CGObject {
 public:
-			CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::EBufferHint mode, G::EBufferType btype) noexcept;
+			CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::BufferHint mode, G::BufferType btype) noexcept;
     virtual		~CBuffer (void) noexcept;
     inline explicit	CBuffer (CBuffer&& v)	: CGObject(forward<CBuffer>(v)) {}
     inline CBuffer&	operator= (CBuffer&& v)	{ CGObject::operator= (forward<CBuffer>(v)); return (*this); }
-  inline G::EBufferType	Type (void) const	{ return (_btype); }
+    inline GLenum	Type (void) const	{ return (_btype); }
 private:
     inline GLuint	GenId (void) const	{ GLuint id; glGenBuffers (1, &id); return (id); }
+   inline static GLenum	GLenumFromBufferType (G::BufferType btype) noexcept;
 private:
-    G::EBufferType	_btype;
+    GLenum		_btype;
 };
 
 //----------------------------------------------------------------------

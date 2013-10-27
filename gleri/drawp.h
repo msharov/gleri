@@ -69,15 +69,15 @@ public:
     inline void		Scale (float x, float y)				{ Cmd (ECmd::Scale, x,y); }
     inline void		Color (color_t c)					{ Cmd (ECmd::Color, c); }
     inline void		Font (goid_t f)						{ Cmd (ECmd::SetFont, f); }
-    inline void		Enable (G::EFeature f)					{ Cmd (ECmd::Enable, f, uint16_t(1)); }
-    inline void		Disable (G::EFeature f)					{ Cmd (ECmd::Enable, f, uint16_t(0)); }
+    inline void		Enable (G::Feature f)					{ Cmd (ECmd::Enable, f, uint16_t(1)); }
+    inline void		Disable (G::Feature f)					{ Cmd (ECmd::Enable, f, uint16_t(0)); }
     inline void		Text (coord_t x, coord_t y, const char* s)		{ Cmd (ECmd::Text, x, y, s); }
     inline void		Image (coord_t x, coord_t y, goid_t s)			{ Cmd (ECmd::Image, x, y, s); }
     inline void		Sprite (coord_t x, coord_t y, goid_t s, coord_t sx, coord_t sy, dim_t sw, dim_t sh)	{ Cmd (ECmd::Sprite,x,y,s,sx,sy,sw,sh); }
     inline void		Shader (goid_t id)					{ Cmd (ECmd::Shader, id); }
     inline void		DefaultShader (void)					{ Shader (G::default_FlatShader); }
     inline void		BindBuffer (goid_t id)					{ Cmd (ECmd::BindBuffer, id); }
-    inline void		Parameter (uint8_t slot, goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }
+    inline void		Parameter (uint8_t slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }
     inline void		Uniform (const char* name, float x, float y, float z, float w)	{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
     inline void		Uniformi (const char* name, int x, int y, int z, int w)	{ Cmd (ECmd::Uniformi, name, x,y,z,w); }
     inline void		Uniformv (const char* name, const float* v);
@@ -85,13 +85,13 @@ public:
     inline void		Texture (const char* name, goid_t id, uint32_t slot=0)	{ Cmd (ECmd::Uniformt, name, id, slot); }
     inline void		Matrix (const char* name, const float* m);
 			// Various drawing methods
-    inline void		DrawArrays (G::EShape type, uint32_t start, uint32_t sz)	{ Cmd (ECmd::DrawArrays, type, start, sz); }
-    inline void		DrawArraysIndirect (G::EShape type, uint32_t bufoffset = 0)	{ Cmd (ECmd::DrawArraysIndirect, type, bufoffset); }
-    inline void		DrawArraysInstanced (G::EShape type, uint32_t start, uint32_t sz, uint32_t nInstances, uint32_t baseInstance = 0);
-    inline void		DrawElements (G::EShape type, uint16_t n, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0);
-    inline void		DrawElementsIndirect (G::EShape type, G::EType itype = G::UNSIGNED_SHORT, uint16_t bufoffset = 0);
-    inline void		DrawElementsInstanced (G::EShape type, uint16_t n, uint32_t nInstances, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0, uint32_t baseInstance = 0);
-    inline void		DrawRangeElements (G::EShape type, uint16_t minel, uint16_t maxel, uint16_t n, G::EType itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0);
+    inline void		DrawArrays (G::Shape type, uint32_t start, uint32_t sz)	{ Cmd (ECmd::DrawArrays, type, start, sz); }
+    inline void		DrawArraysIndirect (G::Shape type, uint32_t bufoffset = 0)	{ Cmd (ECmd::DrawArraysIndirect, type, bufoffset); }
+    inline void		DrawArraysInstanced (G::Shape type, uint32_t start, uint32_t sz, uint32_t nInstances, uint32_t baseInstance = 0);
+    inline void		DrawElements (G::Shape type, uint16_t n, G::Type itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0);
+    inline void		DrawElementsIndirect (G::Shape type, G::Type itype = G::UNSIGNED_SHORT, uint16_t bufoffset = 0);
+    inline void		DrawElementsInstanced (G::Shape type, uint16_t n, uint32_t nInstances, G::Type itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0, uint32_t baseInstance = 0);
+    inline void		DrawRangeElements (G::Shape type, uint16_t minel, uint16_t maxel, uint16_t n, G::Type itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0);
 			// Forwarding drawing commands
     template <typename... Args>
     inline void		Textf (coord_t x, coord_t y, const char* fmt, Args... args)	{ char buf[256]; snprintf (ArrayBlock(buf), fmt, args...); Text (x,y,buf); }
@@ -103,9 +103,9 @@ public:
     inline void		Triangles (uint32_t start, uint32_t sz)			{ DrawArrays (G::TRIANGLES, start, sz); }
     inline void		TriangleStrip (uint32_t start, uint32_t sz)		{ DrawArrays (G::TRIANGLE_STRIP, start, sz); }
     inline void		TriangleFan (uint32_t start, uint32_t sz)		{ DrawArrays (G::TRIANGLE_FAN, start, sz); }
-    inline void		VertexPointer (goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Vertex, buf, type, sz, offset, stride); }
-    inline void		ColorPointer (goid_t buf, G::EType type = G::UNSIGNED_BYTE, uint8_t sz = 4, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Color, buf, type, sz, offset, stride); }
-    inline void		TexCoordPointer (goid_t buf, G::EType type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_TexCoord, buf, type, sz, offset, stride); }
+    inline void		VertexPointer (goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Vertex, buf, type, sz, offset, stride); }
+    inline void		ColorPointer (goid_t buf, G::Type type = G::UNSIGNED_BYTE, uint8_t sz = 4, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Color, buf, type, sz, offset, stride); }
+    inline void		TexCoordPointer (goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_TexCoord, buf, type, sz, offset, stride); }
 			// Reading interface
     template <typename F>
     static inline void	Parse (F& f, Stm& is);
@@ -140,19 +140,19 @@ template <typename Stm>
 inline void PDraw<Stm>::Matrix (const char* name, const float* m)
     { Cmd (ECmd::Uniformm, name, ArrayArg<float,16>(m)); }
 template <typename Stm>
-inline void PDraw<Stm>::DrawArraysInstanced (G::EShape type, uint32_t start, uint32_t sz, uint32_t nInstances, uint32_t baseInstance)
+inline void PDraw<Stm>::DrawArraysInstanced (G::Shape type, uint32_t start, uint32_t sz, uint32_t nInstances, uint32_t baseInstance)
     { Cmd (ECmd::DrawArraysInstanced, type, start, sz, nInstances, baseInstance); }
 template <typename Stm>
-inline void PDraw<Stm>::DrawElements (G::EShape type, uint16_t n, G::EType itype, uint32_t offset, uint32_t baseVertex)
+inline void PDraw<Stm>::DrawElements (G::Shape type, uint16_t n, G::Type itype, uint32_t offset, uint32_t baseVertex)
     { Cmd (ECmd::DrawElements, type, n, itype, offset, baseVertex); }
 template <typename Stm>
-inline void PDraw<Stm>::DrawElementsIndirect (G::EShape type, G::EType itype, uint16_t offset)
+inline void PDraw<Stm>::DrawElementsIndirect (G::Shape type, G::Type itype, uint16_t offset)
     { Cmd (ECmd::DrawElementsIndirect, type, itype, offset); }
 template <typename Stm>
-inline void PDraw<Stm>::DrawElementsInstanced (G::EShape type, uint16_t n, uint32_t nInstances, G::EType itype, uint32_t offset, uint32_t baseVertex, uint32_t baseInstance)
+inline void PDraw<Stm>::DrawElementsInstanced (G::Shape type, uint16_t n, uint32_t nInstances, G::Type itype, uint32_t offset, uint32_t baseVertex, uint32_t baseInstance)
     { Cmd (ECmd::DrawElementsInstanced, type, n, itype, nInstances, offset, baseVertex, baseInstance); }
 template <typename Stm>
-inline void PDraw<Stm>::DrawRangeElements (G::EShape type, uint16_t minel, uint16_t maxel, uint16_t n, G::EType itype, uint32_t offset, uint32_t baseVertex)
+inline void PDraw<Stm>::DrawRangeElements (G::Shape type, uint16_t minel, uint16_t maxel, uint16_t n, G::Type itype, uint32_t offset, uint32_t baseVertex)
     { Cmd (ECmd::DrawRangeElements, type, n, itype, minel, maxel, offset, baseVertex); }
 
 //}}}-------------------------------------------------------------------
@@ -188,14 +188,14 @@ template <typename F>
 	    case ECmd::SetFont: { goid_t fid; Args(is,fid); f.SetFont(fid); } break;
 	    case ECmd::Offset: { coord_t x,y; Args(is,x,y); f.Offset(x,y); } break;
 	    case ECmd::Scale: { float x,y; Args(is,x,y); f.Scale(x,y); } break;
-	    case ECmd::Enable: { G::EFeature feat; uint16_t o; Args(is,feat,o); f.Enable(feat,o); } break;
+	    case ECmd::Enable: { G::Feature feat; uint16_t o; Args(is,feat,o); f.Enable(feat,o); } break;
 	    case ECmd::Text: { coord_t x,y; const char* s = nullptr; Args(is,x,y,s); if (s) f.Text(x,y,s); } break;
 	    case ECmd::Image: { coord_t x,y; goid_t s; Args(is,x,y,s); f.Sprite(f.LookupTexture(s),x,y); } break;
 	    case ECmd::Sprite: { coord_t x,y,sx,sy; dim_t sw,sh; goid_t s; Args(is,x,y,s,sx,sy,sw,sh); f.Sprite(f.LookupTexture(s),x,y,sx,sy,sw,sh); } break;
 	    case ECmd::Shader: { goid_t id; Args(is,id); f.Shader(f.LookupShader(id)); } break;
 	    case ECmd::BindBuffer: { goid_t id; Args(is,id); f.BindBuffer(f.LookupBuffer(id)); } break;
 	    case ECmd::Parameter: {
-		goid_t buf; uint32_t offset, stride; G::EType type; uint8_t slot, size;
+		goid_t buf; uint32_t offset, stride; G::Type type; uint8_t slot, size;
 		Args(is,buf,type,slot,size,offset,stride);
 		f.Parameter (slot, f.LookupBuffer(buf), type, size, offset, stride);
 	    } break;
@@ -203,18 +203,18 @@ template <typename F>
 	    case ECmd::Uniformi: { const char* name = nullptr; ArrayArg<int,4> uv; Args(is,name,uv); f.Uniform4iv (name, uv._v); } break;
 	    case ECmd::Uniformm: { const char* name = nullptr; ArrayArg<float,16> uv; Args(is,name,uv); f.UniformMatrix (name, uv._v); } break;
 	    case ECmd::Uniformt: { const char* name = nullptr; goid_t id,slot; Args (is,name,id,slot); f.UniformTexture (name, f.LookupTexture(id), slot); } break;
-	    case ECmd::DrawArrays: { G::EShape t; uint32_t s,z; Args(is,t,s,z); f.DrawArrays(t,s,z); } break;
-	    case ECmd::DrawArraysIndirect: { G::EShape t; uint32_t offset; Args(is,t,offset); f.DrawArraysIndirect (t, offset); } break;
+	    case ECmd::DrawArrays: { G::Shape t; uint32_t s,z; Args(is,t,s,z); f.DrawArrays(t,s,z); } break;
+	    case ECmd::DrawArraysIndirect: { G::Shape t; uint32_t offset; Args(is,t,offset); f.DrawArraysIndirect (t, offset); } break;
 	    case ECmd::DrawArraysInstanced:
-		{ G::EShape t; uint32_t s,z,ni,bi; Args(is,t,s,z,ni,bi); f.DrawArraysInstanced(t,s,z,ni,bi); } break;
+		{ G::Shape t; uint32_t s,z,ni,bi; Args(is,t,s,z,ni,bi); f.DrawArraysInstanced(t,s,z,ni,bi); } break;
 	    case ECmd::DrawElements:
-		{ G::EShape t; uint16_t n; G::EType it; uint32_t o,bv; Args(is,t,n,it,o,bv); f.DrawElements(t,n,it,o,bv); } break;
+		{ G::Shape t; uint16_t n; G::Type it; uint32_t o,bv; Args(is,t,n,it,o,bv); f.DrawElements(t,n,it,o,bv); } break;
 	    case ECmd::DrawElementsIndirect:
-		{ G::EShape t; G::EType it; uint32_t o; Args(is,t,it,o); f.DrawElementsIndirect(t,it,o); } break;
+		{ G::Shape t; G::Type it; uint32_t o; Args(is,t,it,o); f.DrawElementsIndirect(t,it,o); } break;
 	    case ECmd::DrawElementsInstanced:
-		{ G::EShape t; uint16_t n; G::EType it; uint32_t ni,o,bi,bv; Args(is,t,n,it,ni,o,bv,bi); f.DrawElementsInstanced(t,n,ni,it,o,bv,bi); } break;
+		{ G::Shape t; uint16_t n; G::Type it; uint32_t ni,o,bi,bv; Args(is,t,n,it,ni,o,bv,bi); f.DrawElementsInstanced(t,n,ni,it,o,bv,bi); } break;
 	    case ECmd::DrawRangeElements:
-		{ G::EShape t; uint16_t n,minv,maxv; G::EType it; uint32_t o,bv; Args(is,t,n,it,minv,maxv,o,bv); f.DrawRangeElements(t,minv,maxv,n,it,o,bv); } break;
+		{ G::Shape t; uint16_t n,minv,maxv; G::Type it; uint32_t o,bv; Args(is,t,n,it,minv,maxv,o,bv); f.DrawRangeElements(t,minv,maxv,n,it,o,bv); } break;
 	    default: XError::emit ("drawlist parse error");
 	}
 	#ifndef NDEBUG

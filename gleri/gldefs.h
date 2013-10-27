@@ -18,7 +18,7 @@ typedef uint32_t	color_t;
 
 enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
 
-enum EType : uint16_t {
+enum Type : uint16_t {
     BYTE = 0x1400,
     UNSIGNED_BYTE,
     SHORT,
@@ -32,23 +32,37 @@ enum EType : uint16_t {
     DOUBLE
 };
 
-enum EBufferType : uint16_t {
-    ARRAY_BUFFER		= 0x8892,
+enum BufferType : uint16_t {
+    ARRAY_BUFFER,
     ELEMENT_ARRAY_BUFFER,
-    PIXEL_PACK_BUFFER		= 0x88EB,
+    PIXEL_PACK_BUFFER,
     PIXEL_UNPACK_BUFFER,
-    ATOMIC_COUNTER_BUFFER	= 0x92C0,
-    COPY_READ_BUFFER		= 0x8F36,
+    ATOMIC_COUNTER_BUFFER,
+    COPY_READ_BUFFER,
     COPY_WRITE_BUFFER,
-    DISPATCH_INDIRECT_BUFFER	= 0x90EE,
-    DRAW_INDIRECT_BUFFER	= 0x8F3F,
-    SHADER_STORAGE_BUFFER	= 0x90D2,
-    TEXTURE_BUFFER		= 0x8C2A,
-    TRANSFORM_FEEDBACK_BUFFER	= 0x8C8E,
-    UNIFORM_BUFFER		= 0x8A11
+    DISPATCH_INDIRECT_BUFFER,
+    DRAW_INDIRECT_BUFFER,
+    SHADER_STORAGE_BUFFER,
+    TEXTURE_BUFFER,
+    TRANSFORM_FEEDBACK_BUFFER,
+    UNIFORM_BUFFER
 };
 
-enum EShape : uint32_t {
+enum TextureType : uint16_t {
+    TEXTURE_1D,
+    TEXTURE_2D,
+    TEXTURE_2D_MULTISAMPLE,
+    TEXTURE_RECTANGLE,
+    TEXTURE_1D_ARRAY,
+    TEXTURE_CUBE_MAP,
+    TEXTURE_CUBE_MAP_ARRAY,
+    TEXTURE_3D,
+    TEXTURE_2D_ARRAY,
+    TEXTURE_2D_MULTISAMPLE_ARRAY,
+    TEXTURE_SAMPLER
+};
+
+enum Shape : uint32_t {
     POINTS,
     LINES,
     LINE_LOOP,
@@ -63,7 +77,7 @@ enum EShape : uint32_t {
     PATCHES
 };
 
-enum EBufferHint : uint16_t {
+enum BufferHint : uint16_t {
     STREAM_DRAW = 0x88E0,
     STREAM_READ,
     STREAM_COPY,
@@ -75,13 +89,13 @@ enum EBufferHint : uint16_t {
     DYNAMIC_COPY
 };
 
-enum EStdParameter : uint8_t {
+enum StdParameter : uint8_t {
     param_Vertex,
     param_Color,
     param_TexCoord = param_Color
 };
 
-enum EFeature : uint16_t {
+enum Feature : uint16_t {
     CAP_BLEND,
     CAP_CULL_FACE,
     CAP_DEPTH_CLAMP,
@@ -90,27 +104,7 @@ enum EFeature : uint16_t {
     CAP_N
 };
 
-enum class EResource : uint16_t {
-    DATAPAK,
-    SHADER,
-    TEXTURE,
-    FONT,
-    BUFFER_VERTEX		= ARRAY_BUFFER,
-    BUFFER_INDEX		= ELEMENT_ARRAY_BUFFER,
-    BUFFER_PIXEL_PACK		= PIXEL_PACK_BUFFER,
-    BUFFER_PIXEL_UNPACK		= PIXEL_UNPACK_BUFFER,
-    BUFFER_ATOMIC_COUNTER	= ATOMIC_COUNTER_BUFFER,
-    BUFFER_COPY_READ		= COPY_READ_BUFFER,
-    BUFFER_COPY_WRITE		= COPY_WRITE_BUFFER,
-    BUFFER_DISPATCH_INDIRECT	= DISPATCH_INDIRECT_BUFFER,
-    BUFFER_DRAW_INDIRECT	= DRAW_INDIRECT_BUFFER,
-    BUFFER_SHADER_STORAGE	= SHADER_STORAGE_BUFFER,
-    BUFFER_TEXTURE		= TEXTURE_BUFFER,
-    BUFFER_TRANSFORM_FEEDBACK	= TRANSFORM_FEEDBACK_BUFFER,
-    BUFFER_UNIFORM		= UNIFORM_BUFFER
-};
-
-enum EDefaultResource : goid_t {
+enum DefaultResource : goid_t {
     default_FlatShader,
     default_GradientShader,
     default_TextureShader,
@@ -275,7 +269,17 @@ enum Comp : uint16_t {
 
 namespace Texture {
 enum Type : uint16_t {
-    TEXTURE_2D	= 0x0DE1
+    TEXTURE_1D			= 0x0de0,
+    TEXTURE_2D			= 0x0de1,
+    TEXTURE_2D_MULTISAMPLE	= 0x9100,
+    TEXTURE_RECTANGLE		= 0x84f5,
+    TEXTURE_1D_ARRAY		= 0x8c18,
+    TEXTURE_CUBE_MAP		= 0x8513,
+    TEXTURE_CUBE_MAP_ARRAY	= 0x900b,
+    TEXTURE_3D			= 0x806f,
+    TEXTURE_2D_ARRAY		= 0x8c1a,
+    TEXTURE_2D_MULTISAMPLE_ARRAY= 0x9102,
+    TEXTURE_SAMPLER		= 0x8c2a
 };
 enum Parameter : uint16_t {
     MAG_FILTER,
@@ -290,29 +294,28 @@ enum Filter : uint16_t {
     NEAREST_MIPMAP_LINEAR,
     LINEAR_MIPMAP_LINEAR
 };
+struct alignas(8) Header {
+    enum { Magic = vpack4('G','L','T','X') };
+    uint32_t	magic,w;
+    uint16_t	h,d;
+    Pixel::Fmt	fmt;
+    Pixel::Comp	comp;
+};
 } // namespace G::Texture
 
-struct alignas(8) STextureHeader {
-    enum { Magic = vpack4('G','L','T','X') };
-    uint32_t		magic,w;
-    uint16_t		h,d;
-    G::Pixel::Fmt	fmt;
-    G::Pixel::Comp	comp;
-};
-
-struct SFontInfo {
+struct FontInfo {
     inline dim_t	Height (void) const		{ return (h); }
     inline dim_t	Width (void) const		{ return (w); }
     inline dim_t	Width (const char* s) const	{ return (Width()*strlen(s)); }
     dim_t		w,h;
 };
 
-struct alignas(4) SWinInfo {
+struct alignas(4) WinInfo {
     coord_t	x,y;
     dim_t	w,h;
     uint16_t	parent;
     uint8_t	mingl,maxgl;
-    enum EMSAA : uint8_t {
+    enum MSAA : uint8_t {
 	MSAA_OFF,
 	MSAA_2X,
 	MSAA_4X,
@@ -320,7 +323,7 @@ struct alignas(4) SWinInfo {
 	MSAA_16X,
 	MSAA_MAX = MSAA_16X,
     }		aa;
-    enum EWinType : uint8_t {
+    enum WinType : uint8_t {
 	type_Normal,
 	type_Desktop,
 	type_Dock,
@@ -342,7 +345,7 @@ struct alignas(4) SWinInfo {
 	type_LastDecoless = type_Dragged,
 	type_LastPopupMenu = type_ComboMenu
     }		wtype;
-    enum EWinState : uint8_t {
+    enum WinState : uint8_t {
 	state_Normal,
 	state_MaximizedX,
 	state_MaximizedY,
@@ -351,7 +354,7 @@ struct alignas(4) SWinInfo {
 	state_Fullscreen,
 	state_Gamescreen
     }		wstate;
-    enum EWinFlag : uint8_t {
+    enum WinFlag : uint8_t {
 	flag_None,
 	flag_Modal		= (1<<0),
 	flag_Attention		= (1<<1),
@@ -363,14 +366,14 @@ struct alignas(4) SWinInfo {
 	flag_Below		= (1<<7)
     };
     uint8_t	flags;
-    inline bool	Parented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
-    inline bool	Decoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
-    inline bool	PopupMenu (void) const	{ return (wtype >= type_FirstPopupMenu && wtype <= type_LastPopupMenu); }
+    inline bool	IsParented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
+    inline bool	IsDecoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
+    inline bool	IsPopupMenu (void)const	{ return (wtype >= type_FirstPopupMenu && wtype <= type_LastPopupMenu); }
 };
 
 // These are in rglp.cc
-extern const char* TypeName (EType t) noexcept __attribute__((const));
-extern const char* ShapeName (EShape s) noexcept __attribute__((const));
+extern const char* TypeName (Type t) noexcept __attribute__((const));
+extern const char* ShapeName (Shape s) noexcept __attribute__((const));
 
 } // namespace G
 

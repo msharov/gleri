@@ -10,7 +10,7 @@ class CWidget {
 public:
     typedef PRGL::iid_t		iid_t;
     typedef PRGL::draww_t	draww_t;
-    typedef PRGL::SWinInfo	SWinInfo;
+    typedef PRGL::WinInfo	WinInfo;
     typedef PRGL::goid_t	goid_t;
     typedef PRGL::coord_t	coord_t;
     typedef PRGL::dim_t		dim_t;
@@ -45,18 +45,18 @@ public:
     inline pfontinfo_t	Font (goid_t id) const		{ return (_prgl->Font(id)); }
     inline void		Close (void)			{ ((CWindow*)_prgl)->Close(); }	// Hacky, but don't want to give direct PRGL access in window
     inline void		Event (const CEvent& e)		{ _prgl->Event(e); }
-    inline goid_t	BufferData (const void* data, uint32_t dsz, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER)	{ return (_prgl->BufferData(data,dsz,hint,btype)); }
-    inline goid_t	BufferData (const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER)			{ return (_prgl->BufferData(f,hint,btype)); }
-    inline goid_t	BufferData (goid_t pak, const char* f, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER)		{ return (_prgl->BufferData(pak,f,hint,btype)); }
-    inline void		BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0, G::EBufferHint hint = G::STATIC_DRAW, G::EBufferType btype = G::ARRAY_BUFFER)	{ _prgl->BufferSubData(id,data,dsz,offset,hint,btype); }
+    inline goid_t	BufferData (G::BufferType bt, const void* data, uint32_t dsz, G::BufferHint hint = G::STATIC_DRAW)	{ return (_prgl->BufferData(bt,data,dsz,hint)); }
+    inline goid_t	BufferData (G::BufferType bt, const char* f, G::BufferHint hint = G::STATIC_DRAW)			{ return (_prgl->BufferData(bt,f,hint)); }
+    inline goid_t	BufferData (goid_t pak, G::BufferType bt, const char* f, G::BufferHint hint = G::STATIC_DRAW)		{ return (_prgl->BufferData(pak,bt,f,hint)); }
+    inline void		BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0)	{ _prgl->BufferSubData(id,data,dsz,offset); }
     inline void		FreeBuffer (goid_t id)				{ _prgl->FreeBuffer(id); }
     inline goid_t	LoadDatapak (const void* d, uint32_t dsz)	{ return (_prgl->LoadDatapak(d,dsz)); }
     inline goid_t	LoadDatapak (const char* f)			{ return (_prgl->LoadDatapak(f)); }
     inline goid_t	LoadDatapak (goid_t pak, const char* f)		{ return (_prgl->LoadDatapak(pak,f)); }
     inline void		FreeDatapak (goid_t id)				{ _prgl->FreeDatapak(id); }
-    inline goid_t	LoadTexture (const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(d,dsz,storeas)); }
-    inline goid_t	LoadTexture (const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)			{ return (_prgl->LoadTexture(f,storeas)); }
-    inline goid_t	LoadTexture (goid_t pak, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)		{ return (_prgl->LoadTexture(pak,f,storeas)); }
+    inline goid_t	LoadTexture (G::TextureType tt, const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(tt,d,dsz,storeas)); }
+    inline goid_t	LoadTexture (G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)			{ return (_prgl->LoadTexture(tt,f,storeas)); }
+    inline goid_t	LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(pak,tt,f,storeas)); }
     inline void		FreeTexture (goid_t id)				{ _prgl->FreeTexture(id); }
     inline goid_t	LoadFont (const void* d, uint32_t dsz)		{ return (_prgl->LoadFont(d,dsz)); }
     inline goid_t	LoadFont (const char* f)			{ return (_prgl->LoadFont(f)); }

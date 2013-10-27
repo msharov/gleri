@@ -8,7 +8,7 @@
 
 //----------------------------------------------------------------------
 
-CGLWindow::CGLWindow (iid_t iid, const SWinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn)
+CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn)
 : PRGLR(iid)
 ,_ctx(ctx,iid,win)
 ,_pendingFrame()
@@ -171,13 +171,13 @@ uint64_t CGLWindow::DrawPendingFrame (Display* dpy) noexcept
 //----------------------------------------------------------------------
 // Buffer
 
-void CGLWindow::BindBuffer (const CBuffer& buf, G::EBufferType btype) noexcept
+void CGLWindow::BindBuffer (const CBuffer& buf) noexcept
 {
     if (Buffer() == buf.Id())
 	return;
     DTRACE ("[%x] BindBuffer %x\n", IId(), buf.CId());
     SetBuffer (buf.CId());
-    glBindBuffer (btype, buf.Id());
+    glBindBuffer (buf.Type(), buf.Id());
 }
 
 //----------------------------------------------------------------------
@@ -196,14 +196,14 @@ void CGLWindow::Shader (const CShader& sh) noexcept
     Color (Color());
 }
 
-void CGLWindow::Parameter (const char* varname, const CBuffer& buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
+void CGLWindow::Parameter (const char* varname, const CBuffer& buf, G::Type type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
     Parameter (glGetAttribLocation (ShaderId(), varname), buf, type, nels, offset, stride);
 }
 
-void CGLWindow::Parameter (GLuint slot, const CBuffer& buf, G::EType type, GLuint nels, GLuint offset, GLuint stride) noexcept
+void CGLWindow::Parameter (GLuint slot, const CBuffer& buf, G::Type type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
-    BindBuffer (buf, G::ARRAY_BUFFER);
+    BindBuffer (buf);
     DTRACE ("[%x] Parameter %u set to %x, type %s[%u], +%u/%u\n", IId(), slot, buf.Id(), G::TypeName(type), nels, offset, stride);
     glEnableVertexAttribArray (slot);
     glVertexAttribPointer (slot, nels, type, GL_FALSE, stride, BufferOffset(offset));
@@ -240,7 +240,7 @@ void CGLWindow::UniformTexture (const char* varname, const CTexture& t, GLuint i
     if (slot < 0) return;
     DTRACE ("[%x] UniformTexture %s = %x slot %u\n", IId(), varname, t.CId(), itex);
     glActiveTexture (GL_TEXTURE0+itex);
-    glBindTexture (GL_TEXTURE_2D, t.Id());
+    glBindTexture (t.Type(), t.Id());
     SetTexture (t.CId());
     glUniform1i (slot, itex);
 }
@@ -269,9 +269,9 @@ void CGLWindow::DrawCmdInit (void) noexcept
 	SetDefaultShader();
 }
 
-void CGLWindow::Enable (G::EFeature f, uint16_t o) noexcept
+void CGLWindow::Enable (G::Feature f, uint16_t o) noexcept
 {
-    static const GLenum c_Features[G::CAP_N] =	// Parallel to G::EFeature
+    static const GLenum c_Features[G::CAP_N] =	// Parallel to G::Feature
 	{ GL_BLEND, GL_CULL_FACE, GL_DEPTH_CLAMP, GL_DEPTH_TEST, GL_MULTISAMPLE };
     if (f >= G::CAP_N)
 	return;

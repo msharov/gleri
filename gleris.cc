@@ -262,7 +262,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	_colormap[i] = XCreateColormap(_dpy, _rootWindow, _visinfo[i]->visual, AllocNone);
 
     // Create the root gl context (share root)
-    static const SWinInfo rootinfo = { 0, 0, 1, 1, 0, 0x33, 0x43, SWinInfo::MSAA_OFF, SWinInfo::type_Normal, SWinInfo::state_Hidden, SWinInfo::flag_None };
+    static const WinInfo rootinfo = { 0, 0, 1, 1, 0, 0x33, 0x43, WinInfo::MSAA_OFF, WinInfo::type_Normal, WinInfo::state_Hidden, WinInfo::flag_None };
     Window rctxw = CreateWindow (rootinfo);	// Temporary window to create the root gl context
     GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig[0], GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
@@ -375,18 +375,18 @@ void CGleris::GetAtoms (void) noexcept
 	XError::emit ("failed to get server strings");
 }
 
-unsigned CGleris::WinStateAtoms (const SWinInfo& winfo, uint32_t a[16]) const noexcept
+unsigned CGleris::WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noexcept
 {
     unsigned ac = 0;
-    if (winfo.wstate & SWinInfo::state_MaximizedX)
+    if (winfo.wstate & WinInfo::state_MaximizedX)
 	a[ac++] = _atoms[a_NET_WM_STATE_MAXIMIZED_HORZ];
-    if (winfo.wstate & SWinInfo::state_MaximizedY)
+    if (winfo.wstate & WinInfo::state_MaximizedY)
 	a[ac++] = _atoms[a_NET_WM_STATE_MAXIMIZED_VERT];
-    if (winfo.wstate == SWinInfo::state_Hidden)
+    if (winfo.wstate == WinInfo::state_Hidden)
 	a[ac++] = _atoms[a_NET_WM_STATE_HIDDEN];
-    if (winfo.wstate == SWinInfo::state_Fullscreen || winfo.wstate == SWinInfo::state_Gamescreen)
+    if (winfo.wstate == WinInfo::state_Fullscreen || winfo.wstate == WinInfo::state_Gamescreen)
 	a[ac++] = _atoms[a_NET_WM_STATE_FULLSCREEN];
-    if (winfo.wstate == SWinInfo::state_Gamescreen)
+    if (winfo.wstate == WinInfo::state_Gamescreen)
 	a[ac++] = _atoms[a_NET_WM_STATE_FULLSCREEN_EXCLUSIVE];
     for (unsigned f = 0; f < 8; ++f)
 	if (winfo.flags & (1<<f))
@@ -394,7 +394,7 @@ unsigned CGleris::WinStateAtoms (const SWinInfo& winfo, uint32_t a[16]) const no
     return (ac);
 }
 
-Window CGleris::CreateWindow (const SWinInfo& winfo)
+Window CGleris::CreateWindow (const WinInfo& winfo)
 {
     XSetWindowAttributes swa;
     swa.colormap = _colormap[winfo.aa];
@@ -404,7 +404,7 @@ Window CGleris::CreateWindow (const SWinInfo& winfo)
     swa.event_mask =
 	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
 	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask;
-    swa.save_under = swa.override_redirect = winfo.Decoless();
+    swa.save_under = swa.override_redirect = winfo.IsDecoless();
 
     Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
 				_visinfo[winfo.aa]->depth, InputOutput, _visinfo[winfo.aa]->visual,
@@ -515,7 +515,7 @@ void CGleris::OnXEvent (void)
 	    icli->Event ((CEvent){0,bFocusIn,0,CEvent::Focus,0});
 	} else if (xev.type == MapNotify) {
 	    DTRACE ("[%x] Receive map notification\n", icli->IId());
-	    if (icli->WinInfo().PopupMenu()) {	// override-redirect windows do not automatically get focus
+	    if (icli->Info().IsPopupMenu()) {	// override-redirect windows do not automatically get focus
 		DTRACE ("[%x] Requesting input focus for popup menu %x\n", icli->IId(), icli->Drawable());
 		XSetInputFocus (_dpy, icli->Drawable(), RevertToParent, CurrentTime);
 		if (GrabSuccess != XGrabPointer (_dpy, icli->Drawable(), false,	// false = restrict events to target
@@ -695,7 +695,7 @@ void CGleris::OnTimer (uint64_t tms)
 //----------------------------------------------------------------------
 // Client records, selection and forwarding
 
-CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, CCmdBuf* piconn)
+CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, CCmdBuf* piconn)
 {
     CIConn* pconn = static_cast<CIConn*>(piconn);
     if (pconn && !pconn->Authenticated())
@@ -707,8 +707,8 @@ CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, 
     if (reqver < winfo.mingl)
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
     winfo.mingl = 0x33; winfo.maxgl = reqver;
-    if (winfo.aa > SWinInfo::MSAA_MAX)
-	winfo.aa = SWinInfo::MSAA_MAX;
+    if (winfo.aa > WinInfo::MSAA_MAX)
+	winfo.aa = WinInfo::MSAA_MAX;
 
     // Create the window
     Window wid = CreateWindow (winfo);
@@ -742,7 +742,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, 
 	rcli.Init();
 
     // Set additional window attributes and map if not hidden
-    if (winfo.Parented()) {
+    if (winfo.IsParented()) {
 	for (const auto w : _win) {
 	    if (w->Matches (rcli.Fd(), winfo.parent)) {
 		DTRACE ("[%x] Setting parent window of %x to %x\n", rcli.IId(), wid, w->Drawable());
@@ -750,7 +750,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, 
 	    }
 	}
     }
-    if (winfo.Decoless())	// override-redirect windows do not receive configure events
+    if (winfo.IsDecoless())	// override-redirect windows do not receive configure events
 	rcli.Resize (winfo.x, winfo.y, winfo.w, winfo.h);
     if (title)
 	XStoreName (_dpy, wid, title);
@@ -773,7 +773,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, SWinInfo winfo, const char* title, 
     unsigned nwsa = WinStateAtoms (winfo, wsa);
     if (nwsa)
 	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_STATE], _atoms[a_ATOM], 32, PropModeReplace, (const unsigned char*) wsa, nwsa);
-    if (winfo.wstate != SWinInfo::state_Hidden)
+    if (winfo.wstate != WinInfo::state_Hidden)
 	XMapWindow (_dpy, wid);
 
     // Check for X errors in all of the above
@@ -804,7 +804,7 @@ void CGleris::CloseClient (CGLWindow* pcli) noexcept
 	for (auto c = _win.begin(), p = _win.end(); c < _win.end(); ++c) {
 	    if (*c == pcli)	// To break dependency loops only
 		p = c;		// look for children after parent
-	    else if (p < c && (*c)->WinInfo().parent == pcli->IId())
+	    else if (p < c && (*c)->Info().parent == pcli->IId())
 		CloseClient (*c);
 	}
 	DTRACE ("Destroying client window %x, context %x\n", pcli->Drawable(), pcli->ContextId());
