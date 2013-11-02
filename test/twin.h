@@ -8,7 +8,7 @@
 
 class CTestWindow : public CWindow {
 public:
-    inline explicit	CTestWindow (iid_t wid);
+    explicit		CTestWindow (iid_t wid);
     virtual void	OnInit (void);
     virtual void	OnResize (dim_t w, dim_t h);
     virtual void	OnTimer (uint64_t tms);
@@ -23,6 +23,9 @@ private:
     goid_t		_gradShader;
     goid_t		_walk;
     goid_t		_cat;
+    goid_t		_smalldepth;
+    goid_t		_smallcol;
+    goid_t		_smallfb;
     coord_t		_wx;
     coord_t		_wy;
     coord_t		_wsx;
@@ -30,19 +33,3 @@ private:
     uint64_t		_wtimer;
     char		_hellomsg [48];
 };
-
-inline CTestWindow::CTestWindow (iid_t wid)
-: CWindow(wid)
-,_vbuf(0)
-,_cbuf(0)
-,_gradShader(0)
-,_walk(0)
-,_cat(0)
-,_wx(0)
-,_wy(0)
-,_wsx(0)
-,_wsy(0)
-,_wtimer(NotWaitingForVSync)
-{
-    strcpy (_hellomsg, "Hello world from OpenGL!");
-}

@@ -27,6 +27,7 @@ public:
     inline GLushort	Height (void) const	{ return (_height); }
     inline GLushort	Depth (void) const	{ return (_depth); }
     void		Free (void) noexcept;
+    static GLenum	GLenumFromTextureType (G::TextureType ttype) noexcept;
 protected:
     inline		CTexture (GLXContext ctx, goid_t cid) : CGObject(ctx,cid,GenId()),_type(GL_TEXTURE_2D),_width(0),_height(0),_depth(0) {}
     inline GLuint	GenId (void) const	{ GLuint id; glGenTextures (1, &id); return (id); }
@@ -56,7 +57,6 @@ private:
 	pointer			_p;
     };
 private:
-    static inline GLenum	GLenumFromTextureType (G::TextureType ttype) noexcept;
     static inline CTexBuf	Load (const GLubyte* p, GLuint psz) noexcept;
     static inline CTexBuf	LoadPNG (const GLubyte* p, GLuint psz) noexcept;
     static inline CTexBuf	LoadJPG (const GLubyte* p, GLuint psz) noexcept;

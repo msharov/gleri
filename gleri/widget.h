@@ -59,6 +59,10 @@ public:
     inline goid_t	LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(pak,tt,f,storeas)); }
     inline goid_t	CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGBA, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE, G::Pixel::Fmt storas = G::Pixel::RGBA) { return (_prgl->CreateTexture(tt,w,h,d,fmt,comp,storas)); }
     inline void		FreeTexture (goid_t id)				{ _prgl->FreeTexture(id); }
+    inline goid_t	CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na)				{ return (_prgl->CreateFramebuffer(pa,na)); }
+    inline goid_t	CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc)				{ return (_prgl->CreateFramebuffer(fbc)); }
+    inline goid_t	CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer)					{ return (_prgl->CreateFramebuffer(depthbuffer,colorbuffer)); }
+    inline void		FreeFramebuffer (goid_t id)			{ _prgl->FreeFramebuffer(id); }
     inline goid_t	LoadFont (const void* d, uint32_t dsz)		{ return (_prgl->LoadFont(d,dsz)); }
     inline goid_t	LoadFont (const char* f)			{ return (_prgl->LoadFont(f)); }
     inline goid_t	LoadFont (goid_t pak, const char* f)		{ return (_prgl->LoadFont(pak,f)); }

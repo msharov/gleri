@@ -48,6 +48,7 @@ public:
     const CBuffer&		LookupBuffer (goid_t id) const	{ return (LookupObject<CBuffer> (id, "no buffer %x")); }
     const CShader&		LookupShader (goid_t id) const	{ return (LookupObject<CShader> (id, "no shader %x")); }
     const CTexture&		LookupTexture (goid_t id) const	{ return (LookupObject<CTexture> (id, "no texture %x")); }
+    const CFramebuffer&		LookupFramebuffer (goid_t id) const { return (LookupObject<CFramebuffer> (id, "no framebuffer %x")); }
     const CFont&		LookupFont (goid_t id) const	{ return (LookupObject<CFont> (id, "no font %x")); }
 private:
     inline const CDatapak&	LoadDatapak (const CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz);
@@ -57,6 +58,7 @@ private:
     inline void			LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* g, const char* f);
     inline void			LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* f);
     inline void			LoadTexture (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas, G::TextureType ttype);
+    inline void			LoadFramebuffer (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz);
     inline void			LoadFont (const CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz);
 				// Misc
     void			AddObject (CGObject* o);

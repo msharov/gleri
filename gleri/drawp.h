@@ -33,12 +33,14 @@ private:
 	Scale,
 	Enable,
 	Color,
-	SetFont,
 	Text,
 	Image,
 	Sprite,
 	Shader,
 	BindBuffer,
+	BindFramebuffer,
+	BindFramebufferComponent,
+	BindFont,
 	Parameter,
 	Uniformf,
 	Uniformi,
@@ -68,7 +70,6 @@ public:
     inline void		Offset (coord_t x, coord_t y)				{ Cmd (ECmd::Offset, x,y); }
     inline void		Scale (float x, float y)				{ Cmd (ECmd::Scale, x,y); }
     inline void		Color (color_t c)					{ Cmd (ECmd::Color, c); }
-    inline void		Font (goid_t f)						{ Cmd (ECmd::SetFont, f); }
     inline void		Enable (G::Feature f)					{ Cmd (ECmd::Enable, f, uint16_t(1)); }
     inline void		Disable (G::Feature f)					{ Cmd (ECmd::Enable, f, uint16_t(0)); }
     inline void		Text (coord_t x, coord_t y, const char* s)		{ Cmd (ECmd::Text, x, y, s); }
@@ -76,7 +77,12 @@ public:
     inline void		Sprite (coord_t x, coord_t y, goid_t s, coord_t sx, coord_t sy, dim_t sw, dim_t sh)	{ Cmd (ECmd::Sprite,x,y,s,sx,sy,sw,sh); }
     inline void		Shader (goid_t id)					{ Cmd (ECmd::Shader, id); }
     inline void		DefaultShader (void)					{ Shader (G::default_FlatShader); }
-    inline void		BindBuffer (goid_t id)					{ Cmd (ECmd::BindBuffer, id); }
+    inline void		Buffer (goid_t id)					{ Cmd (ECmd::BindBuffer, id); }
+    inline void		Framebuffer (goid_t id, G::FramebufferType bindas = G::FRAMEBUFFER)	{ Cmd (ECmd::BindFramebuffer, id, uint32_t(bindas)); }
+    inline void		DefaultFramebuffer (void)						{ Framebuffer (G::default_Framebuffer, G::FRAMEBUFFER); }
+    inline void		FramebufferComponent (goid_t id, const G::FramebufferComponent c)	{ Cmd (ECmd::BindFramebufferComponent, id, c); }
+    inline void		FramebufferComponent (goid_t id, goid_t texid)	{ FramebufferComponent (id, (G::FramebufferComponent){ G::FRAMEBUFFER, G::COLOR_ATTACHMENT0, G::TEXTURE_2D, 0, texid }); }
+    inline void		Font (goid_t f)					{ Cmd (ECmd::BindFont, f); }
     inline void		Parameter (uint8_t slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }
     inline void		Uniform (const char* name, float x, float y, float z, float w)	{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
     inline void		Uniformi (const char* name, int x, int y, int z, int w)	{ Cmd (ECmd::Uniformi, name, x,y,z,w); }
@@ -185,7 +191,6 @@ template <typename F>
 	    case ECmd::Clear: { color_t c; Args(is,c); f.Clear(c); } break;
 	    case ECmd::Viewport: { coord_t x,y; dim_t w,h; Args(is,x,y,w,h); f.Viewport(x,y,w,h); } break;
 	    case ECmd::Color: { color_t c; Args(is,c); f.Color(c); } break;
-	    case ECmd::SetFont: { goid_t fid; Args(is,fid); f.SetFont(fid); } break;
 	    case ECmd::Offset: { coord_t x,y; Args(is,x,y); f.Offset(x,y); } break;
 	    case ECmd::Scale: { float x,y; Args(is,x,y); f.Scale(x,y); } break;
 	    case ECmd::Enable: { G::Feature feat; uint16_t o; Args(is,feat,o); f.Enable(feat,o); } break;
@@ -194,6 +199,9 @@ template <typename F>
 	    case ECmd::Sprite: { coord_t x,y,sx,sy; dim_t sw,sh; goid_t s; Args(is,x,y,s,sx,sy,sw,sh); f.Sprite(f.LookupTexture(s),x,y,sx,sy,sw,sh); } break;
 	    case ECmd::Shader: { goid_t id; Args(is,id); f.Shader(f.LookupShader(id)); } break;
 	    case ECmd::BindBuffer: { goid_t id; Args(is,id); f.BindBuffer(f.LookupBuffer(id)); } break;
+	    case ECmd::BindFramebuffer: { goid_t id; uint32_t bindas; Args(is,id,bindas); f.BindFramebuffer(f.LookupFramebuffer(id),G::FramebufferType(bindas)); } break;
+	    case ECmd::BindFramebufferComponent: { goid_t id; G::FramebufferComponent c; Args(is,id,c); f.BindFramebufferComponent(f.LookupFramebuffer(id),c); } break;
+	    case ECmd::BindFont: { goid_t fid; Args(is,fid); f.BindFont(fid); } break;
 	    case ECmd::Parameter: {
 		goid_t buf; uint32_t offset, stride; G::Type type; uint8_t slot, size;
 		Args(is,buf,type,slot,size,offset,stride);

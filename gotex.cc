@@ -26,7 +26,7 @@ CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G:
 	return;
     }
     CTexBuf tbuf = Load (p, psz);
-    if (!tbuf.Data()) {
+    if (psz > sizeof(G::Texture::Header) && !tbuf.Data()) {
 	Free();
 	return;
     }
@@ -54,6 +54,12 @@ CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G:
 	GL_TEXTURE_RECTANGLE,
 	GL_TEXTURE_1D_ARRAY,
 	GL_TEXTURE_CUBE_MAP,
+	GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+	GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+	GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
+	GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+	GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+	GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
 	GL_TEXTURE_CUBE_MAP_ARRAY,
 	GL_TEXTURE_3D,
 	GL_TEXTURE_2D_ARRAY,

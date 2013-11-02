@@ -55,11 +55,45 @@ enum TextureType : uint16_t {
     TEXTURE_RECTANGLE,
     TEXTURE_1D_ARRAY,
     TEXTURE_CUBE_MAP,
+    TEXTURE_CUBE_MAP_POSITIVE_X,
+    TEXTURE_CUBE_MAP_NEGATIVE_X,
+    TEXTURE_CUBE_MAP_POSITIVE_Y,
+    TEXTURE_CUBE_MAP_NEGATIVE_Y,
+    TEXTURE_CUBE_MAP_POSITIVE_Z,
+    TEXTURE_CUBE_MAP_NEGATIVE_Z,
     TEXTURE_CUBE_MAP_ARRAY,
     TEXTURE_3D,
     TEXTURE_2D_ARRAY,
     TEXTURE_2D_MULTISAMPLE_ARRAY,
     TEXTURE_SAMPLER
+};
+
+enum FramebufferType : uint8_t {
+    FRAMEBUFFER,
+    DRAW_FRAMEBUFFER = FRAMEBUFFER,
+    READ_FRAMEBUFFER
+};
+
+enum FramebufferAttachment : uint8_t {
+    DEPTH_ATTACHMENT,
+    STENCIL_ATTACHMENT,
+    DEPTH_STENCIL_ATTACHMENT,
+    COLOR_ATTACHMENT0,
+    COLOR_ATTACHMENT1,
+    COLOR_ATTACHMENT2,
+    COLOR_ATTACHMENT3,
+    COLOR_ATTACHMENT4,
+    COLOR_ATTACHMENT5,
+    COLOR_ATTACHMENT6,
+    COLOR_ATTACHMENT7,
+    COLOR_ATTACHMENT8,
+    COLOR_ATTACHMENT9,
+    COLOR_ATTACHMENT10,
+    COLOR_ATTACHMENT11,
+    COLOR_ATTACHMENT12,
+    COLOR_ATTACHMENT13,
+    COLOR_ATTACHMENT14,
+    COLOR_ATTACHMENT15
 };
 
 enum Shape : uint32_t {
@@ -105,12 +139,13 @@ enum Feature : uint16_t {
 };
 
 enum DefaultResource : goid_t {
+    default_Framebuffer,
+    default_ResourcePak,
     default_FlatShader,
     default_GradientShader,
     default_TextureShader,
     default_FontShader,
     default_Font,
-    default_ResourcePak,
     default_ResourceMaxId = 0x10000
 };
 
@@ -133,6 +168,11 @@ enum Fmt : uint16_t {
     RGBA_INTEGER	= 0x8d99,
     BGRA_INTEGER	= 0x8d9b,
     //{{{ Sized formats
+    // Depth
+    DEPTH_COMPONENT16	= 0x81a5,
+    DEPTH_COMPONENT24	= 0x81a6,
+    DEPTH_COMPONENT32	= 0x81a7,
+    DEPTH_COMPONENT32F	= 0x8cac,
     // Red
     R8			= 0x8229,
     R8I			= 0x8231,
@@ -275,6 +315,12 @@ enum Type : uint16_t {
     TEXTURE_RECTANGLE		= 0x84f5,
     TEXTURE_1D_ARRAY		= 0x8c18,
     TEXTURE_CUBE_MAP		= 0x8513,
+    TEXTURE_CUBE_MAP_POSITIVE_X	= 0x8515,
+    TEXTURE_CUBE_MAP_NEGATIVE_X	= 0x8516,
+    TEXTURE_CUBE_MAP_POSITIVE_Y	= 0x8517,
+    TEXTURE_CUBE_MAP_NEGATIVE_Y	= 0x8518,
+    TEXTURE_CUBE_MAP_POSITIVE_Z	= 0x8519,
+    TEXTURE_CUBE_MAP_NEGATIVE_Z	= 0x851a,
     TEXTURE_CUBE_MAP_ARRAY	= 0x900b,
     TEXTURE_3D			= 0x806f,
     TEXTURE_2D_ARRAY		= 0x8c1a,
@@ -302,6 +348,14 @@ struct alignas(8) Header {
     Pixel::Comp	comp;
 };
 } // namespace G::Texture
+
+struct alignas(4) FramebufferComponent {
+    FramebufferType		target;
+    FramebufferAttachment	attachment;
+    uint8_t			textype;
+    uint8_t			level;
+    goid_t			texture;
+};
 
 struct FontInfo {
     inline dim_t	Height (void) const		{ return (h); }

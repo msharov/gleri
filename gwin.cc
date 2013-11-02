@@ -71,26 +71,27 @@ void CGLWindow::Resize (int16_t x, int16_t y, uint16_t w, uint16_t h) noexcept
     _winfo.x = x; _winfo.y = y;
     if (_winfo.w == w && _winfo.h == h)
 	return;
-    _winfo.w = w; _winfo.h = h;
+    _fbsz.w = _winfo.w = w;
+    _fbsz.h = _winfo.h = h;
     Viewport (0, 0, w, h);
     PRGLR::Restate (_winfo);
 }
 
 void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 {
-    if (!w) w = _winfo.w;
-    if (!h) h = _winfo.h;
+    if (!w) w = _fbsz.w;
+    if (!h) h = _fbsz.h;
     DTRACE ("[%x] Viewport %hux%hu+%hd+%hd\n", IId(), w,h,x,y);
     _viewport.x = x;
     _viewport.y = y;
     _viewport.w = w;
     _viewport.h = h;
-    glViewport (x,_winfo.h-y-h,w,h);
-    glScissor (x,_winfo.h-y-h,w,h);
     memset (_proj, 0, sizeof(_proj));
-    _proj[0][0] = 2.f/w;
-    _proj[1][1] = -2.f/h;
-    _proj[3][3] = 1.f;
+    if (_fbsz.h == _winfo.h)	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
+	y = _fbsz.h-y-h;
+    glViewport (x,y,w,h);
+    glScissor (x,y,w,h);
+    Scale (1, 1);
     Offset (0, 0);
 }
 
@@ -99,6 +100,8 @@ void CGLWindow::Offset (GLint x, GLint y) noexcept
     DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
     _proj[3][0] = float(-(_viewport.w-2*x-1))/_viewport.w;	// 0.5 pixel center adjustment, 0.5*(2/w)=1/w
     _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;
+    if (_fbsz.h != _winfo.h)	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
+	_proj[3][1] = -_proj[3][1];
     UniformMatrix ("Transform", Proj());
 }
 
@@ -107,6 +110,10 @@ void CGLWindow::Scale (float x, float y) noexcept
     DTRACE ("[%x] Scale %g:%g\n", IId(), x,y);
     _proj[0][0] = 2.f*x/_viewport.w;
     _proj[1][1] = -2.f*y/_viewport.h;
+    _proj[2][2] = 1.f;
+    _proj[3][3] = 1.f;
+    if (_fbsz.h != _winfo.h)	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
+	_proj[1][1] = -_proj[1][1];
     UniformMatrix ("Transform", Proj());
 }
 
@@ -140,6 +147,7 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 	    glDisableVertexAttribArray (i);
 	// Clear GL state remembered from the previous frame
 	_curShader = _curBuffer = _curTexture = _curFont = G::GoidNull;
+	BindFramebuffer (LookupFramebuffer (G::default_Framebuffer), G::FRAMEBUFFER);
 
 	// Parse the drawlist
 	PDraw<bstri>::Parse (*this, cmdis);
@@ -286,7 +294,7 @@ void CGLWindow::Enable (G::Feature f, uint16_t o) noexcept
 
 void CGLWindow::Sprite (const CTexture& t, coord_t x, coord_t y)
 {
-    DTRACE ("[%x] Sprite %x at %d:%d\n", IId(), t.Id(), x,y);
+    DTRACE ("[%x] Sprite %x at %d:%d\n", IId(), t.CId(), x,y);
     SetTextureShader();
     UniformTexture ("Texture", t);
     Uniform4f ("ImageRect", x, y, t.Width(), t.Height());
@@ -296,12 +304,30 @@ void CGLWindow::Sprite (const CTexture& t, coord_t x, coord_t y)
 
 void CGLWindow::Sprite (const CTexture& t, coord_t x, coord_t y, coord_t sx, coord_t sy, dim_t sw, dim_t sh)
 {
-    DTRACE ("[%x] Sprite %x at %d:%d, src %ux%u+%d+%d\n", IId(), t.Id(), x,y, sw,sh,sx,sy);
+    DTRACE ("[%x] Sprite %x at %d:%d, src %ux%u+%d+%d\n", IId(), t.CId(), x,y, sw,sh,sx,sy);
     SetTextureShader();
     UniformTexture ("Texture", t);
     Uniform4f ("ImageRect", x, y, t.Width(), t.Height());
     Uniform4f ("SpriteRect", sx, sy, sw-1, sh-1);
     glDrawArrays (GL_POINTS, 0, 1);
+}
+
+//----------------------------------------------------------------------
+// Framebuffer
+
+void CGLWindow::BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bindas)
+{
+    DTRACE ("[%x] Bind framebuffer %x to target %u\n", IId(), fb.CId(), bindas);
+    static const GLenum c_Target[] = { GL_FRAMEBUFFER, GL_READ_FRAMEBUFFER };
+    GLenum targ = c_Target [min<uint8_t>(bindas, ArraySize(c_Target)-1)];
+    glBindFramebuffer (targ, fb.Id());
+    GLushort w = fb.Width(), h = fb.Height();
+    if (!fb.Id()) {
+	w = _winfo.w;
+	h = _winfo.h;
+    }
+    Viewport (0, 0, _fbsz.w = w, _fbsz.h = h);
+    glFrontFace (fb.Id() ? GL_CW : GL_CCW);	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
 }
 
 //----------------------------------------------------------------------

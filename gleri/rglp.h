@@ -92,11 +92,18 @@ public:
 	TEXTURE_RECTANGLE,
 	TEXTURE_1D_ARRAY,
 	TEXTURE_CUBE_MAP,
+	TEXTURE_CUBE_MAP_POSITIVE_X,
+	TEXTURE_CUBE_MAP_NEGATIVE_X,
+	TEXTURE_CUBE_MAP_POSITIVE_Y,
+	TEXTURE_CUBE_MAP_NEGATIVE_Y,
+	TEXTURE_CUBE_MAP_POSITIVE_Z,
+	TEXTURE_CUBE_MAP_NEGATIVE_Z,
 	TEXTURE_CUBE_MAP_ARRAY,
 	TEXTURE_3D,
 	TEXTURE_2D_ARRAY,
 	TEXTURE_2D_MULTISAMPLE_ARRAY,
 	TEXTURE_SAMPLER,
+	FRAMEBUFFER,
 	SHADER,
 	FONT,
 	_N_RESOURCE_TYPES,
@@ -104,7 +111,7 @@ public:
 	_BUFFER_LAST = BUFFER_UNIFORM,
 	_N_BUFFER_TYPES = _BUFFER_LAST-_BUFFER_FIRST+1,
 	_TEXTURE_FIRST = TEXTURE_2D,
-	_TEXTURE_LAST = TEXTURE_2D_MULTISAMPLE_ARRAY,
+	_TEXTURE_LAST = TEXTURE_SAMPLER,
 	_N_TEXTURE_TYPES = _TEXTURE_LAST-_TEXTURE_FIRST+1
     };
     inline static EResource	ResourceFromBufferType (G::BufferType btype)	{ return (EResource(uint16_t(EResource::_BUFFER_FIRST)+btype)); }
@@ -146,6 +153,10 @@ public:
     inline void			FreeTexture (goid_t id);
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
     inline void			TexParameter (G::Texture::Parameter p, int v)			{ TexParameter (G::TEXTURE_2D,p,v); }
+    inline goid_t		CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na);
+    inline goid_t		CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc);
+    inline goid_t		CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer);
+    inline void			FreeFramebuffer (goid_t id);
     inline goid_t		LoadFont (const void* d, uint32_t dsz);
     inline goid_t		LoadFont (const char* f);
     inline goid_t		LoadFont (goid_t pak, const char* f);
@@ -240,6 +251,17 @@ inline PRGL::goid_t PRGL::CreateTexture (G::TextureType tt, uint16_t w, uint16_t
     { const G::Texture::Header hdr = { G::Texture::Header::Magic, w, h, d, fmt, comp }; return (LoadTexture (tt, &hdr, sizeof(hdr), storeas)); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, EResource::TEXTURE_2D); }
+
+inline PRGL::goid_t PRGL::CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na)
+    { return (LoadData (EResource::FRAMEBUFFER, pa, na*sizeof(G::FramebufferComponent), 0)); }
+inline PRGL::goid_t PRGL::CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc)
+    { return (CreateFramebuffer (fbc.begin(), fbc.size())); }
+inline PRGL::goid_t PRGL::CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer)
+    { return (CreateFramebuffer (
+		{{G::FRAMEBUFFER, G::DEPTH_ATTACHMENT, G::TEXTURE_2D, 0, depthbuffer},
+		 {G::FRAMEBUFFER, G::COLOR_ATTACHMENT0, G::TEXTURE_2D, 0, colorbuffer}})); }
+inline void PRGL::FreeFramebuffer (goid_t id)
+    { FreeResource (id, EResource::FRAMEBUFFER); }
 
 inline PRGL::goid_t PRGL::LoadFont (const void* d, uint32_t dsz)
     { return (LoadData (EResource::FONT, d, dsz, 0)); }

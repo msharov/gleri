@@ -45,7 +45,7 @@ const CGObject* CIConn::FindObject (goid_t cid) const noexcept
 void CIConn::AddObject (CGObject* o)
 {
     if (!o || o->CId() == G::GoidNull || o->Id() == CGObject::NoObject)
-	throw XError ("failed to load resource %x", o->CId());
+	throw XError ("failed create resource object %x", o->CId());
     auto io = lower_bound (_obj.begin(), _obj.end(), o, [](const CGObject* o1, const CGObject* o2) { return (*o1 < *o2); });
     _obj.insert (io, o);
 }
@@ -55,6 +55,7 @@ void CIConn::AddObject (CGObject* o)
 void CIConn::LoadDefaultResources (CGLWindow* w)
 {
     DTRACE ("Loading shared resources\n");
+    AddObject (new CFramebuffer (w->ContextId(), G::default_Framebuffer, 0));
     const CDatapak& pak = LoadDatapak (w, G::default_ResourcePak, ArrayBlock (File_resource));
     LoadShader (w, G::default_FlatShader, pak, "sh/flat_v.glsl", "sh/flat_f.glsl");
     LoadShader (w, G::default_GradientShader, pak, "sh/grad_v.glsl", "sh/grad_f.glsl");
@@ -89,6 +90,8 @@ void CIConn::LoadResource (const CGLWindow* w, goid_t id, PRGL::EResource dtype,
 	LoadBuffer (w, id, d, dsz, G::BufferHint(hint), PRGL::BufferTypeFromResource(dtype));
     else if (dtype >= PRGL::EResource::_TEXTURE_FIRST && dtype <= PRGL::EResource::_TEXTURE_LAST)
 	LoadTexture (w, id, d, dsz, G::Pixel::Fmt(hint), PRGL::TextureTypeFromResource(dtype));
+    else if (dtype == PRGL::EResource::FRAMEBUFFER)
+	LoadFramebuffer (w, id, d, dsz);
     else if (dtype == PRGL::EResource::FONT)
 	LoadFont (w, id, d, dsz);
     else if (dtype == PRGL::EResource::SHADER) {
@@ -160,6 +163,12 @@ inline void CIConn::LoadTexture (const CGLWindow* w, goid_t cid, const GLubyte* 
 {
     DTRACE ("[%x] LoadTexture %x type %u from %u bytes\n", w->IId(), cid, ttype, dsz);
     AddObject (new CTexture (w->ContextId(), cid, d, dsz, storeas, ttype, w->TexParams()));
+}
+
+inline void CIConn::LoadFramebuffer (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz)
+{
+    DTRACE ("[%x] LoadFramebuffer %x from %u bytes\n", w->IId(), cid, dsz);
+    AddObject (new CFramebuffer (w->ContextId(), cid, d, dsz, *this));
 }
 
 inline void CIConn::LoadFont (const CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz)

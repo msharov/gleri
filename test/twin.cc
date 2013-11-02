@@ -73,6 +73,25 @@ static const char c_gradShader_f[] =
 } // namespace
 //}}}-------------------------------------------------------------------
 
+CTestWindow::CTestWindow (iid_t wid)
+: CWindow(wid)
+,_vbuf(0)
+,_cbuf(0)
+,_gradShader(0)
+,_walk(0)
+,_cat(0)
+,_smalldepth(0)
+,_smallcol(0)
+,_smallfb(0)
+,_wx(0)
+,_wy(0)
+,_wsx(0)
+,_wsy(0)
+,_wtimer(NotWaitingForVSync)
+{
+    strcpy (_hellomsg, "Hello world from OpenGL!");
+}
+
 void CTestWindow::OnInit (void)
 {
     CWindow::OnInit();
@@ -88,6 +107,9 @@ void CTestWindow::OnInit (void)
     _cat = LoadTexture (G::TEXTURE_2D, "test/pgcat.jpg");
 #endif
     _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
+    _smalldepth = CreateTexture (G::TEXTURE_2D, 320, 240, 0, G::Pixel::DEPTH_COMPONENT, G::Pixel::FLOAT, G::Pixel::DEPTH_COMPONENT);
+    _smallcol = CreateTexture (G::TEXTURE_2D, 320, 240);
+    _smallfb = CreateFramebuffer (_smalldepth, _smallcol);
 }
 
 void CTestWindow::OnResize (dim_t w, dim_t h)
@@ -221,4 +243,18 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Shader (_gradShader);
     drw.Color (0,128,128);
     drw.TriangleStrip (vb_FanOverlayOffset, vb_FanOverlaySize);
+    drw.DefaultShader();
+
+    drw.Framebuffer (_smallfb);
+    drw.Clear (RGBA(0,0,48,128));
+    #if HAVE_JPEGLIB_H
+	drw.Image (100, 120, _cat);
+    #endif
+    drw.Color (128,90,150,220);
+    drw.TriangleFan (vb_PurpleQuadOffset, vb_PurpleQuadSize);
+    drw.Text (32, 64, "Offscreen");
+    drw.DefaultFramebuffer();
+
+    //drw.Scale (1.5,2);
+    drw.Image (990, 120, _smallcol);
 }

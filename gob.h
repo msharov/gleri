@@ -103,3 +103,23 @@ private:
     GLuint		_sz;
     GLubyte*		_p;
 };
+
+//----------------------------------------------------------------------
+
+class CIConn;
+class CTexture;
+
+class CFramebuffer : public CGObject {
+public:
+    inline		CFramebuffer (GLXContext ctx, goid_t cid, GLuint id) : CGObject (ctx, cid, id), _w(0), _h(0) {}
+			CFramebuffer (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, const CIConn& conn);
+    virtual		~CFramebuffer (void) noexcept	{ Free(); }
+    void		Attach (const G::FramebufferComponent& c, const CTexture& tex) const noexcept;
+    inline GLushort	Width (void) const	{ return (_w); }
+    inline GLushort	Height (void) const	{ return (_h); }
+private:
+    inline GLuint	GenId (void) const	{ GLuint id; glGenFramebuffers (1, &id); return (id); }
+    void		Free (void) noexcept;
+private:
+    GLushort		_w,_h;
+};

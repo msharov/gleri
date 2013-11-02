@@ -39,7 +39,7 @@ public:
     void			CheckForErrors (void);
 				// Client-side id map, forwarded to the connection object
     inline void			VerifyFreeId (goid_t cid) const	{ return (_pconn->VerifyFreeId (cid)); }
-    inline void			SetFont (goid_t f)		{ _curFont = f; }
+    inline void			BindFont (goid_t f)		{ _curFont = f; }
     inline GLuint		LastRenderTime (void) const	{ return (_syncEvent.time); }
     inline GLuint		LastFrameTime (void) const	{ return (_syncEvent.key); }
 				// Resource loader by enum
@@ -128,6 +128,10 @@ public:
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ _texparam.Set(t,p,v); }
     void			Sprite (const CTexture& t, coord_t x, coord_t y);
     void			Sprite (const CTexture& t, coord_t x, coord_t y, coord_t sx, coord_t sy, dim_t sw, dim_t sh);
+				// Framebuffer
+    inline const CFramebuffer&	LookupFramebuffer (goid_t id) const	{ return (_pconn->LookupFramebuffer (id)); }
+    void			BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bindas);
+    void			BindFramebufferComponent (const CFramebuffer& fb, const G::FramebufferComponent& c) { fb.Attach (c, LookupTexture (c.texture)); }
 				// Font
     inline const CFont&		LookupFont (goid_t id) const	{ return (_pconn->LookupFont (id)); }
     void			Text (coord_t x, coord_t y, const char* s);
@@ -169,5 +173,6 @@ private:
     goid_t			_curFont;
     WinInfo			_winfo;
     struct { coord_t x,y,w,h; }	_viewport;
+    struct { dim_t w,h; }	_fbsz;
     CTexture::CParam		_texparam;
 };

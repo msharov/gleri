@@ -5,6 +5,7 @@
 
 #include "gob.h"
 #include "gleri/mmfile.h"
+#include "iconn.h"
 #include <zlib.h>
 
 //----------------------------------------------------------------------
@@ -149,3 +150,59 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
 }
 
 //----------------------------------------------------------------------
+
+CFramebuffer::CFramebuffer (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, const CIConn& conn)
+: CGObject (ctx, cid, GenId())
+,_w(0)
+,_h(0)
+{
+    try {
+	glBindFramebuffer (GL_FRAMEBUFFER, Id());
+	const G::FramebufferComponent* icomp = (const G::FramebufferComponent*) p;
+	unsigned ncomp = psz / sizeof(G::FramebufferComponent);
+	for (unsigned i = 0; i < ncomp; ++i) {
+	    const CTexture& tex = conn.LookupTexture (icomp[i].texture);
+	    Attach (icomp[i], tex);
+	    _w = tex.Width();
+	    _h = tex.Height();
+	}
+    } catch (...) {	// LookupTexture throws on invalid goid
+	Free();
+	throw;
+    }
+}
+
+void CFramebuffer::Attach (const G::FramebufferComponent& c, const CTexture& tex) const noexcept
+{
+    //{{{ gldefs enums to glenum lookup arrays
+    static const GLenum c_Target[] = { GL_FRAMEBUFFER, GL_READ_FRAMEBUFFER };
+    static const GLenum c_Attachment[] = {
+	GL_DEPTH_ATTACHMENT,
+	GL_STENCIL_ATTACHMENT,
+	GL_DEPTH_STENCIL_ATTACHMENT,
+	GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3,
+	GL_COLOR_ATTACHMENT4, GL_COLOR_ATTACHMENT5, GL_COLOR_ATTACHMENT6, GL_COLOR_ATTACHMENT7,
+	GL_COLOR_ATTACHMENT8, GL_COLOR_ATTACHMENT9, GL_COLOR_ATTACHMENT10, GL_COLOR_ATTACHMENT11,
+	GL_COLOR_ATTACHMENT12, GL_COLOR_ATTACHMENT13, GL_COLOR_ATTACHMENT14, GL_COLOR_ATTACHMENT15
+    };
+    //}}}
+    DTRACE ("\tAttaching texture %x to target %u, attachment %u, level %u\n", tex.CId(), c.target, c.attachment, c.level);
+    GLenum targ = c_Target [min<uint8_t>(c.target, ArraySize(c_Target)-1)];
+    GLenum attach = c_Attachment [min<uint8_t>(c.attachment, ArraySize(c_Attachment)-1)];
+    GLenum tt = CTexture::GLenumFromTextureType ((G::TextureType) c.textype);
+    if (c.textype >= G::TEXTURE_3D)
+	glFramebufferTexture3D (targ, attach, tt, tex.Id(), 0, c.level);
+    else if (c.textype >= G::TEXTURE_2D)
+	glFramebufferTexture2D (targ, attach, tt, tex.Id(), c.level);
+    else
+	glFramebufferTexture1D (targ, attach, tt, tex.Id(), c.level);
+}
+
+void CFramebuffer::Free (void) noexcept
+{
+    GLuint id = Id();
+    if (id != NoObject) {
+	ResetId();
+	glDeleteFramebuffers (1, &id);
+    }
+}
