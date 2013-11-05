@@ -46,12 +46,12 @@ PRGL::goid_t PRGL::LoadFile (EResource dtype, const char* filename, uint16_t hin
 {
     goid_t id = GenId();
     CFile f (filename, O_RDONLY);
-    uint32_t dsz = f.Size(), fsz = sizeof(int);
+    uint32_t dsz = f.Size(), unwrsz = sizeof(int);
     if (!CanPassFd()) {
-	fsz = Align(sizeof(dsz)+dsz,c_MsgAlignment);
-	CmdU (ECmd::LoadData, fsz, id, dtype, hint, dsz, uint32_t(0));
+	unwrsz = Align(sizeof(dsz)+dsz,c_MsgAlignment);
+	CmdU (ECmd::LoadData, unwrsz, id, dtype, hint, dsz, uint32_t(0));
     } else
-	CmdU (ECmd::LoadFile, fsz, id, dtype, hint);
+	CmdU (ECmd::LoadFile, unwrsz, id, dtype, hint);
     SendFile (f, dsz);
     return (id);
 }

@@ -33,7 +33,7 @@ public:
     void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
     uint64_t			DrawFrame (bstri cmdis, Display* dpy);
     uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy);
-    uint64_t			DrawPendingFrame (Display* dpy) noexcept;
+    uint64_t			DrawPendingFrame (Display* dpy);
     inline void			ClearPendingFrame (void)	{ _pendingFrame.clear(); }
     uint64_t			NextFrameTime (void) const	{ return (_nextVSync); }
     void			CheckForErrors (void);
@@ -132,6 +132,7 @@ public:
     inline const CFramebuffer&	LookupFramebuffer (goid_t id) const	{ return (_pconn->LookupFramebuffer (id)); }
     void			BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bindas);
     void			BindFramebufferComponent (const CFramebuffer& fb, const G::FramebufferComponent& c) { fb.Attach (c, LookupTexture (c.texture)); }
+    void			SaveFramebuffer (coord_t x, coord_t y, coord_t w, coord_t h, const char* filename, G::Texture::Format fmt, uint8_t quality);
 				// Font
     inline const CFont&		LookupFont (goid_t id) const	{ return (_pconn->LookupFont (id)); }
     void			Text (coord_t x, coord_t y, const char* s);
@@ -171,6 +172,7 @@ private:
     goid_t			_curBuffer;
     goid_t			_curTexture;
     goid_t			_curFont;
+    goid_t			_curFb;
     WinInfo			_winfo;
     struct { coord_t x,y,w,h; }	_viewport;
     struct { dim_t w,h; }	_fbsz;

@@ -347,6 +347,10 @@ struct alignas(8) Header {
     Pixel::Fmt	fmt;
     Pixel::Comp	comp;
 };
+enum class Format : uint8_t {
+    JPEG,
+    PNG
+};
 } // namespace G::Texture
 
 struct alignas(4) FramebufferComponent {

@@ -93,6 +93,16 @@ void CTexture::Free (void) noexcept
     };
 }
 
+/*static*/ void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format fmt, uint8_t quality)
+{
+    CTexBuf tbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, h);
+    glReadPixels (x, y, w, h, tbuf.Header().fmt, tbuf.Header().comp, tbuf.Data());
+    if (fmt == G::Texture::Format::PNG)
+	SavePNG (fd, tbuf);
+    else
+	SaveJPG (fd, tbuf, quality);
+}
+
 //{{{ PNG format -------------------------------------------------------
 
 #if HAVE_PNG_H
@@ -107,10 +117,16 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 }
 } // namespace
 
-/*static*/ inline CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint) noexcept
+/*static*/ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint) noexcept
 {
     png_structp rs = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
-    png_infop infos = png_create_info_struct (rs);
+    png_infop infos = nullptr;
+    if (rs)
+	infos = png_create_info_struct (rs);
+    if (setjmp (png_jmpbuf (rs)) || !infos) {
+	png_destroy_read_struct (&rs, &infos, nullptr);
+	return (CTexBuf());
+    }
     png_set_read_fn (rs, &p, png_data_source);
     png_read_info (rs, infos);
 
@@ -137,6 +153,36 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     return (tbuf);
 }
 
+/*static*/ void CTexture::SavePNG (int fd, const CTexBuf& tbuf)
+{
+    FILE* outfile = fdopen (fd, "wb");
+    if (!outfile) return;
+    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    png_infop info_ptr = nullptr;
+    if (png_ptr)
+	info_ptr = png_create_info_struct (png_ptr);
+    if (setjmp (png_jmpbuf (png_ptr)) || !info_ptr) {
+	png_destroy_write_struct (&png_ptr, &info_ptr);
+	return;
+    }
+    png_init_io (png_ptr, outfile);
+
+    png_set_IHDR (png_ptr, info_ptr, tbuf.Header().w, tbuf.Header().h,
+		8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
+		PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
+
+    png_byte* ppix = const_cast<png_byte*>(reinterpret_cast<const GLubyte*>(tbuf.Data()));
+    png_byte* pline [tbuf.Header().h];
+    for (unsigned i = 0; i < tbuf.Header().h; ++i)
+	pline[i] = &ppix[((tbuf.Header().h-1)-i)*tbuf.Header().w*3];
+
+    png_set_rows (png_ptr, info_ptr, pline);
+    png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
+
+    fflush (outfile);
+    png_destroy_write_struct (&png_ptr, &info_ptr);
+}
+
 #endif
 //}}}-------------------------------------------------------------------
 //{{{ JPG format
@@ -145,7 +191,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 #include <jpeglib.h>
 #include <jerror.h>
 
-/*static*/ inline CTexture::CTexBuf CTexture::LoadJPG (const GLubyte* p, GLuint psz) noexcept
+/*static*/ CTexture::CTexBuf CTexture::LoadJPG (const GLubyte* p, GLuint psz) noexcept
 {
     jpeg_decompress_struct cinfo;
     jpeg_error_mgr jerr;
@@ -176,6 +222,35 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     jpeg_finish_decompress (&cinfo);
     jpeg_destroy_decompress (&cinfo);
     return (imgbuf);
+}
+
+/*static*/ void CTexture::SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality)
+{
+    FILE* outfile = fdopen (fd, "wb");
+    if (!outfile) return;
+    jpeg_compress_struct cinfo;
+    jpeg_error_mgr jerr;
+    cinfo.err = jpeg_std_error (&jerr);
+    jpeg_create_compress (&cinfo);
+    jpeg_stdio_dest (&cinfo, outfile);
+
+    cinfo.image_width = tbuf.Header().w;
+    cinfo.image_height = tbuf.Header().h;
+    cinfo.input_components = 3;
+    cinfo.in_color_space = JCS_RGB;
+    jpeg_set_defaults (&cinfo);
+    jpeg_set_quality (&cinfo, quality, TRUE);
+    jpeg_start_compress (&cinfo, TRUE);
+
+    JSAMPROW ppix = const_cast<JSAMPROW>(reinterpret_cast<const GLubyte*>(tbuf.Data()));
+    JSAMPROW pline [cinfo.image_height];
+    for (unsigned i = 0; i < cinfo.image_height; ++i)
+	pline[i] = &ppix[((cinfo.image_height-1)-i)*cinfo.image_width*3];
+    jpeg_write_scanlines (&cinfo, pline, cinfo.image_height);
+
+    fflush (outfile);
+    jpeg_finish_compress (&cinfo);
+    jpeg_destroy_compress (&cinfo);
 }
 
 #endif

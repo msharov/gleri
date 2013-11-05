@@ -22,6 +22,8 @@ private:
 	Restate,
 	Draw,
 	Event,
+	SaveFB,
+	SaveFBData,
 	NCmds
     };
 public:
@@ -29,6 +31,7 @@ public:
     inline void			Restate (rcwininfo_t winfo)	{ Cmd(ECmd::Restate,winfo); }
     inline void			Draw (void)			{ Cmd(ECmd::Draw); }
     inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }
+    void			SaveFB (goid_t id, const char* filename, CFile& f);
     inline void			ForwardError (const char* m)	{ CCmdBuf::ForwardError(m); }
     inline void			Export (const char* ol)		{ CCmdBuf::Export (ol); }
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
@@ -40,10 +43,14 @@ public:
     inline int			Fd (void) const			{ return (CCmdBuf::Fd()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
+protected:
+    inline bool			CanPassFd (void) const		{ return (CCmdBuf::CanPassFd()); }
 private:
     template <typename... Arg>
     inline void			Cmd (ECmd cmd, const Arg&... args);
-    bstro			CreateCmd (ECmd cmd, size_type sz) noexcept;
+    template <typename... Arg>
+    inline void			CmdU (ECmd cmd, size_type unwritten, const Arg&... args);
+    bstro			CreateCmd (ECmd cmd, size_type sz, size_type unwritten = 0) noexcept;
     static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
     static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
 private:
@@ -61,6 +68,15 @@ inline void PRGLR::Cmd (ECmd cmd, const Arg&... args)
     variadic_arg_write (os, args...);
 }
 
+template <typename... Arg>
+inline void PRGLR::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
+{
+    bstrs ss;
+    variadic_arg_size (ss, args...);
+    bstro os = CreateCmd (cmd, ss.size()+unwritten, unwritten);
+    variadic_arg_write (os, args...);
+}
+
 //}}}-------------------------------------------------------------------
 //{{{ Read parser
 
@@ -75,6 +91,8 @@ template <typename F>
 	case ECmd::Restate:	{ WinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;
 	case ECmd::Draw:	clir->OnExpose(); break;
 	case ECmd::Event:	{ CEvent e; Args(cmdis,e); clir->OnEvent(e); } break;
+	case ECmd::SaveFB:	{ goid_t id; uint32_t r, fd; Args(cmdis,id,r,fd); CFile of (fd); clir->OnSaveFB (id, of); } break;
+	case ECmd::SaveFBData:	{ goid_t id; const char* filename; uint32_t tsz,toff; SDataBlock d; Args(cmdis,id,filename,tsz,toff,d); clir->OnSaveFBData (id,filename,d); } break;
 	default:		XError::emit ("invalid protocol command");
     }
 }

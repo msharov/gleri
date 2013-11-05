@@ -32,4 +32,5 @@ private:
     coord_t		_wsy;
     uint64_t		_wtimer;
     char		_hellomsg [48];
+    const char*		_screenshot;
 };

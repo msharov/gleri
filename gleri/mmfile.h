@@ -18,8 +18,8 @@ class CFile {
 public:
     enum { c_DefaultBacklog = 16 };
 public:
-    inline		CFile (void) noexcept	: _fd(-1) {}
-    inline explicit	CFile (int fd) noexcept	: _fd(fd) {}
+    inline constexpr	CFile (void) noexcept	: _fd(-1) {}
+    constexpr explicit	CFile (int fd) noexcept	: _fd(fd) {}
     inline		CFile (const char* filename, int flags, mode_t mode = 0);
     inline		~CFile (void) noexcept	{ close (_fd); }
     inline int		Fd (void) const		{ return (_fd); }

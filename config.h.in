@@ -7,8 +7,13 @@
 #pragma once
 
 #include "gleri/config.h"
+#include <paths.h>
 
+// Queue size when calling listen(3)
 #define GLERIS_LISTEN_QUEUE_SIZE	32
+
+// Temporary file name for saving screenshots before sending them to the client
+#define SAVEFB_TMPFILE	_PATH_TMP GLERIS_NAME "_fbXXXXXX.jpg"
 
 // Define to 1 if you have OpenGL
 #undef HAVE_GL_GL_H

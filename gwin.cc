@@ -21,6 +21,7 @@ CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ct
 ,_curBuffer (G::GoidNull)
 ,_curTexture (G::GoidNull)
 ,_curFont (G::GoidNull)
+,_curFb (G::default_Framebuffer)
 ,_winfo (winfo)
 {
     DTRACE ("[%x] Create: window %x, context %x\n", iid, win, ctx);
@@ -171,7 +172,7 @@ uint64_t CGLWindow::DrawFrameNoWait (bstri cmdis, Display* dpy)
     return (DrawFrame (cmdis, dpy));
 }
 
-uint64_t CGLWindow::DrawPendingFrame (Display* dpy) noexcept
+uint64_t CGLWindow::DrawPendingFrame (Display* dpy)
 {
     return (DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy));
 }
@@ -321,6 +322,7 @@ void CGLWindow::BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bind
     static const GLenum c_Target[] = { GL_FRAMEBUFFER, GL_READ_FRAMEBUFFER };
     GLenum targ = c_Target [min<uint8_t>(bindas, ArraySize(c_Target)-1)];
     glBindFramebuffer (targ, fb.Id());
+    _curFb = fb.CId();
     GLushort w = fb.Width(), h = fb.Height();
     if (!fb.Id()) {
 	w = _winfo.w;
@@ -328,6 +330,27 @@ void CGLWindow::BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bind
     }
     Viewport (0, 0, _fbsz.w = w, _fbsz.h = h);
     glFrontFace (fb.Id() ? GL_CW : GL_CCW);	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
+}
+
+void CGLWindow::SaveFramebuffer (coord_t x, coord_t y, coord_t w, coord_t h, const char* filename, G::Texture::Format fmt, uint8_t quality)
+{
+    if (!w) {
+	x = _viewport.x;
+	y = _viewport.y;
+	w = _viewport.w;
+	h = _viewport.h;
+    }
+    DTRACE ("[%x] Save framebuffer %ux%u+%d+%d to \"%s\" fmt %u quality %u\n", IId(), w,h,x,y, filename, fmt, quality);
+    CFile of;
+    char tmpfilename[] = SAVEFB_TMPFILE;
+    if (CanPassFd())
+	of.Open (filename, O_WRONLY| O_CREAT| O_TRUNC, 0600);
+    else
+	of.Attach (mkstemps (tmpfilename, strlen(".jpg")));
+    CTexture::Save (of.Fd(), x, y, w, h, fmt, quality);
+    SaveFB (_curFb, filename, of);
+    if (CanPassFd())
+	unlink (tmpfilename);
 }
 
 //----------------------------------------------------------------------

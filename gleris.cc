@@ -681,10 +681,12 @@ void CGleris::OnTimer (uint64_t tms)
     for (auto c : _win) {
 	if (c->NextFrameTime() == tms) {
 	    try {
+		DTRACE ("[%x] Rendering queued frame after vsync\n", c->IId());
 		ActivateClient (*c);
 		WaitForTime (c->DrawPendingFrame (_dpy));
 	    } catch (XError& e) {
-		ForwardError ("Draw", e, -1, c->IId());
+		DTRACE ("[%x] Queued frame generated error: %s\n", c->IId(), e.what());
+		ForwardError ("Draw", e, c->Fd(), c->IId());
 	    }
 	    c->ClearPendingFrame();
 	}
@@ -816,10 +818,8 @@ void CGleris::DestroyClient (CGLWindow*& pc) noexcept
 {
     if (_dpy) {
 	DTRACE ("Erasing client with window %x, context %x\n", pc->Drawable(), pc->ContextId());
-	if (_curCli == pc) {
-	    glXMakeCurrent (_dpy, None, nullptr);
-	    _curCli = nullptr;
-	}
+	_curCli = nullptr;	// Whenever any window dies, ALL GL contexts become detached
+	glXMakeCurrent (_dpy, None, nullptr);
 	glXDestroyContext (_dpy, pc->ContextId());
 	CloseClient (pc);
     }

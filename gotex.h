@@ -28,6 +28,7 @@ public:
     inline GLushort	Depth (void) const	{ return (_depth); }
     void		Free (void) noexcept;
     static GLenum	GLenumFromTextureType (G::TextureType ttype) noexcept;
+    static void		Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format, uint8_t quality);
 protected:
     inline		CTexture (GLXContext ctx, goid_t cid) : CGObject(ctx,cid,GenId()),_type(GL_TEXTURE_2D),_width(0),_height(0),_depth(0) {}
     inline GLuint	GenId (void) const	{ GLuint id; glGenTextures (1, &id); return (id); }
@@ -42,11 +43,13 @@ private:
 	inline constexpr	CTexBuf (void)		:_h(),_sz(0),_p(nullptr) {}
 	inline constexpr	CTexBuf (const texhdr_t& h, const_pointer p)
 				    :_h(h),_sz(0),_p(const_cast<pointer>(p)) {}
+	inline			CTexBuf (CTexBuf&& b)	:_h(b._h),_sz(b._sz),_p(b._p) { b._p = nullptr; }
 	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint32_t w, uint16_t h=1, uint16_t d=0)
 				    :_h { texhdr_t::Magic, w,h,d,fmt,comp }
 				    ,_sz (w*h*sizeof(value_type))
 				    ,_p ((pointer)malloc(_sz)) {}
 	inline			~CTexBuf (void)		{ if (_p && _sz) free(_p); }
+	inline CTexBuf&		operator= (CTexBuf&& b)	{ swap(_h,b._h); swap(_sz,b._sz); swap(_p,b._p); return (*this); }
 	inline const_pointer	Data (void) const	{ return (_p); }
 	inline pointer		Data (void)		{ return (_p); }
 	inline size_t		Size (void) const	{ return (_sz); }
@@ -58,8 +61,10 @@ private:
     };
 private:
     static inline CTexBuf	Load (const GLubyte* p, GLuint psz) noexcept;
-    static inline CTexBuf	LoadPNG (const GLubyte* p, GLuint psz) noexcept;
+    static CTexBuf		LoadPNG (const GLubyte* p, GLuint psz) noexcept;
     static inline CTexBuf	LoadJPG (const GLubyte* p, GLuint psz) noexcept;
+    static void			SavePNG (int fd, const CTexBuf& tbuf);
+    static inline void		SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality);
 private:
     GLenum		_type;
     GLushort		_width;

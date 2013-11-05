@@ -11,6 +11,7 @@
 class PRGL : private CCmdBuf {
 public:
     using CCmdBuf::iid_t;
+    using CCmdBuf::SDataBlock;
     typedef PDraw<bstro>	draww_t;
     typedef G::WinInfo		WinInfo;
     typedef G::goid_t		goid_t;

@@ -30,6 +30,8 @@ public:
     inline virtual void	OnResize (dim_t, dim_t)		{ }
     virtual void	OnError (const char* m)		{ XError::emit (m); }
     virtual void	OnEvent (const CEvent& e);
+    inline void		OnSaveFBData (goid_t id, const char* filename, const SDataBlock& d);
+    inline virtual void	OnSaveFB (goid_t, CFile&)	{ }
     inline virtual void	Draw (void)			{ }
     inline void		WriteCmds (void)		{ if (!_closePending) PRGL::WriteCmds(); }
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
@@ -88,6 +90,13 @@ inline void CWindow::DrawT (const W& w)
     w.OnDraw (drws);
     auto drww = PRGL::Draw (drws.size());
     w.OnDraw (drww);
+}
+
+inline void CWindow::OnSaveFBData (goid_t id, const char* filename, const SDataBlock& d)
+{
+    CFile f (filename, O_WRONLY| O_CREAT| O_EXCL| O_CLOEXEC, 0600);
+    f.Write (d._p, d._sz);
+    OnSaveFB (id, f);
 }
 
 //----------------------------------------------------------------------

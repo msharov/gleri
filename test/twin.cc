@@ -88,6 +88,7 @@ CTestWindow::CTestWindow (iid_t wid)
 ,_wsx(0)
 ,_wsy(0)
 ,_wtimer(NotWaitingForVSync)
+,_screenshot(nullptr)
 {
     strcpy (_hellomsg, "Hello world from OpenGL!");
 }
@@ -104,7 +105,7 @@ void CTestWindow::OnInit (void)
     _walk = LoadTexture (G::TEXTURE_2D, "test/princess.png", G::Pixel::COMPRESSED_RGBA);
 #endif
 #if HAVE_JPEGLIB_H
-    _cat = LoadTexture (G::TEXTURE_2D, "test/pgcat.jpg");
+    _cat = LoadTexture (G::TEXTURE_2D, "test/pgcat.jpg", G::Pixel::RGB);
 #endif
     _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
     _smalldepth = CreateTexture (G::TEXTURE_2D, 320, 240, 0, G::Pixel::DEPTH_COMPONENT, G::Pixel::FLOAT, G::Pixel::DEPTH_COMPONENT);
@@ -150,6 +151,10 @@ void CTestWindow::OnKey (key_t key)
 	    _wx = Info().w-walk_SpriteW;
 	_wsy = walk_StripRight;
 	_wsx += walk_SpriteW;
+    } else if (key == 's') {
+	_screenshot = "screen.jpg";
+	Draw();
+	_screenshot = nullptr;
     }
     if (_wsx >= walk_StripLength)
 	_wsx = 0;
@@ -164,6 +169,7 @@ void CTestWindow::OnButton (key_t b, coord_t x, coord_t y)
 	    MENUITEM ("Entry 1", "1", "entry1")
 	    MENUITEM ("Entry 2", "2", "entry2")
 	    MENUITEM ("Entry 3", "3", "entry3")
+	    MENUITEM ("Take screenshot", "s", "screenshot")
 	END_MENU
 	CPopupMenu::Create (IId(), x, y, c_TestMenu);
     }
@@ -173,6 +179,11 @@ void CTestWindow::OnCommand (const char* cmd)
 {
     CWindow::OnCommand (cmd);
     strcpy (_hellomsg, cmd);
+    if (!strcmp (cmd, "screenshot")) {
+	_screenshot = "screen.jpg";
+	Draw();
+	_screenshot = nullptr;
+    }
 }
 
 void CTestWindow::OnTimer (uint64_t tms)
@@ -255,6 +266,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Text (32, 64, "Offscreen");
     drw.DefaultFramebuffer();
 
-    //drw.Scale (1.5,2);
     drw.Image (990, 120, _smallcol);
+    if (_screenshot)
+	drw.Screenshot (_screenshot);
 }
