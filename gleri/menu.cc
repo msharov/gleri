@@ -49,7 +49,7 @@ void CMenuEntry::OnKey (key_t key)
 void CMenuEntry::OnButtonUp (key_t b, coord_t x, coord_t y)
 {
     CWidget::OnButtonUp (b, x, y);
-    if (Flag(f_Focused) && (b == Button::Left || b == Button::Right)) {
+    if (Flag(f_Focused) && (b == Button::Left || b == Button::Right) && x > 1 && y > 1) {
 	CGLApp::Instance().SendUICommand (_id);
 	Close();
     }

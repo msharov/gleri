@@ -30,8 +30,8 @@ public:
     inline virtual void	OnResize (dim_t, dim_t)		{ }
     virtual void	OnError (const char* m)		{ XError::emit (m); }
     virtual void	OnEvent (const CEvent& e);
-    inline void		OnSaveFBData (goid_t id, const char* filename, const SDataBlock& d);
-    inline virtual void	OnSaveFB (goid_t, CFile&)	{ }
+    inline void		OnSaveFramebufferData (goid_t id, const char* filename, const SDataBlock& d);
+    inline virtual void	OnSaveFramebuffer (goid_t, CFile&)	{ }
     inline virtual void	Draw (void)			{ }
     inline void		WriteCmds (void)		{ if (!_closePending) PRGL::WriteCmds(); }
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
@@ -92,11 +92,11 @@ inline void CWindow::DrawT (const W& w)
     w.OnDraw (drww);
 }
 
-inline void CWindow::OnSaveFBData (goid_t id, const char* filename, const SDataBlock& d)
+inline void CWindow::OnSaveFramebufferData (goid_t id, const char* filename, const SDataBlock& d)
 {
-    CFile f (filename, O_WRONLY| O_CREAT| O_EXCL| O_CLOEXEC, 0600);
+    CFile f (filename, O_WRONLY| O_CREAT| O_TRUNC| O_CLOEXEC, 0600);
     f.Write (d._p, d._sz);
-    OnSaveFB (id, f);
+    OnSaveFramebuffer (id, f);
 }
 
 //----------------------------------------------------------------------
@@ -110,5 +110,20 @@ inline void CWindow::OnSaveFBData (goid_t id, const char* filename, const SDataB
     void W::Draw (void) { DrawT (*this); }	\
     template <typename Drw>			\
     inline void W
+
+#define DRAWFBDECL(Name)			\
+    void Draw##Name (goid_t fbid);		\
+    template <typename Drw>			\
+    inline void OnDraw##Name (Drw& drw)
+
+#define DRAWFBIMPL(W,Name)			\
+    void W::Draw##Name (goid_t fbid) {		\
+	PDraw<bstrs> drws;			\
+	OnDraw##Name (drws);			\
+	auto drww = PRGL::Draw (drws.size(),fbid);\
+	OnDraw##Name (drww);			\
+    }						\
+    template <typename Drw>			\
+    inline void W::OnDraw##Name (Drw& drw)
 
 //----------------------------------------------------------------------

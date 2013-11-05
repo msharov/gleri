@@ -31,6 +31,7 @@ public:
     inline const WinInfo&	Info (void) const		{ return (_winfo); }
     inline const CTexture::CParam& TexParams (void) const	{ return (_texparam); }
     void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
+    void			ParseDrawlist (goid_t fbid, bstri cmdis);
     uint64_t			DrawFrame (bstri cmdis, Display* dpy);
     uint64_t			DrawFrameNoWait (bstri cmdis, Display* dpy);
     uint64_t			DrawPendingFrame (Display* dpy);

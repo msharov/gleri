@@ -13,6 +13,7 @@ public:
     virtual void	OnResize (dim_t w, dim_t h);
     virtual void	OnTimer (uint64_t tms);
     ONDRAWDECL		OnDraw (Drw& drw) const;
+			DRAWFBDECL(Offscreen);
 protected:
     virtual void	OnKey (key_t key);
     virtual void	OnButton (key_t b, coord_t x, coord_t y);
@@ -26,6 +27,9 @@ private:
     goid_t		_smalldepth;
     goid_t		_smallcol;
     goid_t		_smallfb;
+    goid_t		_ofscrdepth;
+    goid_t		_ofscrcol;
+    goid_t		_ofscrfb;
     coord_t		_wx;
     coord_t		_wy;
     coord_t		_wsx;

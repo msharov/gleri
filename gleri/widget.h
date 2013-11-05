@@ -57,7 +57,8 @@ public:
     inline goid_t	LoadTexture (G::TextureType tt, const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(tt,d,dsz,storeas)); }
     inline goid_t	LoadTexture (G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)			{ return (_prgl->LoadTexture(tt,f,storeas)); }
     inline goid_t	LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(pak,tt,f,storeas)); }
-    inline goid_t	CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGBA, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE, G::Pixel::Fmt storas = G::Pixel::RGBA) { return (_prgl->CreateTexture(tt,w,h,d,fmt,comp,storas)); }
+    inline goid_t	CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGB, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE) { return (_prgl->CreateTexture(tt,w,h,d,fmt,comp)); }
+    inline goid_t	CreateDepthTexture (dim_t w, dim_t h)		{ return (_prgl->CreateDepthTexture (w, h)); }
     inline void		FreeTexture (goid_t id)				{ _prgl->FreeTexture(id); }
     inline goid_t	CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na)				{ return (_prgl->CreateFramebuffer(pa,na)); }
     inline goid_t	CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc)				{ return (_prgl->CreateFramebuffer(fbc)); }

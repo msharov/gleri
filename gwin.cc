@@ -88,8 +88,7 @@ void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
     _viewport.w = w;
     _viewport.h = h;
     memset (_proj, 0, sizeof(_proj));
-    if (_fbsz.h == _winfo.h)	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
-	y = _fbsz.h-y-h;
+    y = _fbsz.h-y-h;
     glViewport (x,y,w,h);
     glScissor (x,y,w,h);
     Scale (1, 1);
@@ -100,9 +99,7 @@ void CGLWindow::Offset (GLint x, GLint y) noexcept
 {
     DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
     _proj[3][0] = float(-(_viewport.w-2*x-1))/_viewport.w;	// 0.5 pixel center adjustment, 0.5*(2/w)=1/w
-    _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;
-    if (_fbsz.h != _winfo.h)	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
-	_proj[3][1] = -_proj[3][1];
+    _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;		// invert y to 0,0 at top left
     UniformMatrix ("Transform", Proj());
 }
 
@@ -110,12 +107,23 @@ void CGLWindow::Scale (float x, float y) noexcept
 {
     DTRACE ("[%x] Scale %g:%g\n", IId(), x,y);
     _proj[0][0] = 2.f*x/_viewport.w;
-    _proj[1][1] = -2.f*y/_viewport.h;
+    _proj[1][1] = -2.f*y/_viewport.h;				// invert y to 0,0 at top left
     _proj[2][2] = 1.f;
     _proj[3][3] = 1.f;
-    if (_fbsz.h != _winfo.h)	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
-	_proj[1][1] = -_proj[1][1];
     UniformMatrix ("Transform", Proj());
+}
+
+void CGLWindow::ParseDrawlist (goid_t fbid, bstri cmdis)
+{
+    // Clear VAO slots. Need only to do it here because buffers can not be freed during drawing, so all slots remain valid
+    glBindVertexArray (_vao[0]);
+    for (GLuint i = 0; i < MAX_VAO_SLOTS; ++i)
+	glDisableVertexAttribArray (i);
+    // Clear GL state remembered from the previous frame
+    _curShader = _curBuffer = _curTexture = _curFont = G::GoidNull;
+    BindFramebuffer (LookupFramebuffer (fbid), G::FRAMEBUFFER);
+    // Now that everything is reset, parse the drawlist
+    PDraw<bstri>::Parse (*this, cmdis);
 }
 
 uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
@@ -142,23 +150,12 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 	DTRACE ("[%x] Parsing drawlist\n", IId());
 	PostQuery (_query[query_RenderBegin]);
 
-	// Clear VAO slots. Need only to do it here because buffers can not be freed during drawing, so all slots remain valid
-	glBindVertexArray (_vao[0]);
-	for (GLuint i = 0; i < MAX_VAO_SLOTS; ++i)
-	    glDisableVertexAttribArray (i);
-	// Clear GL state remembered from the previous frame
-	_curShader = _curBuffer = _curTexture = _curFont = G::GoidNull;
-	BindFramebuffer (LookupFramebuffer (G::default_Framebuffer), G::FRAMEBUFFER);
-
-	// Parse the drawlist
-	PDraw<bstri>::Parse (*this, cmdis);
+	ParseDrawlist (G::default_Framebuffer, cmdis);
 
 	// End of frame swap and queries
 	PostQuery (_query[query_RenderEnd]);
 	glXSwapBuffers (dpy, Drawable());
 	PostQuery (_query[query_FrameEnd]);
-
-	CheckForErrors();
     }
     return (_nextVSync);
 }
@@ -329,7 +326,6 @@ void CGLWindow::BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bind
 	h = _winfo.h;
     }
     Viewport (0, 0, _fbsz.w = w, _fbsz.h = h);
-    glFrontFace (fb.Id() ? GL_CW : GL_CCW);	// Screen buffers use bottom-up coordinates, offscreen framebuffers use top-down
 }
 
 void CGLWindow::SaveFramebuffer (coord_t x, coord_t y, coord_t w, coord_t h, const char* filename, G::Texture::Format fmt, uint8_t quality)
@@ -341,14 +337,16 @@ void CGLWindow::SaveFramebuffer (coord_t x, coord_t y, coord_t w, coord_t h, con
 	h = _viewport.h;
     }
     DTRACE ("[%x] Save framebuffer %ux%u+%d+%d to \"%s\" fmt %u quality %u\n", IId(), w,h,x,y, filename, fmt, quality);
-    CFile of;
     char tmpfilename[] = SAVEFB_TMPFILE;
-    if (CanPassFd())
-	of.Open (filename, O_WRONLY| O_CREAT| O_TRUNC, 0600);
-    else
-	of.Attach (mkstemps (tmpfilename, strlen(".jpg")));
-    CTexture::Save (of.Fd(), x, y, w, h, fmt, quality);
-    SaveFB (_curFb, filename, of);
+    {
+	CFile of;
+	if (CanPassFd())
+	    of.Open (filename, O_WRONLY| O_CREAT| O_TRUNC| O_CLOEXEC, 0600);
+	else
+	    of.Attach (mkstemps (tmpfilename, strlen(".jpg")));
+	CTexture::Save (of.Fd(), x, y, w, h, fmt, quality);
+	SaveFB (_curFb, filename, of);
+    }
     if (CanPassFd())
 	unlink (tmpfilename);
 }

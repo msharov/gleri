@@ -83,6 +83,9 @@ CTestWindow::CTestWindow (iid_t wid)
 ,_smalldepth(0)
 ,_smallcol(0)
 ,_smallfb(0)
+,_ofscrdepth(0)
+,_ofscrcol(0)
+,_ofscrfb(0)
 ,_wx(0)
 ,_wy(0)
 ,_wsx(0)
@@ -108,9 +111,14 @@ void CTestWindow::OnInit (void)
     _cat = LoadTexture (G::TEXTURE_2D, "test/pgcat.jpg", G::Pixel::RGB);
 #endif
     _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
-    _smalldepth = CreateTexture (G::TEXTURE_2D, 320, 240, 0, G::Pixel::DEPTH_COMPONENT, G::Pixel::FLOAT, G::Pixel::DEPTH_COMPONENT);
-    _smallcol = CreateTexture (G::TEXTURE_2D, 320, 240);
+
+    _smalldepth = CreateDepthTexture (320, 240);
+    _smallcol = CreateTexture (G::TEXTURE_2D, 320, 240, 0, G::Pixel::RGBA);
     _smallfb = CreateFramebuffer (_smalldepth, _smallcol);
+
+    _ofscrdepth = CreateDepthTexture (640, 480);
+    _ofscrcol = CreateTexture (G::TEXTURE_2D, 640, 480);
+    _ofscrfb = CreateFramebuffer (_ofscrdepth, _ofscrcol);
 }
 
 void CTestWindow::OnResize (dim_t w, dim_t h)
@@ -155,7 +163,9 @@ void CTestWindow::OnKey (key_t key)
 	_screenshot = "screen.jpg";
 	Draw();
 	_screenshot = nullptr;
-    }
+    } else if (key == Key::Menu)
+	OnButton (Button::Right, 10, 10);
+
     if (_wsx >= walk_StripLength)
 	_wsx = 0;
     Draw();
@@ -170,6 +180,7 @@ void CTestWindow::OnButton (key_t b, coord_t x, coord_t y)
 	    MENUITEM ("Entry 2", "2", "entry2")
 	    MENUITEM ("Entry 3", "3", "entry3")
 	    MENUITEM ("Take screenshot", "s", "screenshot")
+	    MENUITEM ("Offscreen draw", "o", "offscreen")
 	END_MENU
 	CPopupMenu::Create (IId(), x, y, c_TestMenu);
     }
@@ -183,7 +194,8 @@ void CTestWindow::OnCommand (const char* cmd)
 	_screenshot = "screen.jpg";
 	Draw();
 	_screenshot = nullptr;
-    }
+    } else if (!strcmp (cmd, "offscreen"))
+	DrawOffscreen (_ofscrfb);
 }
 
 void CTestWindow::OnTimer (uint64_t tms)
@@ -269,4 +281,30 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Image (990, 120, _smallcol);
     if (_screenshot)
 	drw.Screenshot (_screenshot);
+}
+
+DRAWFBIMPL(CTestWindow,Offscreen)
+{
+    drw.Clear (RGB(0,64,64));
+    drw.VertexPointer (_vbuf);
+
+    drw.Color (255,255,255);
+    drw.LineStrip (vb_BrokenLineOffset, vb_BrokenLineSize);
+
+    #if HAVE_JPEGLIB_H
+	drw.Image (320, 240, _cat);
+    #endif
+
+    drw.Color (ARGB(0xc0804040));
+    drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);
+
+    drw.Shader (G::default_GradientShader);
+    drw.VertexPointer (_vbuf, G::SHORT, 2, vb_SkewQuadOffset*(2*sizeof(short)));
+    drw.ColorPointer (_cbuf);
+    drw.TriangleStrip (0, vb_SkewQuadSize);
+
+    drw.Color (128,128,128);
+    drw.Text (130, 400, "Offscreen rendered framebuffer");
+
+    drw.SaveFramebuffer (0,0,0,0,"offscreen.png", G::Texture::Format::PNG);
 }

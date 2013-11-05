@@ -89,7 +89,7 @@ public:
     void		Authenticate (CCmdBuf& cmdbuf, uint32_t pid, uint32_t screen, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth);
     CGLWindow*		CreateClient (iid_t iid, WinInfo winfo, const char* title, CCmdBuf* piconn);
     void		CloseClient (CGLWindow* pcli) noexcept;
-    void		ClientDraw (CGLWindow& cli, bstri cmdis);
+    void		ClientDraw (CGLWindow& cli, G::goid_t fbid, bstri cmdis);
     void		ClientEvent (const CGLWindow& cli, const CEvent& e);
     void		ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept;
     void		OnExport (const char*, int fd);

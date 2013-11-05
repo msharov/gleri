@@ -136,7 +136,7 @@ public:
     inline void			Open (const char* title, const WinInfo& winfo)			{ Cmd(ECmd::Open,winfo,title); }
     inline void			Open (const char* title, dim_t w, dim_t h, uint8_t mingl = 0x33, uint8_t maxgl = 0, WinInfo::MSAA aa = WinInfo::MSAA_OFF)	{ Open (title, (WinInfo){ 0,0,w,h,0,mingl,maxgl,aa,WinInfo::type_Normal,WinInfo::state_Normal,WinInfo::flag_None }); }
     inline void			Close (void)			{ Cmd(ECmd::Close); }
-    inline draww_t		Draw (size_type sz);
+    inline draww_t		Draw (size_type sz, goid_t fbid = G::default_Framebuffer);
     inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }
     inline goid_t		BufferData (G::BufferType bt, const void* data, uint32_t dsz, G::BufferHint hint = G::STATIC_DRAW);
     inline goid_t		BufferData (G::BufferType bt, const char* f, G::BufferHint hint = G::STATIC_DRAW);
@@ -150,7 +150,8 @@ public:
     inline goid_t		LoadTexture (G::TextureType ttype, const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		LoadTexture (G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		LoadTexture (goid_t pak, G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
-    inline goid_t		CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGBA, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE, G::Pixel::Fmt storas = G::Pixel::RGBA);
+    inline goid_t		CreateTexture (G::TextureType tt, dim_t w, dim_t h, dim_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGB, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE);
+    inline goid_t		CreateDepthTexture (dim_t w, dim_t h)	{ return (CreateTexture (G::TEXTURE_2D, w, h, 0, G::Pixel::DEPTH_COMPONENT, G::Pixel::FLOAT)); }
     inline void			FreeTexture (goid_t id);
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
     inline void			TexParameter (G::Texture::Parameter p, int v)			{ TexParameter (G::TEXTURE_2D,p,v); }
@@ -213,8 +214,8 @@ inline void PRGL::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
     variadic_arg_write (os, args...);
 }
 
-inline PRGL::draww_t PRGL::Draw (size_type sz)
-    { bstro os = CreateCmd (ECmd::Draw,sz+sizeof(size_type)); os << sz; return (draww_t(os)); }
+inline PRGL::draww_t PRGL::Draw (size_type sz, goid_t fbid)
+    { bstro os = CreateCmd (ECmd::Draw,sz+sizeof(fbid)+sizeof(sz)); os << fbid << sz; return (draww_t(os)); }
 inline PRGL::goid_t PRGL::LoadData (EResource dtype, const void* data, uint32_t dsz, uint16_t hint)
     { goid_t id = GenId(); Cmd (ECmd::LoadData, id, dtype, hint, dsz, uint32_t(0), SDataBlock (data, dsz)); return (id); }
 inline PRGL::goid_t PRGL::LoadPakFile (EResource dtype, goid_t pak, const char* filename, uint16_t hint)
@@ -248,8 +249,8 @@ inline PRGL::goid_t PRGL::LoadTexture (G::TextureType tt, const char* filename, 
     { return (LoadFile (ResourceFromTextureType(tt), filename, storeas)); }
 inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas)
     { return (LoadPakFile (ResourceFromTextureType(tt), pak, f, storeas)); }
-inline PRGL::goid_t PRGL::CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d, G::Pixel::Fmt fmt, G::Pixel::Comp comp, G::Pixel::Fmt storeas)
-    { const G::Texture::Header hdr = { G::Texture::Header::Magic, w, h, d, fmt, comp }; return (LoadTexture (tt, &hdr, sizeof(hdr), storeas)); }
+inline PRGL::goid_t PRGL::CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d, G::Pixel::Fmt fmt, G::Pixel::Comp comp)
+    { const G::Texture::Header hdr = { G::Texture::Header::Magic, w, h, d, fmt, comp }; return (LoadTexture (tt, &hdr, sizeof(hdr), fmt)); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, EResource::TEXTURE_2D); }
 
@@ -322,9 +323,9 @@ template <typename F>
 	    f.CloseClient (clir);
 	    break;
 	case ECmd::Draw: {
-	    SDataBlock b;
-	    Args (cmdis, b);
-	    f.ClientDraw (*clir, bstri ((bstri::const_pointer) b._p, b._sz));
+	    goid_t fbid; SDataBlock b;
+	    Args (cmdis, fbid, b);
+	    f.ClientDraw (*clir, fbid, bstri ((bstri::const_pointer) b._p, b._sz));
 	    } break;
 	case ECmd::Event: {
 	    CEvent e;
@@ -373,10 +374,8 @@ template <typename F>
 	    XError::emit ("invalid protocol command");
 	    break;
     }
-    #ifndef NDEBUG
     if (clir)
 	clir->CheckForErrors();
-    #endif
 }
 
 //}}}-------------------------------------------------------------------

@@ -846,9 +846,12 @@ CGLWindow* CGleris::ClientRecordForWindow (Window w) noexcept
     return (nullptr);
 }
 
-void CGleris::ClientDraw (CGLWindow& cli, bstri cmdis)
+void CGleris::ClientDraw (CGLWindow& cli, G::goid_t fbid, bstri cmdis)
 {
-    WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy));
+    if (fbid != G::default_Framebuffer)
+	cli.ParseDrawlist (fbid, cmdis);
+    else
+	WaitForTime (cli.DrawFrameNoWait (cmdis, _dpy));
 }
 
 void CGleris::ClientEvent (const CGLWindow& cli, const CEvent& e)

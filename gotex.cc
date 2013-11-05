@@ -146,8 +146,8 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     if (!idata) return (tbuf);
     png_byte* rows [tbuf.Header().h];
     for (GLuint i=0; i < tbuf.Header().h; ++i)
-	rows[i] = (png_byte*)(idata+i*tbuf.Header().w);
-    png_read_image (rs, &rows[0]);
+	rows[i] = (png_byte*)(idata+((tbuf.Header().h-1)-i)*tbuf.Header().w);
+    png_read_image (rs, rows);
 
     png_destroy_read_struct (&rs, &infos, nullptr);
     return (tbuf);
@@ -207,7 +207,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 	unsigned j = cinfo.output_scanline;
 	JSAMPLE linebuf[w*s], *jsarr[1] = {linebuf};
 	jpeg_read_scanlines (&cinfo, jsarr, 1);
-	unsigned char* poline = &ppd[j*w*s];
+	unsigned char* poline = &ppd[((h-1)-j)*w*s];
 	if (s == 3)
 	    memcpy (poline, jsarr[0], w*s);
 	else if (s == 1) {

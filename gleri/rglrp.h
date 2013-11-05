@@ -91,8 +91,15 @@ template <typename F>
 	case ECmd::Restate:	{ WinInfo winfo; Args(cmdis,winfo); clir->OnRestate(winfo); } break;
 	case ECmd::Draw:	clir->OnExpose(); break;
 	case ECmd::Event:	{ CEvent e; Args(cmdis,e); clir->OnEvent(e); } break;
-	case ECmd::SaveFB:	{ goid_t id; uint32_t r, fd; Args(cmdis,id,r,fd); CFile of (fd); clir->OnSaveFB (id, of); } break;
-	case ECmd::SaveFBData:	{ goid_t id; const char* filename; uint32_t tsz,toff; SDataBlock d; Args(cmdis,id,filename,tsz,toff,d); clir->OnSaveFBData (id,filename,d); } break;
+	case ECmd::SaveFB:	{ goid_t id; uint32_t r, fd;
+				    Args(cmdis,id,r,fd);
+				    CFile of (fd);
+				    clir->OnSaveFramebuffer (id, of);
+				} break;
+	case ECmd::SaveFBData:	{ goid_t id; const char* filename; uint32_t tsz,toff; SDataBlock d;
+				    Args(cmdis,id,filename,tsz,toff,d);
+				    clir->OnSaveFramebufferData (id,filename,d);
+				} break;
 	default:		XError::emit ("invalid protocol command");
     }
 }
