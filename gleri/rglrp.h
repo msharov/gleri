@@ -24,6 +24,7 @@ private:
 	Event,
 	SaveFB,
 	SaveFBData,
+	ResInfo,
 	NCmds
     };
 public:
@@ -32,6 +33,8 @@ public:
     inline void			Draw (void)			{ Cmd(ECmd::Draw); }
     inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }
     void			SaveFB (goid_t id, const char* filename, CFile& f);
+    template <typename RInfo>
+    inline void			ResourceInfo (goid_t id, uint16_t type, const RInfo& ri);
     inline void			ForwardError (const char* m)	{ CCmdBuf::ForwardError(m); }
     inline void			Export (const char* ol)		{ CCmdBuf::Export (ol); }
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
@@ -77,6 +80,14 @@ inline void PRGLR::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
     variadic_arg_write (os, args...);
 }
 
+template <typename RInfo>
+inline void PRGLR::ResourceInfo (goid_t id, uint16_t type, const RInfo& ri)
+{
+    bstrs ss;
+    ss << ri;
+    Cmd (ECmd::ResInfo, id, type, uint16_t(0), ss.size(), ri);
+}
+
 //}}}-------------------------------------------------------------------
 //{{{ Read parser
 
@@ -99,6 +110,10 @@ template <typename F>
 	case ECmd::SaveFBData:	{ goid_t id; const char* filename; uint32_t tsz,toff; SDataBlock d;
 				    Args(cmdis,id,filename,tsz,toff,d);
 				    clir->OnSaveFramebufferData (id,filename,d);
+				} break;
+	case ECmd::ResInfo:	{ goid_t id; uint16_t type, r1; SDataBlock d;
+				    Args(cmdis,id,type,r1,d);
+				    clir->OnResourceInfo (id,type,d);
 				} break;
 	default:		XError::emit ("invalid protocol command");
     }

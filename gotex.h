@@ -20,17 +20,18 @@ public:
 public:
 			CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param) noexcept;
     inline		~CTexture (void) noexcept { Free(); }
-    inline explicit	CTexture (CTexture&& v)	: CGObject(forward<CTexture>(v)),_width(v._width),_height(v._height) {}
-    inline CTexture&	operator= (CTexture&& v){ CGObject::operator= (forward<CTexture>(v)); _width = v._width; _height = v._height; return (*this); }
-    inline GLenum	Type (void) const	{ return (_type); }
-    inline GLushort	Width (void) const	{ return (_width); }
-    inline GLushort	Height (void) const	{ return (_height); }
-    inline GLushort	Depth (void) const	{ return (_depth); }
+    inline explicit	CTexture (CTexture&& v)	: CGObject(forward<CTexture>(v)),_h(v._h) {}
+    inline CTexture&	operator= (CTexture&& v){ CGObject::operator= (forward<CTexture>(v)); _h = v._h; return (*this); }
+    inline const G::Texture::Header&	Info (void) const	{ return (_h); }
+    inline GLenum	Type (void) const	{ return (_h.type); }
+    inline GLushort	Width (void) const	{ return (_h.w); }
+    inline GLushort	Height (void) const	{ return (_h.h); }
+    inline GLushort	Depth (void) const	{ return (_h.d); }
     void		Free (void) noexcept;
-    static GLenum	GLenumFromTextureType (G::TextureType ttype) noexcept;
+    static G::Texture::Type	GLenumFromTextureType (G::TextureType ttype) noexcept;
     static void		Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format, uint8_t quality);
 protected:
-    inline		CTexture (GLXContext ctx, goid_t cid) : CGObject(ctx,cid,GenId()),_type(GL_TEXTURE_2D),_width(0),_height(0),_depth(0) {}
+    inline		CTexture (GLXContext ctx, goid_t cid) : CGObject(ctx,cid,GenId()),_h({0,G::Texture::TEXTURE_2D,0,0,0,G::Pixel::RGBA,G::Pixel::UNSIGNED_BYTE}) {}
     inline GLuint	GenId (void) const	{ GLuint id; glGenTextures (1, &id); return (id); }
 private:
     class CTexBuf {
@@ -44,8 +45,8 @@ private:
 	inline constexpr	CTexBuf (const texhdr_t& h, const_pointer p)
 				    :_h(h),_sz(0),_p(const_cast<pointer>(p)) {}
 	inline			CTexBuf (CTexBuf&& b)	:_h(b._h),_sz(b._sz),_p(b._p) { b._p = nullptr; }
-	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint32_t w, uint16_t h=1, uint16_t d=0)
-				    :_h { texhdr_t::Magic, w,h,d,fmt,comp }
+	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint16_t w, uint16_t h=1, uint16_t d=0)
+				    :_h { texhdr_t::Magic, G::Texture::TEXTURE_2D, w,h,d,fmt,comp }
 				    ,_sz (w*h*sizeof(value_type))
 				    ,_p ((pointer)malloc(_sz)) {}
 	inline			~CTexBuf (void)		{ if (_p && _sz) free(_p); }
@@ -66,8 +67,5 @@ private:
     static void			SavePNG (int fd, const CTexBuf& tbuf);
     static inline void		SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality);
 private:
-    GLenum		_type;
-    GLushort		_width;
-    GLushort		_height;
-    GLushort		_depth;
+    G::Texture::Header		_h;
 };

@@ -42,7 +42,8 @@
 	}
     }
     sz = 0;
-    return (nullptr);
+    assert (!"You have defined an ECmd enum, but not the command signature");
+    exit (EXIT_FAILURE);
 }
 
 /*static*/ unsigned CCmdBuf::LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept

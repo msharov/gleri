@@ -40,8 +40,8 @@ public:
     const CShader&		FontShader (void) const		{ return (_shconn->LookupShader(G::default_FontShader)); }
     const CFont&		DefaultFont (void) const	{ return (_shconn->LookupFont(G::default_Font)); }
 				// Resource loader by enum
-    void			LoadResource (const CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz);
-    void			LoadPakResource (const CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz);
+    void			LoadResource (CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz);
+    void			LoadPakResource (CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz);
     void			FreeResource (goid_t id, PRGL::EResource dtype);
 				// Lookups for all resources
     const CDatapak&		LookupDatapak (goid_t id) const	{ return (LookupObject<CDatapak> (id, "no datapak %x")); }
@@ -51,15 +51,15 @@ public:
     const CFramebuffer&		LookupFramebuffer (goid_t id) const { return (LookupObject<CFramebuffer> (id, "no framebuffer %x")); }
     const CFont&		LookupFont (goid_t id) const	{ return (LookupObject<CFont> (id, "no font %x")); }
 private:
-    inline const CDatapak&	LoadDatapak (const CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz);
-    inline void			LoadBuffer (const CGLWindow* w, goid_t cid, const void* data, GLuint dsz, G::BufferHint mode, G::BufferType btype);
-    inline void			LoadShader (const CGLWindow* w, goid_t cid, const char* v, const char* tc, const char* te, const char* g, const char* f);
-    void			LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* tc, const char* te, const char* g, const char* f);
-    inline void			LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* g, const char* f);
-    inline void			LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* f);
-    inline void			LoadTexture (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas, G::TextureType ttype);
-    inline void			LoadFramebuffer (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz);
-    inline void			LoadFont (const CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz);
+    inline const CDatapak&	LoadDatapak (CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz);
+    inline void			LoadBuffer (CGLWindow* w, goid_t cid, const void* data, GLuint dsz, G::BufferHint mode, G::BufferType btype);
+    inline void			LoadShader (CGLWindow* w, goid_t cid, const char* v, const char* tc, const char* te, const char* g, const char* f);
+    void			LoadShader (CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* tc, const char* te, const char* g, const char* f);
+    inline void			LoadShader (CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* g, const char* f);
+    inline void			LoadShader (CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* f);
+    inline void			LoadTexture (CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas, G::TextureType ttype);
+    inline void			LoadFramebuffer (CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz);
+    inline void			LoadFont (CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz);
 				// Misc
     void			AddObject (CGObject* o);
     const CGObject*		FindObject (goid_t cid) const noexcept;

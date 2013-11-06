@@ -16,10 +16,7 @@
 
 CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param) noexcept
 : CGObject (ctx, cid, GenId())
-,_type (GLenumFromTextureType (ttype))
-,_width(0)
-,_height(0)
-,_depth(0)
+,_h()
 {
     if (psz < sizeof(G::Texture::Header)) {
 	Free();
@@ -30,41 +27,39 @@ CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G:
 	Free();
 	return;
     }
-    glBindTexture (_type, Id());
-    glTexParameteri (_type, GL_TEXTURE_MAG_FILTER, param.Get (ttype, G::Texture::MAG_FILTER));
-    glTexParameteri (_type, GL_TEXTURE_MIN_FILTER, param.Get (ttype, G::Texture::MIN_FILTER));
-    const G::Texture::Header& h = tbuf.Header();
-    _width = h.w;
-    _height = h.h;
-    _depth = h.d;
+    _h = tbuf.Header();
+    _h.type = GLenumFromTextureType (ttype);
+    glBindTexture (_h.type, Id());
+    glTexParameteri (_h.type, GL_TEXTURE_MAG_FILTER, param.Get (ttype, G::Texture::MAG_FILTER));
+    glTexParameteri (_h.type, GL_TEXTURE_MIN_FILTER, param.Get (ttype, G::Texture::MIN_FILTER));
     if (ttype >= G::TEXTURE_3D)
-	glTexImage3D (_type, _depth, storeas, _width, _height, _depth, 0, h.fmt, h.comp, tbuf.Data());
+	glTexImage3D (_h.type, 0, storeas, _h.w, _h.h, _h.d, 0, _h.fmt, _h.comp, tbuf.Data());
     else if (ttype >= G::TEXTURE_2D)
-	glTexImage2D (_type, _depth, storeas, _width, _height, 0, h.fmt, h.comp, tbuf.Data());
+	glTexImage2D (_h.type, _h.d, storeas, _h.w, _h.h, 0, _h.fmt, _h.comp, tbuf.Data());
     else
-	glTexImage1D (_type, _depth, storeas, _width, 0, h.fmt, h.comp, tbuf.Data());
+	glTexImage1D (_h.type, _h.d, storeas, _h.w, 0, _h.fmt, _h.comp, tbuf.Data());
 }
 
-/*static*/ GLenum CTexture::GLenumFromTextureType (G::TextureType ttype) noexcept
+/*static*/ G::Texture::Type CTexture::GLenumFromTextureType (G::TextureType ttype) noexcept
 {
-    static const GLenum c_TextureTypeEnum[] = {
-	GL_TEXTURE_1D,
-	GL_TEXTURE_2D,
-	GL_TEXTURE_2D_MULTISAMPLE,
-	GL_TEXTURE_RECTANGLE,
-	GL_TEXTURE_1D_ARRAY,
-	GL_TEXTURE_CUBE_MAP,
-	GL_TEXTURE_CUBE_MAP_POSITIVE_X,
-	GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-	GL_TEXTURE_CUBE_MAP_POSITIVE_Y,
-	GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-	GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
-	GL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-	GL_TEXTURE_CUBE_MAP_ARRAY,
-	GL_TEXTURE_3D,
-	GL_TEXTURE_2D_ARRAY,
-	GL_TEXTURE_2D_MULTISAMPLE_ARRAY,
-	GL_TEXTURE_BUFFER
+    static const G::Texture::Type c_TextureTypeEnum[] = {
+	G::Texture::TEXTURE_1D,
+	G::Texture::TEXTURE_2D,
+	G::Texture::TEXTURE_2D_MULTISAMPLE,
+	G::Texture::TEXTURE_RECTANGLE,
+	G::Texture::TEXTURE_1D_ARRAY,
+	G::Texture::TEXTURE_CUBE_MAP,
+	G::Texture::TEXTURE_CUBE_MAP_POSITIVE_X,
+	G::Texture::TEXTURE_CUBE_MAP_NEGATIVE_X,
+	G::Texture::TEXTURE_CUBE_MAP_POSITIVE_Y,
+	G::Texture::TEXTURE_CUBE_MAP_NEGATIVE_Y,
+	G::Texture::TEXTURE_CUBE_MAP_POSITIVE_Z,
+	G::Texture::TEXTURE_CUBE_MAP_NEGATIVE_Z,
+	G::Texture::TEXTURE_CUBE_MAP_ARRAY,
+	G::Texture::TEXTURE_3D,
+	G::Texture::TEXTURE_2D_ARRAY,
+	G::Texture::TEXTURE_2D_MULTISAMPLE_ARRAY,
+	G::Texture::TEXTURE_SAMPLER
     };
     return (c_TextureTypeEnum[min<uint16_t>(ttype,ArraySize(c_TextureTypeEnum)-1)]);
 }

@@ -82,7 +82,7 @@ void CIConn::LoadDefaultResources (CGLWindow* w)
     }
 }
 
-void CIConn::LoadResource (const CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz)
+void CIConn::LoadResource (CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz)
 {
     if (dtype == PRGL::EResource::DATAPAK)
 	LoadDatapak (w, id, d, dsz);
@@ -102,7 +102,7 @@ void CIConn::LoadResource (const CGLWindow* w, goid_t id, PRGL::EResource dtype,
 	throw XError ("invalid resource type %u", dtype);
 }
 
-void CIConn::LoadPakResource (const CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz)
+void CIConn::LoadPakResource (CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz)
 {
     if (dtype == PRGL::EResource::SHADER) {
 	const char* shs[5];
@@ -126,7 +126,7 @@ void CIConn::FreeResource (goid_t cid, PRGL::EResource)
 
 //----------------------------------------------------------------------
 
-inline const CDatapak& CIConn::LoadDatapak (const CGLWindow* w, goid_t cid, const GLubyte* pi, GLuint isz)
+inline const CDatapak& CIConn::LoadDatapak (CGLWindow* w, goid_t cid, const GLubyte* pi, GLuint isz)
 {
     DTRACE ("[%x] LoadDatapak %x from %u bytes\n", w->IId(), cid, isz);
     GLuint osz = 0;
@@ -137,42 +137,47 @@ inline const CDatapak& CIConn::LoadDatapak (const CGLWindow* w, goid_t cid, cons
     return (*pdpk);
 }
 
-inline void CIConn::LoadBuffer (const CGLWindow* w, goid_t cid, const void* data, GLuint dsz, G::BufferHint hint, G::BufferType btype)
+inline void CIConn::LoadBuffer (CGLWindow* w, goid_t cid, const void* data, GLuint dsz, G::BufferHint hint, G::BufferType btype)
 {
     DTRACE ("[%x] CreateBuffer %x type %x, hint %x, %u bytes\n", w->IId(), cid, btype, hint, dsz);
     AddObject (new CBuffer (w->ContextId(), cid, data, dsz, hint, btype));
 }
 
-inline void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const char* v, const char* tc, const char* te, const char* g, const char* f)
+inline void CIConn::LoadShader (CGLWindow* w, goid_t cid, const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
     DTRACE ("[%x] LoadShader %x\n", w->IId(), cid);
     AddObject (new CShader (w->ContextId(), cid, CShader::Sources(v,tc,te,g,f)));
 }
 
-void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
+void CIConn::LoadShader (CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
 {
     DTRACE ("[%x] LoadShader %x from pak %x: %s,%s,%s,%s,%s\n", w->IId(), cid, pak.Id(),v,tc,te,g,f);
     AddObject (new CShader (w->ContextId(), cid, CShader::Sources(pak,v,tc,te,g,f)));
 }
-inline void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* g, const char* f)
+inline void CIConn::LoadShader (CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* g, const char* f)
     { LoadShader(w,cid,pak,v,nullptr,nullptr,g,f); }
-inline void CIConn::LoadShader (const CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* f)
+inline void CIConn::LoadShader (CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* f)
     { LoadShader(w,cid,pak,v,nullptr,nullptr,nullptr,f); }
 
-inline void CIConn::LoadTexture (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas, G::TextureType ttype)
+inline void CIConn::LoadTexture (CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas, G::TextureType ttype)
 {
     DTRACE ("[%x] LoadTexture %x type %u from %u bytes\n", w->IId(), cid, ttype, dsz);
-    AddObject (new CTexture (w->ContextId(), cid, d, dsz, storeas, ttype, w->TexParams()));
+    CTexture* t = new CTexture (w->ContextId(), cid, d, dsz, storeas, ttype, w->TexParams());
+    AddObject (t);
+    w->ResourceInfo (cid, uint16_t(PRGL::ResourceFromTextureType(ttype)), t->Info());
 }
 
-inline void CIConn::LoadFramebuffer (const CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz)
+inline void CIConn::LoadFramebuffer (CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz)
 {
     DTRACE ("[%x] LoadFramebuffer %x from %u bytes\n", w->IId(), cid, dsz);
     AddObject (new CFramebuffer (w->ContextId(), cid, d, dsz, *this));
 }
 
-inline void CIConn::LoadFont (const CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz)
+inline void CIConn::LoadFont (CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz)
 {
     DTRACE ("[%x] LoadFont %x from %u bytes\n", w->IId(), cid, psz);
-    AddObject (new CFont (w->ContextId(), cid, p, psz));
+    CFont* f = new CFont (w->ContextId(), cid, p, psz);
+    AddObject (f);
+    if (cid > G::default_ResourceMaxId)
+	w->ResourceInfo (cid, uint16_t(PRGL::EResource::FONT), f->Info());
 }

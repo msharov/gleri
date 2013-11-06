@@ -19,7 +19,7 @@ public:
     typedef G::dim_t		dim_t;
     typedef G::color_t		color_t;
     enum : uint32_t { c_ObjectName = vpack4('R','G','L',0) };
-    typedef const G::FontInfo*	pfontinfo_t;
+    typedef const G::Font::Info* pfontinfo_t;
 private:
     enum class ECmd : cmd_t {
 	Auth,
@@ -125,7 +125,7 @@ public:
     inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
     inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
     inline bool			Matches (int fd) const		{ return (Fd() == fd); }
-    inline pfontinfo_t		Font (void) const		{ static constexpr G::FontInfo s_DefaultFontInfo = {10,18}; return (&s_DefaultFontInfo); }
+    inline pfontinfo_t		Font (void) const		{ static constexpr G::Font::Info s_DefaultFontInfo = {10,18,0,0}; return (&s_DefaultFontInfo); }
     inline pfontinfo_t		Font (goid_t) const		{ return (nullptr); }
 				// Command writing
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
@@ -250,7 +250,7 @@ inline PRGL::goid_t PRGL::LoadTexture (G::TextureType tt, const char* filename, 
 inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas)
     { return (LoadPakFile (ResourceFromTextureType(tt), pak, f, storeas)); }
 inline PRGL::goid_t PRGL::CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d, G::Pixel::Fmt fmt, G::Pixel::Comp comp)
-    { const G::Texture::Header hdr = { G::Texture::Header::Magic, w, h, d, fmt, comp }; return (LoadTexture (tt, &hdr, sizeof(hdr), fmt)); }
+    { const G::Texture::Header hdr = { G::Texture::Header::Magic, G::Texture::TEXTURE_2D, w, h, d, fmt, comp }; return (LoadTexture (tt, &hdr, sizeof(hdr), fmt)); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, EResource::TEXTURE_2D); }
 

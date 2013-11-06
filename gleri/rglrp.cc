@@ -13,6 +13,7 @@
      N(Event,(unnuu))
      N(SaveFB,uuh)
      N(SaveFBData,usuuay)
+     N(ResInfo,uqqay)
 ;
 #undef N
 

@@ -14,7 +14,7 @@
      N(Auth,aysuuay)
      N(Open,(nnqqqyyyyyy)s)
      N(Close,)
-     N(Draw,ay)
+     N(Draw,uay)
      N(Event,(unnuu))
      N(LoadData,uqquuay)
      N(LoadFile,uqqh)

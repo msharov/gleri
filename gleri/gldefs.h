@@ -342,8 +342,9 @@ enum Filter : uint16_t {
 };
 struct alignas(8) Header {
     enum { Magic = vpack4('G','L','T','X') };
-    uint32_t	magic,w;
-    uint16_t	h,d;
+    uint32_t	magic;
+    Type	type;
+    uint16_t	w,h,d;
     Pixel::Fmt	fmt;
     Pixel::Comp	comp;
 };
@@ -353,19 +354,24 @@ enum class Format : uint8_t {
 };
 } // namespace G::Texture
 
+namespace Font {
+struct Info {
+    inline dim_t	Height (void) const		{ return (h); }
+    inline dim_t	Width (void) const		{ return (w); }
+    inline dim_t	Width (uint16_t) const		{ return (Width()); }
+    inline dim_t	Width (const char* s) const	{ return (Width()*strlen(s)); }
+    dim_t		w,h;
+    uint16_t		ascent;
+    uint16_t		nvarw;
+};
+} // namespace G::Font
+
 struct alignas(4) FramebufferComponent {
     FramebufferType		target;
     FramebufferAttachment	attachment;
     uint8_t			textype;
     uint8_t			level;
     goid_t			texture;
-};
-
-struct FontInfo {
-    inline dim_t	Height (void) const		{ return (h); }
-    inline dim_t	Width (void) const		{ return (w); }
-    inline dim_t	Width (const char* s) const	{ return (Width()*strlen(s)); }
-    dim_t		w,h;
 };
 
 struct alignas(4) WinInfo {

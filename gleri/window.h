@@ -33,6 +33,9 @@ public:
     inline void		OnSaveFramebufferData (goid_t id, const char* filename, const SDataBlock& d);
     inline virtual void	OnSaveFramebuffer (goid_t, CFile&)	{ }
     inline virtual void	Draw (void)			{ }
+    inline void		OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d);
+    inline virtual void	OnTextureInfo (goid_t, const G::Texture::Header&)	{}
+    inline virtual void	OnFontInfo (goid_t, const G::Font::Info&)		{}
     inline void		WriteCmds (void)		{ if (!_closePending) PRGL::WriteCmds(); }
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
     inline bool		Matches (int fd, iid_t iid)const{ return (PRGL::Matches(fd,iid)); }
@@ -97,6 +100,21 @@ inline void CWindow::OnSaveFramebufferData (goid_t id, const char* filename, con
     CFile f (filename, O_WRONLY| O_CREAT| O_TRUNC| O_CLOEXEC, 0600);
     f.Write (d._p, d._sz);
     OnSaveFramebuffer (id, f);
+}
+
+inline void CWindow::OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d)
+{
+    bstri is (bstri::const_pointer(d._p), d._sz);
+    EResource rtype = EResource(type);
+    if (rtype == EResource::FONT) {
+	G::Font::Info fi;
+	is >> fi;
+	OnFontInfo (id, fi);
+    } else if (rtype >= EResource::_TEXTURE_FIRST && rtype <= EResource::_TEXTURE_LAST) {
+	G::Texture::Header h;
+	is >> h;
+	OnTextureInfo (id, h);
+    }
 }
 
 //----------------------------------------------------------------------
