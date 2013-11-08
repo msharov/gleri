@@ -1,0 +1,213 @@
+<html>
+<head>
+<title>GLERI Internals</title>
+</head>
+<body>
+<h1>GLERI Internals</h1>
+<p>
+Here you'll find a high-level overview of the internal design of
+GLERI, written for those wishing to modify the library. If you are only
+interested in using it to write your own applications, you should instead
+look at the tutorials and the API reference.
+</p>
+
+<h2>Build system</h2>
+<p>
+The build system mimics autoconf, but is not. configure is a custom
+made script with similar functionality, written to avoid autoconf bloat.
+The generated autoconf files were several times larger than the entire
+GLERI project, so that was the motivation. Usage is the same. See
+<tt>./configure --help</tt> for available options. If you're developing,
+you'll probably want to install to <tt>--prefix=$HOME</tt>.  configure
+will detect available libraries, like libpng, and other dependencies
+listed in the root README, and will output <tt>Config.mk</tt>,
+<tt>config.h</tt>, and <tt>gleri/config.h</tt>. <tt>Config.mk</tt> holds
+makefile defines, <tt>gleri/config.h</tt> has defines used by the library,
+and <tt>config.h</tt> is used only by gleris.
+</p><p>
+The makefile is nonrecursive and will include .mk modules from
+subdirectories to build submodules. To work with this type of makefile
+it is convenient to define a shell alias to allow building from from
+any directory by walking up the tree until a makefile is hit. Here's
+the one I use:
+</p>
+<pre>
+function make() {
+    local MAKEDIR TGTDIR MAKECD MAKEARGS
+    MAKEDIR=$PWD
+    while [ ! -r $MAKEDIR/Makefile -a $MAKEDIR != "/" ]; do
+	MAKEDIR=`dirname $MAKEDIR`
+    done
+    if [ ! -r $MAKEDIR/Makefile ]; then
+	echo "No Makefile found"
+	return
+    fi
+    if [ "$PWD" != "$MAKEDIR" ]; then
+	[ -r Module.mk ] &amp;&amp; TGTDIR=`expr $PWD : "$MAKEDIR/\(.*\)"`
+	MAKECD=" --no-print-directory -C $MAKEDIR"
+    fi
+    MAKEARGS=$@
+    [ -z "$MAKEARGS" ] &amp;&amp; MAKEARGS="all"
+    [ -z "$TGTDIR" ] || MAKEARGS="$TGTDIR/$MAKEARGS"
+    /usr/bin/make -j 8 $MAKECD $MAKEARGS
+}
+</pre>
+<p>
+Object files and dependencies will go into .o subdirectory. Executables
+stay in the main tree for convenience.
+</p>
+
+<h2>Component Layout</h2>
+<p>
+GLERI project consists of two main parts - the gleris service that
+uses OpenGL and Xlib, and the gleri library for writing applications
+using gleris for graphics output. The library files are located in the
+gleri subdirectory, and gleris sources are in the root. There is a test
+program in the test subdirectory that calls all the APIs to make sure
+they still work. doc subdirectory contains documentation and tutorials.
+</p>
+<table>
+<tr><td>gleri/app.h,cc</td><td>Generic application object, CApp</td></tr>
+<tr><td>gleri/bstr.h</td><td>Serialization helpers, iostreams-like classes outputting binary data</td></tr>
+<tr><td>gleri/cmd.h,cc</td><td>Core messaging framework and COM proxy</td></tr>
+<tr><td>gleri/drawp.h</td><td>PDraw object used to write drawlists</td></tr>
+<tr><td>gleri/event.h</td><td>UI events</td></tr>
+<tr><td>gleri/glapp.h,cc</td><td>GLERI clients' app object</td></tr>
+<tr><td>gleri/gldefs.h</td><td>Protocol defines and OpenGL constant equivalents for clients</td></tr>
+<tr><td>gleri/menu.h,cc</td><td>Menu widget</td></tr>
+<tr><td>gleri/mmfile.h,cc</td><td>CFile,CMMFile classes for working with files</td></tr>
+<tr><td>gleri/packbox.h,cc</td><td>Widget container and packing widget</td></tr>
+<tr><td>gleri/rglp.h,cc</td><td>RGL proxy and parser</td></tr>
+<tr><td>gleri/rglrp.h,cc</td><td>RGLR proxy and parser</td></tr>
+<tr><td>gleri/util.h</td><td>Miscellaneous utility functions</td></tr>
+<tr><td>gleri/widget.h,cc</td><td>CWidget</td></tr>
+<tr><td>gleri/window.h,cc</td><td>CWindow</td></tr>
+<tr><td>gleri.h</td><td>Top-level GLERI include that clients use</td></tr>
+<tr><td>gleris.h,cc</td><td>gleris app object, CGleris</td></tr>
+<tr><td>gwin.h,cc</td><td>CGLWindow, the RGL implementation server object</td></tr>
+<tr><td>iconn.h,cc</td><td>CIConn, the per-client connection object</td></tr>
+<tr><td>xkeymap.h</td><td>Xlib to Key:: mappings</td></tr>
+<tr><td>gob.h,cc</td><td>Resource objects</td></tr>
+<tr><td>gotex.h,cc</td><td>Texture objects</td></tr>
+<tr><td>goshad.h,cc</td><td>Shader objects</td></tr>
+<tr><td>gofont.h,cc</td><td>Font objects</td></tr>
+</table>
+</p>
+
+<h2>Client Internals</h2>
+<p>
+GLERI implements a client-server framework for OpenGL. The client side is
+in the gleri library. Clients define an app object, CGLApp, and use it to
+create CWindow objects which communicate through a socket connection to
+gleris to instantiate the corresponding resources through OpenGL and Xlib.
+See <a href="protocol.html">protocol specification</a> for more detail
+on each protocol and their calls.
+</p><p>
+CWindow objects are created by calling the CGLApp::CreateWindow
+template and remain owned by the app object. Closing a window is a bit
+more complicated. CWindow derivative calls Close(). Close sends a close
+request to the server and sets the _closePending flag, preventing any
+further commands being sent to the server by this window.  On the server,
+CGleris receives the close request and destroys the X window.  X server
+destroys the window and sends DestroyNotify message. CGleris forwards that
+to the client as CEvent::Destroy, destroys the context and all associated
+resources, and removes the CGLWindow object. In the client, CWindow
+receives the destroy event and sets the _destroyPending flag, which
+causes the window object to be deleted in CGTApp::FinishWindowProcessing.
+</p><p>
+This convoluted procedure exists to ensure complete cleanup on both
+sides of the connection, and to handle the different ways a window can be
+closed. A window can be closed by calling CWindow::Close on the client,
+by the window manager via the WM_DELETE_WINDOW protocol, by one of the
+client requests resulting in an exception being thrown on the server, or
+finally the window can just die for no reason because X doesn't like it.
+All these scenarios plug into appropriate points of the procedure above,
+depending on what has already been destroyed.
+</p><p>
+Window draw can be initiated explicitly by CWindow::Draw or automatically
+upon receiving CEvent::Expose. Both client and server will frame limit to
+vsync. CWindow does it by postponing drawlist creation until vsync. gleris
+will drop incoming frame drawlists, keeping only the latest received
+until it can be rendered once vsync fires. vsync rate on the client is
+synchronized by CEvent::FrameSync, and kept current with CApp timers.
+</p><p>
+Drawing and resource creation must be done separately because the entire
+drawlist is sent as a single RGL command, just as resource creation
+commands are. To use the COM message headers for the drawlist commands
+would be inefficient - there is just too much overhead. There are
+additional advantages of having a natural frame boundary to know when
+to swap buffers, and optimizations that can be made when it is known
+that all OpenGL resources will stay valid until the end of the drawlist.
+</p><p>
+Drawlist creation is done in two passes, first writing to bstrs to
+determine the size, and then to bstro to write the actual data. This
+is a more efficient solution than resizing the buffer on every command;
+frequently the size is a constant, and the first pass produces no runtime
+overhead. The disadvantage is that OnDraw must be a template. That is
+somewhat remedied with the ONDRAW macros.
+</p><p>
+CWindow always represents a toplevel window. Subwindows exist only on
+the client, implemented by CWidget and derivatives. Widgets pretend
+to be the parent CWindow object when sending commands to the server,
+making it possible for widgets to create resources. One drawback of this
+is the need to duplicate the PRGL API in CWidget. The drawlists made
+by widgets must be aggregated by the parent window and sent as a single
+frame drawlist. CPackbox class is inteded for this purpose as a generic
+widget container, typically used as a single member object in the host
+window. Forwarding to it will correctly handle drawlist aggregation and
+event routing.
+</p><p>
+Widgets can send UI commands that are local to the client
+process. Menu commands are an example of this. Dialog buttons and
+change notifications would be another. UI events are sent using
+<tt>CGLApp::Instance().SendUICommand (const char* cmd)</tt>.
+</p>
+
+<h2>Server Internals</h2>
+<p>
+The server has the app object <tt>CGleris</tt> in <tt>gleris.h,cc</tt>.
+CGleris manages process-level setup and events, manages connections
+(CIConn), deals with Xlib and GLX. At startup it creates a hidden
+window and a root OpenGL context to allow resource sharing across
+all clients. Each GL context will have sharing enabled with the
+root context. Client connections are accepted through stdin when
+launched for a single client (-s), through the TCP socket (when -t
+is given), and through a UNIX socket. The UNIX socket is usually
+placed in <tt>XDG_RUNTIME_DIR</tt>, when available. Otherwise it's in
+<tt>~/.config</tt>.
+</p><p>
+Each client connection has a corresponding <tt>CIConn</tt> object,
+implemented in <tt>iconn.h,cc</tt>. <tt>CIConn</tt>'s main purpose is to
+manage resource objects. Resource objects are shared among all windows
+in the connection. Resource objects are implemented in <tt>go*.h,cc</tt>,
+and contain metrics and loading code. Default resources, like the default
+font, are loaded at startup into the root context.
+</p><p>
+Each window has a corresponding CGLWindow object. The window
+list is maintained in CGleris, not CIConn, because the most common use
+of routing Xlib messages to each window is done there, in OnXEvent.
+</p><p>
+Window drawing is initiated in CGleris::ClientDraw by client command
+parsed by PRGL::Parse, called by CCmdBuf::ProcessMessages, called by
+CGleris::OnFd. When a frame limiter queues a pending frame, stored
+in CGLWindow::_pendingFrame, its drawing is initiated by timer in
+CGleris::OnTimer. Vsync detection is implemented with query objects;
+code in CGLWindow::DrawFrame. Once vsync fires, the query after that
+becomes available and is detected there. Using queries also measures
+frame rendering time that is passed to the client in CEvent::FrameSync.
+CGLWindow::_nextVSync is then computed and returned to CGleris to
+wait for.
+</p><p>
+CGLWindow keeps track of active GL objects and tries to avoid setting
+them too frequently. See CGLWindow::_cur* variables. These caches are
+reset at least once per frame, in CGLWindow::ParseDrawlist.
+</p><p>
+CGLWindow::CheckForErrors is called after each RGL command in PRGL::Parse.
+It checks for OpenGL errors and throws an exception. Exceptions caused
+by client code are always fatal and will result in the window being
+destroyed. In debug builds CheckForErrors is also called after every
+draw command to ease debugging.  For debugging, run gleris with -d,
+enabling tracing of every call made, parameters, and failing packets.
+</p>
+</body>
+</html>

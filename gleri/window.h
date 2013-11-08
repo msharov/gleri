@@ -32,11 +32,12 @@ public:
     virtual void	OnEvent (const CEvent& e);
     inline void		OnSaveFramebufferData (goid_t id, const char* filename, const SDataBlock& d);
     inline virtual void	OnSaveFramebuffer (goid_t, CFile&)	{ }
-    inline virtual void	Draw (void)			{ }
+    inline virtual void	Draw (void)				{ }
     inline void		OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d);
-    inline virtual void	OnTextureInfo (goid_t, const G::Texture::Header&)	{}
-    inline virtual void	OnFontInfo (goid_t, const G::Font::Info&)		{}
+    inline virtual void	OnTextureInfo (goid_t, const G::Texture::Header&)	{ }
+    inline virtual void	OnFontInfo (goid_t, G::Font::Info&)			{ }
     inline void		WriteCmds (void)		{ if (!_closePending) PRGL::WriteCmds(); }
+    inline iid_t	IId (void) const		{ return (PRGL::IId()); }
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
     inline bool		Matches (int fd, iid_t iid)const{ return (PRGL::Matches(fd,iid)); }
     inline bool		Matches (int fd) const		{ return (PRGL::Matches(fd)); }

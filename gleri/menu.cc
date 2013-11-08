@@ -110,7 +110,7 @@ void CPopupMenu::OnMotion (coord_t x, coord_t y, key_t b)
     CWindow::OnMotion (x, y, b);
     auto t = _items.FindEnclosing (x,y);
     if (t < _items.end() && !t->Flag (CWidget::f_Focused)) {
-	_items.SetFocus (distance (_items.begin(), t));
+	_items.SetFocus (t-_items.begin());
 	Draw();
     }
 }

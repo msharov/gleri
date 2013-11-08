@@ -136,6 +136,7 @@ inline void PDraw<Stm>::Cmd (ECmd cmd, const Arg&... args)
 {
     bstrs ss;
     variadic_arg_size (ss, args...);
+    assert (!(ss.size()%4) && "All PDraw commands must end 4-byte aligned");
     variadic_arg_write (_os, Header(cmd,ss.size()), args...);
 }
 

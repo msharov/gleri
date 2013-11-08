@@ -377,8 +377,8 @@ struct alignas(4) FramebufferComponent {
 struct alignas(4) WinInfo {
     coord_t	x,y;
     dim_t	w,h;
-    uint16_t	parent;
-    uint8_t	mingl,maxgl;
+    uint16_t	parent;		// The iid of the parent window
+    uint8_t	mingl,maxgl;	// Format: 0x33. maxgl=0 means give me the highest available
     enum MSAA : uint8_t {
 	MSAA_OFF,
 	MSAA_2X,
@@ -416,7 +416,7 @@ struct alignas(4) WinInfo {
 	state_Maximized,
 	state_Hidden,
 	state_Fullscreen,
-	state_Gamescreen
+	state_Gamescreen	// Like fullscreen, but possibly change resolution to fit
     }		wstate;
     enum WinFlag : uint8_t {
 	flag_None,
