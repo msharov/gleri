@@ -1,0 +1,45 @@
+<html>
+<head>
+<title>GLERI - Remote OpenGL API</title>
+</head>
+<body>
+<h1>GLERI</h1>
+<p>
+If you are writing a graphical application on Linux and want it to take
+advantage of GPU hardware that every computer has these days, your only
+option is to use OpenGL, because that is the only API exposed by the
+drivers. Unfortunately, using OpenGL is not without its problems.
+</p><p>
+The most acute problem is inability to run your applications remotely.
+X and Unix in general have a long history of allowing remote use, a very
+useful capability in many circumstances, but while there is an X extension
+(GLX) allowing OpenGL remoting, it is restricted to the ancient version
+1.2 API that does not support essential capabilities such as vertex
+buffer objects. Furthermore, GLX is at this time being deprecated in
+favor of EGL, and will be replaced by it in some near future. Even worse,
+the entire X11 protocol is in danger of disappearing and being replaced
+by Wayland, which is not designed for remote use.
+</p><p>
+Another problem is the libraritis infection you get by having to link
+to the OpenGL shared library. No static library is available for this,
+so no statically linked executables can be created. The OpenGL library is
+huge and contains a lot of low-level tie-ins to the kernel driver guts,
+resulting in bloat and instability. Crashing your application may cause
+a kernel panic, just like in good old Windows 3.1, which likewise made
+the mistake of putting driver guts into user application process space.
+The driver initialization sequence can also be slow (~.3s), and must be
+done every time you start your application.
+</p><p>
+Finally, one must mention the problem of debugging an OpenGL application.
+If you happen to hit a breakpoint at some location unexpected by the
+driver developers, sometimes you would not be able to switch to the
+debugger because you've just trapped something critical in the driver
+and stopped all X rendering. Often, this situation requires a hard power
+cycle. After a while you give up trying the debugger at all.
+</p><p>
+Now, wouldn't it be nice if there was a network protocol letting us
+write applications that use OpenGL remotely, without linking to the
+entire graphics driver? Well, GLERI is it.
+</p>
+</body>
+</html>
