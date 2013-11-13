@@ -11,7 +11,7 @@ endif
 
 ################ Compilation ###########################################
 
-.PHONY:	test/all test/run test/clean test/check
+.PHONY:	test/all test/clean test/check
 
 test/all:	${test/EXE}
 

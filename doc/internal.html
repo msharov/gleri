@@ -28,31 +28,9 @@ and <tt>config.h</tt> is used only by gleris.
 The makefile is nonrecursive and will include .mk modules from
 subdirectories to build submodules. To work with this type of makefile
 it is convenient to define a shell alias to allow building from from
-any directory by walking up the tree until a makefile is hit. Here's
-the one I use:
-</p>
-<pre>
-function make() {
-    local MAKEDIR TGTDIR MAKECD MAKEARGS
-    MAKEDIR=$PWD
-    while [ ! -r $MAKEDIR/Makefile -a $MAKEDIR != "/" ]; do
-	MAKEDIR=`dirname $MAKEDIR`
-    done
-    if [ ! -r $MAKEDIR/Makefile ]; then
-	echo "No Makefile found"
-	return
-    fi
-    if [ "$PWD" != "$MAKEDIR" ]; then
-	[ -r Module.mk ] &amp;&amp; TGTDIR=`expr $PWD : "$MAKEDIR/\(.*\)"`
-	MAKECD=" --no-print-directory -C $MAKEDIR"
-    fi
-    MAKEARGS=$@
-    [ -z "$MAKEARGS" ] &amp;&amp; MAKEARGS="all"
-    [ -z "$TGTDIR" ] || MAKEARGS="$TGTDIR/$MAKEARGS"
-    /usr/bin/make -j 8 $MAKECD $MAKEARGS
-}
-</pre>
-<p>
+any directory by walking up the tree until a makefile is hit. The one
+I use is available on GitHub <a href="https://gist.github.com/msharov/7377320">gist</a>.
+</p><p>
 Object files and dependencies will go into .o subdirectory. Executables
 stay in the main tree for convenience.
 </p>

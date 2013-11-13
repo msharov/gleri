@@ -9,3 +9,4 @@ data/data.h
 data/resource.pak
 test/gltest
 test/*.out
+tut/hello/hello

@@ -8,7 +8,6 @@ CONFS	:= Config.mk config.h gleri/config.h config.status
 
 include data/Module.mk
 include gleri/Module.mk
-include test/Module.mk
 
 INC	:= $(wildcard *.h)
 SRC	:= $(wildcard *.cc) ${DCC}
@@ -61,6 +60,11 @@ dist:
 	@+${MAKE} -sC ${DISTNAM} maintainer-clean
 	@tar acf ${DISTTAR} ${DISTNAM} && rm -rf ${DISTNAM}
 endif
+
+################ Test and tutorials ####################################
+
+include tut/hello/Module.mk
+include test/Module.mk
 
 ################ Maintenance ###########################################
 

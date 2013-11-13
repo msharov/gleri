@@ -1,0 +1,227 @@
+<html>
+<head>
+<title>GLERI - Hello World Tutorial</title>
+</head>
+<body>
+<h1>Hello World Tutorial</h1>
+<p>
+This tutorial explains how to create a barebones GLERI application
+that draws something in a window and quits. Adhering to tradition,
+we'll print "Hello world!".
+</p>
+
+<h2>Building</h2>
+<p>
+The code for this tutorial is included in the GLERI tarball, located under
+the <tt>tut/hello</tt> subdirectory. When you build GLERI, the tutorials
+are automatically build as well. In your own project, you will need to
+create your own makefile. To build you'll need to provide the correct
+paths to the location of <tt>gleri.h</tt> and the <tt>libgleri.a</tt>
+library. By default, these are installed to <tt>/usr/include</tt> and
+<tt>/usr/lib</tt> respectively. If you have installed into a different
+prefix, like the XDG user prefix <tt>$HOME/.local</tt>, it will have
+to be given to gcc's <tt>-I</tt> and <tt>-L</tt> options. The project
+executable needs to be linked with <tt>libgleri.a</tt>, usually by
+adding <tt>-lgleri</tt> to the linker command.
+</p><p>
+To run the project, the gleris service must either be running, with
+UNIX socket in <tt>XDG_RUNTIME_DIR</tt>, TCP socket 6540, or be in
+<tt>PATH</tt> to be launched in single-client mode. The gleris service is
+the part of the system that will actually use Xlib and OpenGL to create
+windows and draw on them. Each GLERI client application will connect to
+a gleris process through a socket and send commands for window creation
+and drawing.
+</p>
+
+<h2>The Application Object</h2>
+<p>
+GLERI uses an object-oriented framework, with the root object being a
+singleton application object. All other objects are created and owned by
+this application object. This design is the easiest way to ensure that
+all objects get correctly destroyed in case of program termination.
+The application object will install signal handlers and will, in case
+of crashes, exceptions, C++ terminate, etc., clean up everything it
+owns on exit. Each program's application object must be derived from
+<tt>CGLApp</tt>, and must provide a singleton interface in form of the
+static <tt>Instance()</tt> call and a private constructor.
+</p>
+<pre>
+#include &lt;gleri.h&gt;
+
+class CHello : public CGLApp {
+    CHello (void) : CGLApp() {}
+public:
+    static CHello&amp; Instance (void) {
+	static CHello s_App; return (s_App);
+    }
+    void Init (argc_t argc, argv_t argv) {
+	CGLApp::Init (argc, argv);
+	CreateWindow&lt;CHelloWindow&gt;();
+    }
+};
+
+GLERI_APP (CHello)
+</pre>
+<p>
+Here you see an empty private default constructor, simply initializing
+the base class. Then there is the singleton <tt>Instance</tt> call, that
+creates the application object. Using a local static variable registers
+the destructor via <tt>atexit</tt>, ensuring correct cleanup whenever
+the process exits. The <tt>Init</tt> function is called directly from
+<tt>main</tt> with process arguments. Here the only action is to create
+the hello window, with class <tt>CHelloWindow</tt> defined below. All
+windows must be created this way. <tt>CreateWindow</tt> will return
+a pointer to the created window. Window objects are always owned by
+the application object, so this pointer should not be deleted. In this
+tutorial, we do not need to access the window directly, so the pointer
+is ignored.
+</p><p>
+At the end, there must be exactly one line containing <tt>GLERI_APP</tt>,
+a macro to generate a <tt>main()</tt> for the application using the
+provided application class.
+</p>
+
+<h2>The Window Object</h2>
+<pre>
+class CHelloWindow : public CWindow {
+public:
+                  CHelloWindow (iid_t wid) : CWindow(wid) {}
+    virtual void  OnInit (void);
+    ONDRAWDECL    OnDraw (Drw&amp; drw) const;
+    virtual void  OnKey (key_t key);
+};
+</pre><p>
+Window classes given to <tt>CGLApp::CreateWindow</tt> must be derived
+from the <tt>CWindow</tt> class. <tt>CWindow</tt> encapsulates all
+window-related operations, and is defined in <tt>gleri/window.h</tt>.
+</p><p>
+Each window class must define at least three functions. First is
+the constructor, taking one argument that is the window instance id.
+Second is the <tt>OnInit</tt> override, called after the connection
+to gleris has been established. Third is the <tt>OnDraw</tt> call
+that creates the drawlist for the window. You will also likely want
+to override one of the event handlers, like <tt>OnKey</tt> here.
+</p><p>
+An important design requirement that must be mentioned here is that
+resource creation and drawing must be done separately. There is a variety
+of complicated technical reasons for this limitation that more or less
+boil down to "it would be difficult and inefficient to implement it
+otherwise". From the library user's perspective this means that you
+can only use drawing commands in <tt>OnDraw</tt> - the ones that are
+implemented by the passed in <tt>drw</tt> object. Buffers and textures
+have to be created and modified elsewhere, typically in <tt>OnInit</tt>,
+<tt>OnResize</tt>, <tt>OnKey</tt>, <tt>OnTimer</tt>, or wherever else
+the actual changes are triggered. You may recognize this as a form of
+document-view architecture.
+</p><p>
+Another design point that must be mentioned here is that <tt>OnDraw</tt>
+is a template. To write a drawlist into a network packet you can do
+one of two things: put code in every drawing command to check if there
+is enough space in the buffer and resize as needed, or calculate the
+size of the drawlist first, allocate the buffer to the full size,
+and then write the data. GLERI uses the second approach, because it
+is considerably more efficient. The drawback is that <tt>OnDraw</tt>
+must be called twice - first to measure, then again to write. Because
+<tt>OnDraw</tt> is const and does not create or destroy anything, the
+size of the drawlist is typically very simple to calculate, and the first
+call becomes either a simple constant (as it will in this tutorial), or
+a very simple calculation. To make the template boilerplate code creation
+a little easier, two macros, <tt>ONDRAWDECL</tt> and <tt>ONDRAWIMPL</tt>
+are provided for declaring and defining <tt>OnDraw</tt>.
+</p><pre>
+void CHelloWindow::OnInit (void)
+{
+    CWindow::OnInit();
+    Open ("Hello World", 320, 240);
+}
+</pre><p>
+Somewhere in <tt>OnInit</tt>, each window object must call <tt>Open</tt>
+(see <tt>PRGL::Open</tt> in <tt>gleri/rglp.h</tt>) to tell gleris to
+create a window on the screen. Here, the first argument is the window
+title, followed by dimensions. A second <tt>Open</tt> variant is available
+for windows that need to specify more parameters. The second argument
+to that one is a <tt>G::WinInfo</tt> structure. After the <tt>Open</tt>
+call you can create resources, such as vertex buffers or textures,
+and call <tt>Draw()</tt>. This tutorial does not draw any primitives,
+and so does not need any resources.
+</p><pre>
+ONDRAWIMPL(CHelloWindow)::OnDraw (Drw&amp; drw) const
+{
+    CWindow::OnDraw (drw);
+    drw.Clear (RGB(0,0,64));
+    drw.Color (RGB(128,128,128));
+    static const char c_HelloMessage[] = "Hello world!";
+    drw.Text ((Info().w-Font()-&gt;Width(c_HelloMessage))/2,
+              (Info().h-Font()-&gt;Height())/2,
+	      c_HelloMessage);
+}
+</pre><p>
+The drawing function is defined with the help of the <tt>ONDRAWIMPL</tt>
+macro taking the class name. The <tt>drw</tt> parameter a templated
+type <tt>PDraw</tt>, defined in <tt>gleri/drawp.h</tt>, implementing
+the commands for drawlist creation. This drawlist consists of clearing
+the screen with a blue background, setting a gray drawing color, and
+printing "Hello world!" in the middle of the window.
+</p><p>
+For colors, <tt>RGBA</tt> function is also available for drawing
+transparent primitives. On the gleris side, the color becomes shader
+parameter "Color" for the default shader. In OpenGL 3.3, the fixed
+pipeline is gone and all applications must write their own shaders.
+For basic 2D stuff that can be rather cumbersome, so gleris implements
+two default shaders for 2D. The first one, enabled by default is the
+<tt>G::default_FlatShader</tt>, will draw flat-shaded primitives with
+the specified color. The second one, <tt>G::default_GradientShader</tt>,
+will draw smoothly shaded primitives and takes a per-vertex color value.
+</p><p>
+Although <tt>PDraw</tt> does provide this default 2D functionality,
+it most definitely is possible to draw in 3D. You'll just have to write
+your own shaders and transform matrices, just as you would when using
+plain OpenGL, but with the <tt>drw.</tt> prefix instead of <tt>gl</tt>.
+OpenGL programming is a pretty big subject and is outside the scope of
+this tutorial. Please consult the excellent tutorials available on <a
+href="http://www.opengl-tutorial.org/">www.opengl-tutorial.org</a>.
+There are many more available around the net; just make sure you're
+looking at the ones targeting the GL3.3 core profile version. The API
+for the versions prior to 3.3 is very different and the its programming
+style is not supported in GLERI.
+</p><p>
+The <tt>Font</tt> call returns a <tt>G::Font::Info</tt> structure (defined
+in <tt>gleri/gldefs.h</tt>) for the default font, containing font metrics
+for measuring text as shown. Passing a font id to <tt>Font</tt> would
+return the info structure for the specified font. The default font, along
+with the default shaders, is available from the start and is shared among
+all applications connected to one gleris process. Resources created by
+each application are automatically shared among all windows created by a
+single connection. For example, if hello were to create two windows and
+load a buffer in one, the buffer could also be accessed from the other,
+but would not be available to other processes using the same gleris.
+</p><p>
+The <tt>Info</tt> call returns the window's <tt>G::WinInfo</tt> structure
+(defined in <tt>gleri/gldefs.h</tt>) that contains current window state.
+The info structure is updated every time the window receives a resize
+event, which happens at least once after the window is mapped to the
+screen.
+</p><pre>
+void CHelloWindow::OnKey (key_t key)
+{
+    CWindow::OnKey (key);
+    if (key == Key::Escape || key == 'q')
+	Close();
+}
+</pre><p>
+Finally, the <tt>OnKey</tt> handler allows quitting the program. Here,
+<tt>Close</tt> is called to close this window. Because after it is closed
+there will be no windows left, the application object will automatically
+quit. You can also explicitly call <tt>CGLApp::Instance().Quit()</tt>
+to quit even when there are other windows currently open.
+</p><p>
+<tt>Key::Escape</tt> is defined in <tt>gleri/event.h</tt>, where you can
+find the other supported key codes. Printable characters are passed in
+as they are. Modifier keys are ORed onto the <tt>key</tt> value. For example,
+when Ctrl and q are pressed, you'll get <tt>KMod::Ctrl|'q'</tt>.
+</p><p>
+So now you know how to create a GLERI application, how to draw a text,
+and how to quit. This is enough to write a WordPerfect 5.1 clone.
+</p>
+</body>
+</html>
