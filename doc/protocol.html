@@ -1,10 +1,20 @@
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>GLERI Protocols</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <meta http-equiv="Content-Type" content="text/xhtml+xml; charset=ISO-8859-1" />
+    <title>GLERI Protocols</title>
+    <meta name="Description" content="Technical specification of the GLERI wire protocol" />
+    <meta name="Keywords" content="OpenGL, remote, API, protocol, specification" />
+    <meta name="author" content="Mike Sharov" />
+    <meta name="date" content="2013-11-22" />
 </head>
 <body>
+<div id="pagectr"><div id="header">
 
 <h1>GLERI Protocols</h1>
+
+</div><div id="content">
 <p>
 This document contains low-level implementation details of GLERI, intended
 for people wishing to modify the library or to enable interoperation with
@@ -89,7 +99,7 @@ of the type.
 <p>
 The message consists of header and body. The header, the body, and the
 end of the message must be 8-byte aligned. The header is:
-<pre>
+</p><pre>
 struct {
     uint32_t    sz;
     uint16_t    iid;
@@ -99,7 +109,7 @@ struct {
     char	method[];
     char	signature[];
 }
-</pre>
+</pre><p>
 <tt>sz</tt> is the size of the message body padded to 8 byte alignment.
 <tt>hsz</tt> is the size of the header padded to 8 byte alignment.
 <tt>fdoffset</tt> is the offset of the passed file descriptor in the body;
@@ -374,5 +384,6 @@ Here are the commands with their protocol names and parameters:
 	all zero, the entire framebuffer area is captured. Quality
 	parameter is for the jpeg format.</dd>
 </dl>
+</div></div>
 </body>
 </html>

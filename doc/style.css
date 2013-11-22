@@ -1,0 +1,37 @@
+body {
+    font-family: sans-serif;
+    color: #888;
+    background-color: black;
+}
+#pagectr {
+    margin: 0 auto;
+    overflow: hidden;
+    max-width: 64em;
+    background-color: #004;
+}
+
+#header		{
+    height: 160px;
+    border-bottom: 1px #044 solid;
+}
+div#header h1	{
+    color: #0cc;
+    font-size: 80px;
+    float: left;
+    margin: 30px 0 0 80px;
+}
+div#header img	{ float: right; margin-left: 1.5em }
+
+#content {
+    padding: 1.5em;
+    text-align: justify;
+    background-color: #003;
+}
+#content a		{ color: #0bb }
+#content a:visited	{ color: #088 }
+#content a:active	{ color: #0ff }
+#content h2		{ color: #899 }
+#content pre		{ color: #488 }
+#content tt		{ color: #688 }
+#content dt		{ color: #4bb }
+#content table		{ margin: 1em }

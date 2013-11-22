@@ -1,9 +1,20 @@
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<title>GLERI Internals</title>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <meta http-equiv="Content-Type" content="text/xhtml+xml; charset=ISO-8859-1" />
+    <title>GLERI Internals</title>
+    <meta name="Description" content="Technical specification GLERI intenal design" />
+    <meta name="Keywords" content="OpenGL, remote, API, internals" />
+    <meta name="author" content="Mike Sharov" />
+    <meta name="date" content="2013-11-22" />
 </head>
 <body>
+<div id="pagectr"><div id="header">
+
 <h1>GLERI Internals</h1>
+
+</div><div id="content">
 <p>
 Here you'll find a high-level overview of the internal design of
 GLERI, written for those wishing to modify the library. If you are only
@@ -70,7 +81,6 @@ they still work. doc subdirectory contains documentation and tutorials.
 <tr><td>goshad.h,cc</td><td>Shader objects</td></tr>
 <tr><td>gofont.h,cc</td><td>Font objects</td></tr>
 </table>
-</p>
 
 <h2>Client Internals</h2>
 <p>
@@ -187,5 +197,6 @@ destroyed. In debug builds CheckForErrors is also called after every
 draw command to ease debugging.  For debugging, run gleris with -d,
 enabling tracing of every call made, parameters, and failing packets.
 </p>
+</div></div>
 </body>
 </html>
