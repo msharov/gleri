@@ -75,25 +75,18 @@ The target platform is a POSIX compliant architecture, such as Linux
 or BSD. Windows and embedded platforms are absolutely not supported.
 Other minimum requirements are Linux kernel 2.6.28, GCC 4.6 or clang++
 3.2. Wayland will likely be supported in the future when it supports
-OpenGL (currently it only has OpenGL ES support). zlib is required.
-libpng and libjpeg are needed to load textures (although GLERI will
-build without them).
+OpenGL (currently it only has OpenGL ES support). Required libraries
+are zlib, libpng, and libjpeg.
 
 OpenGL 3.3+ is required. Due to the still dire driver situation on Linux,
-this means that only the proprietary fglrx and nvidia drivers work. Mesa
-does not at the time of this writing provide GL3.3 support; however,
-it is expected to be implemented with the Mesa 10 release sometime in
-2013-14. It remains to be seen if its performance would be acceptable
-for any serious use.
+that means using Catalyst on Radeons, nVidia binary drivers for nVidia
+cards, and Mesa 10 only for Intel (SandyBridge and above)
 
-Currently, GLERI has been tested with Catalyst 12.9, kernel 3.6.
-
-Catalyst 13.1 has a broken shader compiler and is thus unusable.
-Bug reported to AMD: http://ati.cchtml.com/show_bug.cgi?id=693
-
-To build:	./configure; make
+To build:	./configure && make
 To install:	make install
 Test program:	make check
+Documentation:	doc/
+Tutorials:	tut/
 
 3. Acknowledgements
 -------------------

@@ -2,6 +2,7 @@ body {
     font-family: sans-serif;
     color: #888;
     background-color: black;
+    margin: 0;
 }
 #pagectr {
     margin: 0 auto;
@@ -11,19 +12,20 @@ body {
 }
 
 #header		{
-    height: 160px;
+    min-height: 160px;
     border-bottom: 1px #044 solid;
+    overflow: hidden;
 }
 div#header h1	{
     color: #0cc;
     font-size: 80px;
+    margin: .4em 1em;
     float: left;
-    margin: 30px 0 0 80px;
 }
 div#header img	{ float: right; margin-left: 1.5em }
 
 #content {
-    padding: 1.5em;
+    padding: 0.5em 1.5em;
     text-align: justify;
     background-color: #003;
 }

@@ -25,15 +25,11 @@ we'll print "Hello world!".
 <p>
 The code for this tutorial is included in the GLERI tarball, located under
 the <tt>tut/hello</tt> subdirectory. When you build GLERI, the tutorials
-are automatically build as well. In your own project, you will need to
-create your own makefile. To build you'll need to provide the correct
+are automatically build as well. In your own makefile provide include
 paths to the location of <tt>gleri.h</tt> and the <tt>libgleri.a</tt>
-library. By default, these are installed to <tt>/usr/include</tt> and
-<tt>/usr/lib</tt> respectively. If you have installed into a different
-prefix, like the XDG user prefix <tt>$HOME/.local</tt>, it will have
-to be given to gcc's <tt>-I</tt> and <tt>-L</tt> options. The project
-executable needs to be linked with <tt>libgleri.a</tt>, usually by
-adding <tt>-lgleri</tt> to the linker command.
+library. By default, these are installed to <tt>/usr/include</tt>
+and <tt>/usr/lib</tt> respectively. The project executable needs to be
+linked with <tt>libgleri.a</tt>.
 </p><p>
 To run the project, the gleris service must either be running, with
 UNIX socket in <tt>XDG_RUNTIME_DIR</tt>, TCP socket 6540, or be in

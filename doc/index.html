@@ -56,6 +56,17 @@ write applications that use OpenGL remotely, without linking to the
 entire graphics driver? Well, GLERI is it.
 </p>
 <ul>
+<li>Acquire dependencies:
+    <ul>
+    <li>OpenGL drivers supporting 3.3 core profile:
+	<ul>
+	<li>Mesa 10 for Intel graphics (SandyBridge or above)</li>
+	<li>Catalyst for Radeons</li>
+	<li>nVidia binary drivers for nVidia cards</li>
+	</ul>
+    <li>gcc 4.6 or clang 3.2</li>
+    <li>zlib, libpng, and libjpeg</li>
+    </ul></li>
 <li>Download from <a href="https://github.com/msharov/gleri/releases/latest">https://github.com/msharov/gleri/releases/latest</a></li>
 <li>Build with <tt>./configure &amp;&amp; make &amp;&amp; make install</tt></li>
 <li>Read the tutorials (code in <tt>tut/</tt>):
