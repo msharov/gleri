@@ -6,7 +6,7 @@
 ######################################################################
 
 PKG_NAME="gleri"
-PKG_VERSTR="v0.1"
+PKG_VERSTR="v0.3"
 
 MNT_NAME="Mike Sharov"
 MNT_MAIL="zfunebi@hfref.fbheprsbetr.arg"
