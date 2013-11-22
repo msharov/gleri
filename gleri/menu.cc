@@ -16,7 +16,7 @@ CMenuEntry::SSize CMenuEntry::OnMeasure (void) const
 void CMenuEntry::OnResize (dim_t w, dim_t h)
 {
     CWidget::OnResize (w, h);
-    dim_t rdata[] = { 0,0, 0,h, w,0, w,h };
+    coord_t rdata[] = { VGEN_TSRECT (0,0,w,h) };
     if (!_backrect)
 	_backrect = BufferData (G::ARRAY_BUFFER, rdata, sizeof(rdata));
     else
@@ -74,7 +74,7 @@ void CPopupMenu::OnInit (void)
     _items.SetFocus (0);
 
     CWidget::SSize isz = _items.OnMeasure();
-    Open ("Menu", (WinInfo){ _x,_y,isz.w,isz.h,_parent,0x33,0,WinInfo::MSAA_OFF,WinInfo::type_PopupMenu,WinInfo::state_Normal,WinInfo::flag_None });
+    Open ("Menu", WinInfo(_x,_y,isz.w,isz.h,_parent,0x33,0,WinInfo::MSAA_OFF,WinInfo::type_PopupMenu));
 }
 
 void CPopupMenu::OnResize (dim_t w, dim_t h)

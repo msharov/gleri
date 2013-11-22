@@ -134,7 +134,7 @@ public:
     inline void			Export (const char* ol)		{ CCmdBuf::Export (ol); }
     inline void			Authenticate (uint32_t argc, char* const* argv, const char* hostname, uint32_t pid, uint32_t screen, const void* ad, uint32_t adsz)	{ Cmd (ECmd::Auth, SArgv(argc,argv), hostname, pid, screen, SDataBlock(ad,adsz)); }
     inline void			Open (const char* title, const WinInfo& winfo)			{ Cmd(ECmd::Open,winfo,title); }
-    inline void			Open (const char* title, dim_t w, dim_t h, uint8_t mingl = 0x33, uint8_t maxgl = 0, WinInfo::MSAA aa = WinInfo::MSAA_OFF)	{ Open (title, (WinInfo){ 0,0,w,h,0,mingl,maxgl,aa,WinInfo::type_Normal,WinInfo::state_Normal,WinInfo::flag_None }); }
+    inline void			Open (const char* title, dim_t w, dim_t h, uint8_t mingl = 0x33, uint8_t maxgl = 0, WinInfo::MSAA aa = WinInfo::MSAA_OFF)	{ Open (title, WinInfo(0,0,w,h,0,mingl,maxgl,aa)); }
     inline void			Close (void)			{ Cmd(ECmd::Close); }
     inline draww_t		Draw (size_type sz, goid_t fbid = G::default_Framebuffer);
     inline void			Event (const CEvent& e)		{ Cmd(ECmd::Event,e); }

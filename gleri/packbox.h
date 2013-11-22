@@ -33,9 +33,9 @@ public:
     inline const_reference	operator[] (size_type i) const	{ return (*_wigv[i]); }
     inline void			reserve (size_type n)		{ _wigv.reserve (n); }
     inline void			shrink_to_fit (void)		{ _wigv.shrink_to_fit(); }
-    inline void			clear (void)			{ _wigv.clear(); }
-    inline iterator		erase (iterator ep)		{ return (_wigv.erase (ep.base())); }
-    inline iterator		erase (iterator f, iterator l)			{ return (_wigv.erase (f.base(), l.base())); }
+    iterator			erase (iterator f, iterator l) noexcept;
+    inline iterator		erase (iterator ep)		{ return (erase (ep,ep+1)); }
+    inline void			clear (void)			{ erase (begin(), end()); }
     iterator			FindEnclosing (coord_t x, coord_t y) noexcept;
     size_type			Focus (void) const noexcept;
     void			SetFocus (size_type f) noexcept;

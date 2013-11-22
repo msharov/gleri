@@ -23,8 +23,10 @@ CIConn::CIConn (iid_t iid, int fd, bool fdpass)
 
 CIConn::~CIConn (void) noexcept
 {
-    for (auto o : _obj)
+    for (auto o : _obj) {
+	DTRACE ("Deleting object cid %x, sid %x\n", o->CId(), o->Id());
 	delete o;
+    }
     _obj.clear();
 }
 
@@ -47,6 +49,7 @@ void CIConn::AddObject (CGObject* o)
     if (!o || o->CId() == G::GoidNull || o->Id() == CGObject::NoObject)
 	throw XError ("failed create resource object %x", o->CId());
     auto io = lower_bound (_obj.begin(), _obj.end(), o, [](const CGObject* o1, const CGObject* o2) { return (*o1 < *o2); });
+    DTRACE ("Inserting object cid %x, sid %x\n", o->CId(), o->Id());
     _obj.insert (io, o);
 }
 
@@ -120,8 +123,23 @@ void CIConn::FreeResource (goid_t cid, PRGL::EResource)
 {
     DTRACE ("[fd %d] FreeResource %x\n", Fd(), cid);
     auto io = lower_bound (_obj.begin(), _obj.end(), cid, [](const CGObject* o, goid_t id) { return (o->CId() < id); });
-    if (io != _obj.end() && (*io)->CId() == cid)
+    if (io != _obj.end() && (*io)->CId() == cid) {
+	DTRACE ("[fd %d] Deleting object %x, sid %x\n", Fd(), (*io)->CId(), (*io)->Id());
+	delete *io;
 	_obj.erase (io);
+    }
+}
+
+void CIConn::FreeResources (const CGLWindow* w)
+{
+    DTRACE ("[%x] Freeing all resources in context %x\n", w->IId(), w->ContextId());
+    for (auto r = _obj.begin(); r < _obj.end(); ++r) {
+	if ((*r)->Context() == w->ContextId()) {
+	    DTRACE ("[%x] Deleting object %x, sid %x\n", w->IId(), (*r)->CId(), (*r)->Id());
+	    delete (*r);
+	    --(r = _obj.erase(r));
+	}
+    }
 }
 
 //----------------------------------------------------------------------

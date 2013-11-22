@@ -4,7 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #pragma once
-#include "util.h"
+#include "bstr.h"
 
 //----------------------------------------------------------------------
 // OpenGL constants
@@ -366,15 +366,25 @@ struct Info {
 };
 } // namespace G::Font
 
-struct alignas(4) FramebufferComponent {
+class alignas(4) FramebufferComponent {
+public:
     FramebufferType		target;
     FramebufferAttachment	attachment;
     uint8_t			textype;
     uint8_t			level;
     goid_t			texture;
+public:
+    inline constexpr		FramebufferComponent (void)
+				    :target(FRAMEBUFFER),attachment(DEPTH_ATTACHMENT),textype(TEXTURE_1D),level(0),texture(0) {}
+    inline constexpr		FramebufferComponent (FramebufferType _target, FramebufferAttachment _attachment, uint8_t _textype, uint8_t _level, goid_t _texture)
+				    :target(_target),attachment(_attachment),textype(_textype),level(_level),texture(_texture) {}
+    inline void			read (bstri& is)	{ is.iread (*this); }
+    inline void			write (bstro& os) const	{ os.iwrite (*this); }
+    inline void			write (bstrs& ss) const	{ ss.iwrite (*this); }
 };
 
-struct alignas(4) WinInfo {
+class alignas(4) WinInfo {
+public:
     coord_t	x,y;
     dim_t	w,h;
     uint16_t	parent;		// The iid of the parent window
@@ -430,6 +440,16 @@ struct alignas(4) WinInfo {
 	flag_Below		= (1<<7)
     };
     uint8_t	flags;
+public:
+    inline constexpr explicit WinInfo (coord_t _x = 0, coord_t _y = 0, dim_t _w = 1, dim_t _h = 1,
+				uint16_t _parent = 0, uint8_t _mingl = 0x33, uint8_t _maxgl = 0,
+				MSAA _aa = MSAA_OFF, WinType _wtype = type_Normal, WinState _wstate = state_Normal, uint8_t _flags = flag_None)
+				:x(_x),y(_y),w(_w),h(_h)
+				,parent(_parent),mingl(_mingl),maxgl(_maxgl)
+				,aa(_aa),wtype(_wtype),wstate(_wstate),flags(_flags) {}
+    inline void read (bstri& is)	{ is.iread (*this); }
+    inline void write (bstro& os) const	{ os.iwrite (*this); }
+    inline void write (bstrs& ss) const	{ ss.iwrite (*this); }
     inline bool	IsParented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
     inline bool	IsDecoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
     inline bool	IsPopupMenu (void)const	{ return (wtype >= type_FirstPopupMenu && wtype <= type_LastPopupMenu); }
@@ -495,3 +515,19 @@ inline constexpr G::color_t RGB (uint8_t r, uint8_t g, uint8_t b)
     { return (RGBA(r,g,b,UINT8_MAX)); }
 inline constexpr G::color_t RGB (G::color_t c)
     { return (RGBA((c<<8)|UINT8_MAX)); }
+
+//----------------------------------------------------------------------
+// Rectangle macros for vertex arrays.
+//
+// These handle the unpleasantries of offsetting, and different sizes of
+// solid and line primitives due to OpenGL ending rasterization in
+// different places and making it difficult to specify exact dimensions.
+
+/// Emits a point, cast to coord_t
+#define VGEN_POINT(x,y)		G::coord_t(x),G::coord_t(y)
+/// Generates 4 points to draw a rectangular line loop
+#define VGEN_LLRECT(x,y,w,h)	VGEN_POINT(x,y), VGEN_POINT(x,(y)+(h)-1), VGEN_POINT((x)+(w)-1,(y)+(h)-1), VGEN_POINT((x)+(w)-1,y)
+/// Generates 4 points to draw a rectangular triangle strip
+#define VGEN_TSRECT(x,y,w,h)	VGEN_POINT(x,(y)-1), VGEN_POINT(x,(y)+(h)-1), VGEN_POINT((x)+(w),(y)-1), VGEN_POINT((x)+(w),(y)+(h)-1)
+/// Generates 4 points to draw a rectangular triangle fan
+#define VGEN_TFRECT(x,y,w,h)	VGEN_POINT(x,(y)-1), VGEN_POINT(x,(y)+(h)-1), VGEN_POINT((x)+(w),(y)+(h)-1), VGEN_POINT((x)+(w),(y)-1)

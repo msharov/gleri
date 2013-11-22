@@ -10,12 +10,14 @@
 namespace {
 
 static const CTestWindow::coord_t _vdata1[] = {
-    0,0, 0,479, 639,479, 639,0,
-    50,50, 50,300, 150,300, 150,50,
-    100,100, 200,200, 300,200, 300,300,
+    VGEN_LLRECT (0,0, 640,480),
+    VGEN_TFRECT (50,50, 100,250),
+    50,50, 200,200, 300,200, 300,300,
     250,250, 250,400, 350,250, 500,450,
     200,60, 270,120, 300,50, 400,100,
-    0,0, 0,-1, 1,0, 1,-1
+    0,0, 0,-1, 1,0, 1,-1,
+    0,0, 0,239, 319,239, 119,39, 319,239, 319,0,
+    VGEN_LLRECT (-1,-1, 322,242)
 };
 static constexpr CTestWindow::color_t _cdata1[] = {
     RGB(0xff0000), RGB(0x00ff00), RGB(0x0000ff), RGBA(0x80808080)
@@ -32,7 +34,11 @@ enum {
     vb_SkewQuadOffset = vb_TransparentStripOffset+vb_TransparentStripSize,
     vb_SkewQuadSize = 4,
     vb_FanOverlayOffset = vb_SkewQuadOffset + vb_SkewQuadSize,
-    vb_FanOverlaySize = 4
+    vb_FanOverlaySize = 4,
+    vb_SmallFbBorderOffset = vb_FanOverlayOffset + vb_FanOverlaySize,
+    vb_SmallFbBorderSize = 6,
+    vb_RedBorderOffset = vb_SmallFbBorderOffset + vb_SmallFbBorderSize,
+    vb_RedBorderSize = 4,
 };
 enum {
     walk_SpriteW = 64,
@@ -275,10 +281,18 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     #endif
     drw.Color (128,90,150,220);
     drw.TriangleFan (vb_PurpleQuadOffset, vb_PurpleQuadSize);
+    drw.Color (0,128,128);
+    drw.LineLoop (vb_SmallFbBorderOffset, vb_SmallFbBorderSize);
     drw.Text (32, 64, "Offscreen");
     drw.DefaultFramebuffer();
 
-    drw.Image (990, 120, _smallcol);
+    drw.Offset (990, 120);
+    drw.Color (192,0,0);
+    drw.LineLoop (vb_RedBorderOffset, vb_RedBorderSize);
+    drw.Color (255,255,255);
+    drw.LineLoop (vb_SmallFbBorderOffset, vb_SmallFbBorderSize);
+    drw.Image (0, 0, _smallcol);
+    drw.Offset (0, 0);
     if (_screenshot)
 	drw.Screenshot (_screenshot);
 }

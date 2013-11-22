@@ -43,6 +43,7 @@ public:
     void			LoadResource (CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const GLubyte* d, GLuint dsz);
     void			LoadPakResource (CGLWindow* w, goid_t id, PRGL::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz);
     void			FreeResource (goid_t id, PRGL::EResource dtype);
+    void			FreeResources (const CGLWindow* w);
 				// Lookups for all resources
     const CDatapak&		LookupDatapak (goid_t id) const	{ return (LookupObject<CDatapak> (id, "no datapak %x")); }
     const CBuffer&		LookupBuffer (goid_t id) const	{ return (LookupObject<CBuffer> (id, "no buffer %x")); }

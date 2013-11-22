@@ -76,16 +76,18 @@ void CTexture::Free (void) noexcept
 /*static*/ inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) noexcept
 {
     const G::Texture::Header& inh = *reinterpret_cast<const G::Texture::Header*>(p);
-    switch (inh.magic) {
+    if (inh.magic == G::Texture::Header::Magic)
+	return (CTexBuf (inh, psz > sizeof(inh) ? CTexBuf::const_pointer(p+sizeof(inh)) : nullptr));
     #if HAVE_PNG_H
-	case vpack4(0x89,'P','N','G'):	return (LoadPNG (p, psz));
+    else if (inh.magic == vpack4(0x89,'P','N','G'))
+	return (LoadPNG (p, psz));
     #endif
     #if HAVE_JPEGLIB_H
-	case vpack4(0xff,0xd8,0xff,0xe0):return (LoadJPG (p, psz));
+    else if (uint16_t(inh.magic) == vpack2(0xff,0xd8))
+	return (LoadJPG (p, psz));
     #endif
-	case G::Texture::Header::Magic:	return (CTexBuf (inh, psz > sizeof(inh) ? CTexBuf::const_pointer(p+sizeof(inh)) : nullptr));
-	default:			return (CTexBuf());
-    };
+    else
+	return (CTexBuf());
 }
 
 /*static*/ void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format fmt, uint8_t quality)
@@ -131,6 +133,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 	png_set_filler (rs, 0xff, PNG_FILLER_AFTER);
     switch (png_get_color_type(rs, infos)) {
 	case PNG_COLOR_TYPE_PALETTE:	png_set_palette_to_rgb(rs); break;
+	case PNG_COLOR_TYPE_GRAY:	png_set_gray_to_rgb(rs); break;
 	case PNG_COLOR_TYPE_RGB_ALPHA:	png_set_swap_alpha(rs); break;
     }
     CTexBuf tbuf (G::Pixel::RGBA, G::Pixel::UNSIGNED_BYTE,
@@ -196,13 +199,14 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     jpeg_read_header (&cinfo, TRUE);
     jpeg_start_decompress (&cinfo);
     unsigned w = cinfo.output_width, h = cinfo.output_height, s = cinfo.output_components;
+    unsigned linew = Align(w*3,4);	// OpenGL requires line padding to 4 bytes
     CTexBuf imgbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, h);
     unsigned char* ppd = (unsigned char*) imgbuf.Data();
     while (cinfo.output_scanline < h) {
 	unsigned j = cinfo.output_scanline;
 	JSAMPLE linebuf[w*s], *jsarr[1] = {linebuf};
 	jpeg_read_scanlines (&cinfo, jsarr, 1);
-	unsigned char* poline = &ppd[((h-1)-j)*w*s];
+	unsigned char* poline = &ppd[((h-1)-j)*linew];
 	if (s == 3)
 	    memcpy (poline, jsarr[0], w*s);
 	else if (s == 1) {

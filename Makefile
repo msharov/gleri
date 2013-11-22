@@ -63,8 +63,9 @@ endif
 
 ################ Test and tutorials ####################################
 
-include tut/hello/Module.mk
 include test/Module.mk
+include tut/hello/Module.mk
+include tut/rgliv/Module.mk
 
 ################ Maintenance ###########################################
 

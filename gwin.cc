@@ -97,9 +97,9 @@ void CGLWindow::Viewport (GLint x, GLint y, GLsizei w, GLsizei h) noexcept
 
 void CGLWindow::Offset (GLint x, GLint y) noexcept
 {
-    DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);
-    _proj[3][0] = float(-(_viewport.w-2*x-1))/_viewport.w;	// 0.5 pixel center adjustment, 0.5*(2/w)=1/w
-    _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;		// invert y to 0,0 at top left
+    DTRACE ("[%x] Offset %hd:%hd\n", IId(), x,y);		// OpenGL 0,0 is at screen center, screen width 2
+    _proj[3][0] = float(-(_viewport.w-2*x-1))/_viewport.w;	// 0.5 pixel center adjustment (w=2,1/w adjusts by 0.5)
+    _proj[3][1] = float(_viewport.h-2*y-1)/_viewport.h;		// Same as x, but with y inverted the adjustment is +up
     UniformMatrix ("Transform", Proj());
 }
 
@@ -295,8 +295,13 @@ void CGLWindow::Sprite (const CTexture& t, coord_t x, coord_t y)
     DTRACE ("[%x] Sprite %x at %d:%d\n", IId(), t.CId(), x,y);
     SetTextureShader();
     UniformTexture ("Texture", t);
-    Uniform4f ("ImageRect", x, y, t.Width(), t.Height());
-    Uniform4f ("SpriteRect", 0, 0, t.Width()-1, t.Height()-1);
+    // Solid primitives have the far edge unfilled, for example, 0,0-4,4
+    // will draw a 3x3 square. Because y coordinate is inverted, the 3x3
+    // is at the bottom left, with top and right pixel strips unfilled.
+    // Consequently, to draw a WxH image, need to draw to a (W+1)x(H+1)
+    // triangle strip (created by geometry shader), and offset y by -1.
+    Uniform4f ("ImageRect", x, y-1, t.Width(), t.Height());
+    Uniform4f ("SpriteRect", 0, 0, t.Width(), t.Height());
     glDrawArrays (GL_POINTS, 0, 1);
 }
 
@@ -305,8 +310,9 @@ void CGLWindow::Sprite (const CTexture& t, coord_t x, coord_t y, coord_t sx, coo
     DTRACE ("[%x] Sprite %x at %d:%d, src %ux%u+%d+%d\n", IId(), t.CId(), x,y, sw,sh,sx,sy);
     SetTextureShader();
     UniformTexture ("Texture", t);
-    Uniform4f ("ImageRect", x, y, t.Width(), t.Height());
-    Uniform4f ("SpriteRect", sx, sy, sw-1, sh-1);
+    // See Sprite above for explanation of -1 and WxH
+    Uniform4f ("ImageRect", x, y-1, t.Width(), t.Height());
+    Uniform4f ("SpriteRect", sx, sy, sw, sh);
     glDrawArrays (GL_POINTS, 0, 1);
 }
 

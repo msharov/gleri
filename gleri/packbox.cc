@@ -9,9 +9,15 @@
 
 CPackbox::~CPackbox (void)
 {
-    for (auto w : _wigv)
-	delete w;
-    _wigv.clear();
+    clear();
+}
+
+CPackbox::iterator CPackbox::erase (iterator f, iterator l) noexcept
+{
+    wigvec_t::iterator wf = f.base(), wl = l.base();
+    for (wigvec_t::iterator i = wf; i < wl; ++i)
+	delete *i;
+    return (_wigv.erase (f.base(), l.base()));
 }
 
 ONWIGDRAWIMPL(CPackbox)::OnDraw (Drw& drw) const

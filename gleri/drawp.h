@@ -82,7 +82,7 @@ public:
     inline void		Framebuffer (goid_t id, G::FramebufferType bindas = G::FRAMEBUFFER)	{ Cmd (ECmd::BindFramebuffer, id, uint32_t(bindas)); }
     inline void		DefaultFramebuffer (void)						{ Framebuffer (G::default_Framebuffer, G::FRAMEBUFFER); }
     inline void		FramebufferComponent (goid_t id, const G::FramebufferComponent c)	{ Cmd (ECmd::BindFramebufferComponent, id, c); }
-    inline void		FramebufferComponent (goid_t id, goid_t texid)	{ FramebufferComponent (id, (G::FramebufferComponent){ G::FRAMEBUFFER, G::COLOR_ATTACHMENT0, G::TEXTURE_2D, 0, texid }); }
+    inline void		FramebufferComponent (goid_t id, goid_t texid)	{ FramebufferComponent (id, G::FramebufferComponent (G::FRAMEBUFFER, G::COLOR_ATTACHMENT0, G::TEXTURE_2D, 0, texid)); }
     inline void		SaveFramebuffer (coord_t x, coord_t y, dim_t w, dim_t h, const char* filename, G::Texture::Format fmt, uint8_t quality = 100);
     inline void		Font (goid_t f)					{ Cmd (ECmd::BindFont, f); }
     inline void		Parameter (uint8_t slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }

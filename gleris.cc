@@ -43,9 +43,12 @@ CGleris::~CGleris (void) noexcept
 	_localSocket.ForceClose();
 	unlink (s_SocketPath);
     }
-    for (auto& c : _win)
-	DestroyClient (c);
+    for (auto w = _win.end(); w-- > _win.begin();)
+	DestroyClient (*w);
     _win.clear();
+    for (auto& c : _iconn)
+	delete c;
+    _iconn.clear();
     if (_dpy) {
 	DTRACE ("Flushing X connection\n");
 	XFlush (_dpy);
@@ -262,7 +265,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	_colormap[i] = XCreateColormap(_dpy, _rootWindow, _visinfo[i]->visual, AllocNone);
 
     // Create the root gl context (share root)
-    static const WinInfo rootinfo = { 0, 0, 1, 1, 0, 0x33, 0x43, WinInfo::MSAA_OFF, WinInfo::type_Normal, WinInfo::state_Hidden, WinInfo::flag_None };
+    static const WinInfo rootinfo (0, 0, 1, 1, 0, 0x33, 0x43, WinInfo::MSAA_OFF, WinInfo::type_Normal, WinInfo::state_Hidden, WinInfo::flag_None);
     Window rctxw = CreateWindow (rootinfo);	// Temporary window to create the root gl context
     GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig[0], GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
@@ -818,7 +821,11 @@ void CGleris::DestroyClient (CGLWindow*& pc) noexcept
 {
     if (_dpy) {
 	DTRACE ("Erasing client with window %x, context %x\n", pc->Drawable(), pc->ContextId());
-	_curCli = nullptr;	// Whenever any window dies, ALL GL contexts become detached
+	_curCli = nullptr;		// Whenever any window dies, ALL GL contexts become detached
+	// Activate root context to delete resources
+	// The client window is dead at this point, so can't activate the client context directly.
+	ActivateClient (*_win[0]);
+	pc->FreeResources();
 	glXMakeCurrent (_dpy, None, nullptr);
 	glXDestroyContext (_dpy, pc->ContextId());
 	CloseClient (pc);
