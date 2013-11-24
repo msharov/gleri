@@ -1,33 +1,34 @@
 body {
-    font-family: sans-serif;
-    color: #888;
     background-color: black;
+    color: #888;
+    font-family: sans-serif;
     margin: 0;
 }
 #pagectr {
-    margin: 0 auto;
-    overflow: hidden;
-    max-width: 64em;
     background-color: #004;
-}
-
-#header		{
-    min-height: 160px;
-    border-bottom: 1px #044 solid;
+    margin: 0 auto;
+    max-width: 64em;
     overflow: hidden;
 }
-div#header h1	{
+#header {
+    border-bottom: 1px #044 solid;
+    min-height: 160px;
+    overflow: hidden;
+}
+div#header h1 {
     color: #0cc;
+    float: left;
     font-size: 80px;
     margin: .4em 1em;
-    float: left;
 }
-div#header img	{ float: right; margin-left: 1.5em }
-
+div#header img {
+    float: right;
+    margin-left: 1.5em;
+}
 #content {
+    background-color: #003;
     padding: 0.5em 1.5em;
     text-align: justify;
-    background-color: #003;
 }
 #content a		{ color: #0bb }
 #content a:visited	{ color: #088 }
