@@ -169,10 +169,19 @@ public:
 
 template <typename T>
 struct auto_free {
-    inline constexpr auto_free (T* p) : _p(p) {}
-    inline ~auto_free (void) noexcept { if (_p) free(_p); }
-    inline bool operator! (void) { return (!_p); }
-    inline operator T* (void) { return (_p); }
-    inline operator const T* (void) const { return (_p); }
+    inline explicit constexpr	auto_free (T* p)		: _p(p) {}
+    inline			~auto_free (void) noexcept	{ if (_p) ::free(_p); }
+    inline const T*		base (void) const		{ return (_p); }
+    inline void			free (void) noexcept		{ if (_p) { ::free(_p); _p = nullptr; } }
+    inline bool			operator! (void)		{ return (!_p); }
+    inline auto_free&		operator= (T* p)		{ _p = p; return (*this); }
+    inline			operator T* (void)		{ return (_p); }
+    inline			operator const T* (void) const	{ return (_p); }
+    template <typename S>
+    inline			operator S* (void)		{ return (reinterpret_cast<S*>(_p)); }
+    template <typename S>
+    inline			operator const S* (void) const	{ return (reinterpret_cast<const S*>(_p)); }
+    inline const T*		operator+ (unsigned o) const	{ return (_p+o); }
+private:
     T* _p;
 };

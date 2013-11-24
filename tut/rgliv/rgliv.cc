@@ -473,14 +473,13 @@ class CImageViewerApp : public CGLApp {
     inline CImageViewerApp (void) : CGLApp(),_toOpen(nullptr) {
 	setenv ("PATH", ".:../..", 1);
     }
-    inline ~CImageViewerApp (void) { if (_toOpen) free(_toOpen); }
 public:
     static inline CImageViewerApp& Instance (void) {
 	static CImageViewerApp s_App; return (s_App);
     }
     void Init (argc_t argc, argv_t argv);
 private:
-    char* _toOpen;
+    auto_free<char> _toOpen;
 };
 
 void CImageViewerApp::Init (argc_t argc, argv_t argv)
