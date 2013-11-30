@@ -497,7 +497,7 @@ void CImageViewerApp::Init (argc_t argc, argv_t argv)
     // Chdir to it if a folder, otherwise chdir to its parent folder
     const char* filename = "";
     if (!S_ISDIR(st.st_mode)) {
-	char* pslash = strrchr (_toOpen, '/');
+	char* pslash = strrchr ((char*) _toOpen, '/');
 	if (pslash) {
 	    *pslash = 0;	// Split into dir and filename
 	    filename = pslash+1;

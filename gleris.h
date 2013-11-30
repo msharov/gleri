@@ -93,7 +93,7 @@ public:
     void		ClientEvent (const CGLWindow& cli, const CEvent& e);
     void		ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept;
     void		OnExport (const char*, int fd);
-    inline void		OnNoClient (const CCmd::SMsgHeader& h) const noexcept { DTRACE("Error: received command %s for a nonexistent object", h.Cmdname()); }
+    inline void		OnNoClient (const CCmd::SMsgHeader& h) const noexcept { DTRACE("Error: received command %s for a nonexistent object\n", h.Cmdname()); }
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
     Window		CreateWindow (rcwininfo_t winfo);

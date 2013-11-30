@@ -8,7 +8,7 @@
 #define N(n,s)	#n "\0" #s "\0"
 /*static*/ const char PRGLR::_cmdNames[] =
      "\0"			// Dirty trick: object name is 4 bytes, but must be zero terminated, so there must be a null char here.
-     N(Restate,(nnqqyyyy))	// This dirty trick continues below and is the reason for all the +1 and -1s
+     N(Restate,(nnqqqyyyyyy))	// This dirty trick continues below and is the reason for all the +1 and -1s
      N(Expose,)
      N(Event,(unnuu))
      N(SaveFB,uuh)
