@@ -16,8 +16,6 @@ typedef int16_t		coord_t;
 typedef uint16_t	dim_t;
 typedef uint32_t	color_t;
 
-enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
-
 enum Type : uint16_t {
     BYTE = 0x1400,
     UNSIGNED_BYTE,
@@ -138,7 +136,10 @@ enum Feature : uint16_t {
     CAP_N
 };
 
+//enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
+
 enum DefaultResource : goid_t {
+    GoidNull,
     default_Framebuffer,
     default_ResourcePak,
     default_FlatShader,
