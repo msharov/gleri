@@ -101,6 +101,7 @@ protected:
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
     template <typename... Arg>
     static inline void		Args (bstri& is, Arg&... args);
+    inline CFile&		Outfile (void)			{ return (_outf); }
 private:
     enum class ECmd : cmd_t {	// COM interface
 	Error,

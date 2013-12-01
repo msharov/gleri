@@ -28,6 +28,7 @@ CIConn::~CIConn (void) noexcept
 	delete o;
     }
     _obj.clear();
+    Outfile().ForceClose();
 }
 
 void CIConn::VerifyFreeId (goid_t cid) const
