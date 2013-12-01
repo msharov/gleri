@@ -518,7 +518,7 @@ inline constexpr G::color_t RGB (G::color_t c)
     { return (RGBA((c<<8)|UINT8_MAX)); }
 
 //----------------------------------------------------------------------
-// Rectangle macros for vertex arrays.
+// Tesselator macros for vertex arrays.
 //
 // These handle the unpleasantries of offsetting, and different sizes of
 // solid and line primitives due to OpenGL ending rasterization in
@@ -532,3 +532,100 @@ inline constexpr G::color_t RGB (G::color_t c)
 #define VGEN_TSRECT(x,y,w,h)	VGEN_POINT(x,(y)-1), VGEN_POINT(x,(y)+(h)-1), VGEN_POINT((x)+(w),(y)-1), VGEN_POINT((x)+(w),(y)+(h)-1)
 /// Generates 4 points to draw a rectangular triangle fan
 #define VGEN_TFRECT(x,y,w,h)	VGEN_POINT(x,(y)-1), VGEN_POINT(x,(y)+(h)-1), VGEN_POINT((x)+(w),(y)+(h)-1), VGEN_POINT((x)+(w),(y)-1)
+
+// Trig values for ellipse tesselation
+#define VGEN_SIN45(r)	((r)*0.707107+0.5)
+#define VGEN_SIN34(r)	((r)*0.555570+0.5)
+#define VGEN_COS34(r)	((r)*0.831470+0.5)
+#define VGEN_SIN22(r)	((r)*0.382683+0.5)
+#define VGEN_COS22(r)	((r)*0.923880+0.5)
+#define VGEN_SIN11(r)	((r)*0.195090+0.5)
+#define VGEN_COS11(r)	((r)*0.980785+0.5)
+
+///{{{ VGEN_LLELLIPSE_N - generates ellipse line loop with 8, 16, or 32 points
+#define VGEN_LLELLIPSE_8(x,y,rx,ry)				\
+	    VGEN_POINT (x,y-ry),				\
+	    VGEN_POINT (x-VGEN_SIN45(rx),y-VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x-rx,y),				\
+	    VGEN_POINT (x-VGEN_SIN45(rx),y+VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x,y+ry),				\
+	    VGEN_POINT (x+VGEN_SIN45(rx),y+VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x+rx,y),				\
+	    VGEN_POINT (x+VGEN_SIN45(rx),y-VGEN_SIN45(ry))
+
+#define VGEN_LLELLIPSE_16(x,y,rx,ry)				\
+	    VGEN_POINT (x,y-ry),				\
+	    VGEN_POINT (x-VGEN_SIN22(rx),y-VGEN_COS22(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN45(rx),y-VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x-VGEN_COS22(rx),y-VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x-rx,y),				\
+	    VGEN_POINT (x-VGEN_COS22(rx),y+VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN45(rx),y+VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN22(rx),y+VGEN_COS22(ry)),	\
+	    VGEN_POINT (x,y+ry),				\
+	    VGEN_POINT (x+VGEN_SIN22(rx),y+VGEN_COS22(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN45(rx),y+VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x+VGEN_COS22(rx),y+VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x+rx,y),				\
+	    VGEN_POINT (x+VGEN_COS22(rx),y-VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN45(rx),y-VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN22(rx),y-VGEN_COS22(ry))
+
+#define VGEN_LLELLIPSE_32(x,y,rx,ry)				\
+	    VGEN_POINT (x,y-ry),				\
+	    VGEN_POINT (x-VGEN_SIN11(rx),y-VGEN_COS11(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN22(rx),y-VGEN_COS22(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN34(rx),y-VGEN_COS34(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN45(rx),y-VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x-VGEN_COS34(rx),y-VGEN_SIN34(ry)),	\
+	    VGEN_POINT (x-VGEN_COS22(rx),y-VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x-VGEN_COS11(rx),y-VGEN_SIN11(ry)),	\
+	    VGEN_POINT (x-rx,y),				\
+	    VGEN_POINT (x-VGEN_COS11(rx),y+VGEN_SIN11(ry)),	\
+	    VGEN_POINT (x-VGEN_COS22(rx),y+VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x-VGEN_COS34(rx),y+VGEN_SIN34(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN45(rx),y+VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN34(rx),y+VGEN_COS34(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN22(rx),y+VGEN_COS22(ry)),	\
+	    VGEN_POINT (x-VGEN_SIN11(rx),y+VGEN_COS11(ry)),	\
+	    VGEN_POINT (x,y+ry),				\
+	    VGEN_POINT (x+VGEN_SIN11(rx),y+VGEN_COS11(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN22(rx),y+VGEN_COS22(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN34(rx),y+VGEN_COS34(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN45(rx),y+VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x+VGEN_COS34(rx),y+VGEN_SIN34(ry)),	\
+	    VGEN_POINT (x+VGEN_COS22(rx),y+VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x+VGEN_COS11(rx),y+VGEN_SIN11(ry)),	\
+	    VGEN_POINT (x+rx,y),				\
+	    VGEN_POINT (x+VGEN_COS11(rx),y-VGEN_SIN11(ry)),	\
+	    VGEN_POINT (x+VGEN_COS22(rx),y-VGEN_SIN22(ry)),	\
+	    VGEN_POINT (x+VGEN_COS34(rx),y-VGEN_SIN34(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN45(rx),y-VGEN_SIN45(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN34(rx),y-VGEN_COS34(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN22(rx),y-VGEN_COS22(ry)),	\
+	    VGEN_POINT (x+VGEN_SIN11(rx),y-VGEN_COS11(ry))
+//}}}
+
+// Curiously, no offsetting is required for these...
+#define VGEN_TFELLIPSE_10(x,y,rx,ry)		\
+	    VGEN_POINT(x,y),			\
+	    VGEN_LLELLIPSE_8(x,y,rx,ry),	\
+	    VGEN_POINT(x,y-ry)
+
+#define VGEN_TFELLIPSE_18(x,y,rx,ry)		\
+	    VGEN_POINT(x,y),			\
+	    VGEN_LLELLIPSE_16(x,y,rx,ry),	\
+	    VGEN_POINT(x,y-ry)
+
+#define VGEN_TFELLIPSE_34(x,y,rx,ry)		\
+	    VGEN_POINT(x,y),			\
+	    VGEN_LLELLIPSE_32(x,y,rx,ry),	\
+	    VGEN_POINT(x,y-ry)
+
+#define VGEN_LLCIRCLE_8(x,y,r)	VGEN_LLELLIPSE_8(x,y,r,r)
+#define VGEN_LLCIRCLE_16(x,y,r)	VGEN_LLELLIPSE_16(x,y,r,r)
+#define VGEN_LLCIRCLE_32(x,y,r)	VGEN_LLELLIPSE_32(x,y,r,r)
+
+#define VGEN_TFCIRCLE_10(x,y,r)	VGEN_TFELLIPSE_10(x,y,r,r)
+#define VGEN_TFCIRCLE_18(x,y,r)	VGEN_TFELLIPSE_18(x,y,r,r)
+#define VGEN_TFCIRCLE_34(x,y,r)	VGEN_TFELLIPSE_34(x,y,r,r)
