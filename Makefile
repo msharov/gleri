@@ -10,8 +10,9 @@ include data/Module.mk
 include gleri/Module.mk
 
 INC	:= $(wildcard *.h)
-SRC	:= $(wildcard *.cc) ${DCC}
-OBJ	:= $(addprefix .o/,$(SRC:.cc=.o))
+SRC	:= $(wildcard *.cc)
+OBJ	:= $(addprefix $O,$(SRC:.cc=.o))
+DEP	:= ${OBJ:.o=.d}
 
 ######################################################################
 
@@ -19,11 +20,11 @@ OBJ	:= $(addprefix .o/,$(SRC:.cc=.o))
 
 all:	${EXE}
 
-${EXE}:	${OBJ} ${LIBA}
+${EXE}:	${OBJ} ${DCO} ${LIBA}
 	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ ${OBJ} ${LIBA} ${LIBS}
+	@${LD} ${LDFLAGS} -o $@ ${OBJ} ${DCO} ${LIBA} ${LIBS}
 
-.o/%.o:	%.cc
+$O%.o:	%.cc
 	@echo "    Compiling $< ..."
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@${CXX} ${CXXFLAGS} -MMD -MT "$(<:.cc=.s) $@" -o $@ -c $<
@@ -43,22 +44,10 @@ ${EXEI}:	${EXE}
 	@${INSTALLEXE} $< $@
 
 uninstall:
-	@echo "Removing ${EXEI} ..."
-	@rm -f ${EXEI}
-endif
-
-ifdef MAJOR
-DISTVER	:= ${MAJOR}.${MINOR}
-DISTNAM	:= ${NAME}-${DISTVER}
-DISTTAR	:= ${DISTNAM}.tar.bz2
-
-dist:
-	@echo "Generating ${DISTTAR} ..."
-	@mkdir .${DISTNAM}
-	@rm -f ${DISTTAR}
-	@cp -r * .${DISTNAM} && mv .${DISTNAM} ${DISTNAM}
-	@+${MAKE} -sC ${DISTNAM} maintainer-clean
-	@tar acf ${DISTTAR} ${DISTNAM} && rm -rf ${DISTNAM}
+	@if [ -f ${EXEI} ]; then\
+	    echo "Removing ${EXEI} ...";\
+	    rm -f ${EXEI};\
+	fi
 endif
 
 ################ Test and tutorials ####################################
@@ -70,8 +59,10 @@ include tut/rgliv/Module.mk
 ################ Maintenance ###########################################
 
 clean:
-	@rm -f ${EXE}
-	@rm -rf .o
+	@if [ -d $O ]; then\
+	    rm -f ${EXE} ${OBJ} ${DEP};\
+	    rmdir $Otut $O;\
+	fi
 
 distclean:	clean
 	@rm -f ${CONFS}
@@ -79,9 +70,14 @@ distclean:	clean
 maintainer-clean: distclean
 
 ${CONFS}:	configure Config.mk.in config.h.in gleri/config.h.in
-	@if [ -x config.status ]; then echo "Reconfiguring ..."; ./config.status; \
-	else echo "Running configure ..."; ./configure; fi
+	@if [ -x config.status ]; then\
+	    echo "Reconfiguring ...";\
+	    ./config.status;\
+	else\
+	    echo "Running configure ...";\
+	    ./configure;\
+	fi
 
 ${OBJ}: Makefile ${CONFS}
 
--include ${OBJ:.o=.d}
+-include ${DEP}

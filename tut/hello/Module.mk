@@ -28,8 +28,10 @@ ${tut/hello/EXE}: tut/hello/%: ${tut/hello/OBJS} ${EXE} ${LIBA}
 
 clean:	tut/hello/clean
 tut/hello/clean:
-	@rm -f ${tut/hello/EXE} ${tut/hello/OBJS} ${tut/hello/DEPS}
-	@rmdir $O/tut/hello &> /dev/null || true
+	@if [ -d $Otut/hello ]; then\
+	    rm -f ${tut/hello/EXE} ${tut/hello/OBJS} ${tut/hello/DEPS};\
+	    rmdir $Otut/hello;\
+	fi
 
 ${tut/hello/OBJS}: Makefile tut/hello/Module.mk ${CONFS}
 

@@ -28,8 +28,10 @@ ${tut/rgliv/EXE}: tut/rgliv/%: ${tut/rgliv/OBJS} ${EXE} ${LIBA}
 
 clean:	tut/rgliv/clean
 tut/rgliv/clean:
-	@rm -f ${tut/rgliv/EXE} ${tut/rgliv/OBJS} ${tut/rgliv/DEPS}
-	@rmdir $O/tut/rgliv &> /dev/null || true
+	@if [ -d $Otut/rgliv ]; then\
+	    rm -f ${tut/rgliv/EXE} ${tut/rgliv/OBJS} ${tut/rgliv/DEPS};\
+	    rmdir $Otut/rgliv;\
+	fi
 
 ${tut/rgliv/OBJS}: Makefile tut/rgliv/Module.mk ${CONFS}
 

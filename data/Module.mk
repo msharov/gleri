@@ -2,10 +2,11 @@
 
 DSRC	:= data/ter-d18b.psf $(wildcard data/sh/*)
 DSRCB	:= $(subst data/,,${DSRC})
-MKDCC	:= .o/data/mkdata
-PAK	:= .o/data/resource.pak
-DCC	:= .o/data/data.cc
-DHH	:= .o/data/data.h
+MKDCC	:= $Odata/mkdata
+PAK	:= $Odata/resource.pak
+DCC	:= $Odata/data.cc
+DCO	:= $Odata/data.o
+DHH	:= $Odata/data.h
 DCCDEPS	:= ${DCC:.cc=.d} ${MKDCC}.d
 
 ################ Compilation ###########################################
@@ -30,11 +31,17 @@ ${DCC} iconn.cc:	${DHH}
 
 ${PAK} ${DCC} ${DHH} ${MKDCC}: Makefile data/Module.mk ${CONFS}
 
+${DCO}:	${DCC}
+	@echo "    Compiling $< ..."
+	@${CXX} ${CXXFLAGS} -MMD -MT "$(<:.cc=.s) $@" -o $@ -c $<
+
 ################ Maintenance ###########################################
 
 clean:	data/clean
 data/clean:
-	@rm -f ${MKDCC} ${MKDCC}.o ${PAK} ${DCC} ${DHH} ${DCCDEPS}
-	@rmdir $O/data &> /dev/null || true
+	@if [ -d $Odata ]; then\
+	    rm -f ${MKDCC} ${MKDCC}.o ${PAK} ${DCC} ${DHH} ${DCO} ${DCCDEPS};\
+	    rmdir $Odata;\
+	fi
 
 -include ${DCCDEPS}

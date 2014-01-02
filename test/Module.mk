@@ -32,8 +32,10 @@ ${test/EXE}: test/%: ${test/OBJS} ${EXE} ${LIBA}
 
 clean:	test/clean
 test/clean:
-	@rm -f ${test/EXE} ${test/OBJS} ${test/DEPS}
-	@rmdir $O/test &> /dev/null || true
+	@if [ -d $O/test ]; then\
+	    rm -f ${test/EXE} ${test/OBJS} ${test/DEPS};\
+	    rmdir $O/test;\
+	fi
 
 ${test/OBJS}: Makefile test/Module.mk ${CONFS}
 

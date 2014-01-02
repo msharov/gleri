@@ -30,8 +30,11 @@ ${INCSI}: ${INCDIR}/%.h: %.h
 	@${INSTALLDATA} $< $@
 uninstall:	uninstall-headers
 uninstall-headers:
-	@echo "Removing gleri headers ..."
-	@(cd ${INCDIR}; rm -f ${INCSI}; [ ! -d gleri ] || rm -rf gleri)
+	@if [ -d ${INCDIR}/gleri -o -f ${INCDIR}/gleri.h ]; then\
+	    echo "Removing gleri headers ...";\
+	    rm -f ${INCSI};\
+	    rmdir ${INCDIR}/gleri;\
+	fi
 endif
 
 ##### Install library
@@ -45,15 +48,19 @@ ${LIBAI}:	${LIBA}
 
 uninstall:	uninstall-lib
 uninstall-lib:
-	@echo "Removing library from ${LIBDIR} ..."
-	@rm -f ${LIBAI}
+	@if [ -f ${LIBAI} ]; then\
+	    echo "Removing library from ${LIBDIR} ...";\
+	    rm -f ${LIBAI};\
+	fi
 endif
 
 ################ Maintenance ###########################################
 
 clean:	gleri/clean
 gleri/clean:
-	@rm -f ${LIBA} ${LIBOBJ} ${LIBDEPS}
-	@rmdir $O/gleri &> /dev/null || true
+	@if [ -d $O/gleri ]; then\
+	    rm -f ${LIBA} ${LIBOBJ} ${LIBDEPS};\
+	    rmdir $O/gleri;\
+	fi
 
 -include ${LIBDEPS}
