@@ -18,7 +18,7 @@ all:		tut/rgliv/all
 tut/rgliv/all:	${tut/rgliv/EXE}
 
 tut/rgliv/run:	${tut/rgliv/EXE} ${EXE}
-	@./${tut/rgliv/EXE}
+	@PATH="." ./${tut/rgliv/EXE}
 
 ${tut/rgliv/EXE}: tut/rgliv/%: ${tut/rgliv/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."

@@ -470,9 +470,7 @@ inline void CImageViewer::OnFolderViewKey (key_t key)
 // The application object
 
 class CImageViewerApp : public CGLApp {
-    inline CImageViewerApp (void) : CGLApp(),_toOpen(nullptr) {
-	setenv ("PATH", ".:../..", 1);
-    }
+    inline CImageViewerApp (void) : CGLApp(),_toOpen(nullptr) {}
 public:
     static inline CImageViewerApp& Instance (void) {
 	static CImageViewerApp s_App; return (s_App);

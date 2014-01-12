@@ -21,7 +21,7 @@ test/all:	${test/EXE}
 check:		test/check
 test/check:	${test/EXE} ${EXE}
 	@echo "Running $<"; \
-	./${test/EXE} &> ${test/EXE}.out; \
+	PATH="." ./${test/EXE} &> ${test/EXE}.out; \
 	diff ${test/EXE}.std ${test/EXE}.out && rm -f ${test/EXE}.out
 
 ${test/EXE}: test/%: ${test/OBJS} ${EXE} ${LIBA}

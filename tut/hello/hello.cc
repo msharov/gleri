@@ -72,11 +72,7 @@ void CHelloWindow::OnKey (key_t key)
 // Step 3: Define the application object
 //
 class CHello : public CGLApp {
-    inline CHello (void) : CGLApp() {
-	// For this tutorial only: use gleris in project dir, to allow
-	// running before installation. Typically you don't do this.
-	setenv ("PATH", ".:../..", 1);
-    }
+    inline CHello (void) : CGLApp() {}
 public:
     // Application objects are singletons, meaning that they ensure
     // that only one application object can exist. Defining an Instance

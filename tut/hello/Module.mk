@@ -18,7 +18,7 @@ all:		tut/hello/all
 tut/hello/all:	${tut/hello/EXE}
 
 tut/hello/run:	${tut/hello/EXE} ${EXE}
-	@./${tut/hello/EXE}
+	@PATH="." ./${tut/hello/EXE}
 
 ${tut/hello/EXE}: tut/hello/%: ${tut/hello/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."
