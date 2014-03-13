@@ -754,6 +754,18 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
     }
     if (winfo.IsDecoless())	// override-redirect windows do not receive configure events
 	rcli.Resize (winfo.x, winfo.y, winfo.w, winfo.h);
+    XSizeHints szhints;
+    szhints.flags = PBaseSize;
+    szhints.base_width = winfo.w;
+    szhints.base_height = winfo.h;
+    if (winfo.wtype != WinInfo::type_Normal) {	// Normal windows are resizable, the rest are not
+	szhints.flags |= PMinSize| PMaxSize;
+	szhints.min_width = winfo.w;
+	szhints.max_width = winfo.w;
+	szhints.min_height = winfo.h;
+	szhints.max_height = winfo.h;
+    }
+    XSetWMNormalHints (_dpy, wid, &szhints);
     if (title)
 	XStoreName (_dpy, wid, title);
     if (pconn) {
