@@ -71,10 +71,6 @@ protected:
 
 //----------------------------------------------------------------------
 
-#define GLERIS_EXPORTS		"RGL,RGLR"
-
-//----------------------------------------------------------------------
-
 class CCmdBuf : public CCmd {
 public:
     inline explicit		CCmdBuf (iid_t iid) noexcept	:_outf(),_iid(iid) {}

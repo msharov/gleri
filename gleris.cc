@@ -164,7 +164,7 @@ void CGleris::OnExport (const char*, int fd)
 {
     PRGLR exbuf (0);
     exbuf.SetFd (fd);
-    exbuf.Export (GLERIS_EXPORTS);
+    exbuf.Export ("RGL");
     exbuf.WriteCmds();
 }
 

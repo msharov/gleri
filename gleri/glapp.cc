@@ -21,7 +21,7 @@ void CGLApp::OpenWindow (CWindow* w)
 {
     w->SetFd (_srvsock.Fd(), _srvbuf.CanPassFd());
     if (_wins.empty()) {
-	w->Export (GLERIS_EXPORTS);
+	w->Export ("");
 	char hostname [HOST_NAME_MAX];
 	gethostname (ArrayBlock(hostname));
 	w->Authenticate (_argc, _argv, hostname, getpid(), 0, ArrayBlock(_xauth));
