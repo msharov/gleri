@@ -250,8 +250,8 @@ ONDRAWIMPL(CImageViewer)::OnDraw (Drw& drw) const
 	drw.Color (color_FolderViewText);
 	// Bind the vertex pointer to _vertices to draw the selection rectangle
 	drw.VertexPointer (_vertices);
-	for (unsigned y = 0, ie = _firstentry; y <= Info().h-c_EntryHeight; y += c_EntryHeight) {	// Iterate over all visible entries
-	    for (unsigned x = 0; x <= Info().w-c_EntryWidth; ++ie, x += c_EntryWidth) {
+	for (unsigned y = 0, ie = _firstentry; y <= (unsigned) Info().h-c_EntryHeight; y += c_EntryHeight) {	// Iterate over all visible entries
+	    for (unsigned x = 0; x <= (unsigned) Info().w-c_EntryWidth; ++ie, x += c_EntryWidth) {
 		drw.Viewport (x,y,c_EntryWidth,c_EntryHeight);	// Set clipping rectangle to entry size. Clips long filenames.
 		if (ie >= _files.size())
 		    return;
