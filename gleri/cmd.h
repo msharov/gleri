@@ -102,6 +102,7 @@ private:
     enum class ECmd : cmd_t {	// COM interface
 	Error,
 	Export,
+	Delete,
 	NCmds
     };
 private:
@@ -182,6 +183,7 @@ template <typename F>
     switch (LookupCmd (h.Cmdname(), h.hsz)) {
 	case ECmd::Error: 	{ const char* m = nullptr; Args(cmdis,m); XError::emit(m); } break;
 	case ECmd::Export:	{ const char* m = nullptr; Args(cmdis,m); f.OnExport(m,cmdbuf.Fd()); } break;
+	case ECmd::Delete:	{ auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid); if (clir) f.CloseClient(clir); } break;
 	default:		XError::emit ("invalid protocol command");
     }
 }

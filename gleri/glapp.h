@@ -12,6 +12,7 @@ public:
     virtual			~CGLApp (void) noexcept;
     void			Init (argc_t argc, argv_t argv);
     CWindow*			ClientRecord (int fd, CWindow::iid_t wid);
+    inline void			CloseClient (CWindow* w){ w->Destroy(); }
     static inline CGLApp&	Instance (void)		{ return (static_cast<CGLApp&>(CApp::Instance())); }
     template <typename WC, typename... A>
     inline WC*			CreateWindow (A... a)	{ WC* w = new WC (GenWId(), a...); OpenWindow(w); return (w); }

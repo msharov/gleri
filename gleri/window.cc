@@ -16,7 +16,7 @@ void CWindow::Close (void)
 void CWindow::OnEvent (const CEvent& e)
 {
     switch (e.type) {
-	case CEvent::Destroy:		_destroyPending = true;		break;
+	case CEvent::Destroy:		Destroy();			break;
 	case CEvent::Close:		Close();			break;
 	case CEvent::Ping:		Event (e);			break;
 	case CEvent::FrameSync:		_fsync = e;			break;

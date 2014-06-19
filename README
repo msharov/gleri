@@ -80,7 +80,7 @@ are zlib, libpng, and libjpeg.
 
 OpenGL 3.3+ is required. Due to the still dire driver situation on Linux,
 that means using Catalyst on Radeons, nVidia binary drivers for nVidia
-cards, and Mesa 10 only for Intel (SandyBridge and above)
+cards, and Mesa 10.1 for Intel (SandyBridge and above)
 
 To build:	./configure && make
 To install:	make install

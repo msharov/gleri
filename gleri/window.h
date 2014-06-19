@@ -43,6 +43,7 @@ public:
     inline bool		Matches (int fd) const		{ return (PRGL::Matches(fd)); }
     void		Close (void);
     inline bool		DestroyPending (void) const	{ return (_destroyPending); }
+    inline void		Destroy (void)			{ _destroyPending = true; }
 protected:
     inline rcwininfo_t	Info (void) const		{ return (_info); }
     inline uint32_t	LastRenderTimeNS (void) const	{ return (_fsync.time); }
