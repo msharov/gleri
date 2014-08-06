@@ -107,7 +107,7 @@ void CGleris::RemoveConnection (int fd) noexcept
 	delete (*i);
 	--(i = _iconn.erase(i));
     }
-    if (_iconn.size() <= 1 && Option (opt_SingleClient)) {
+    if (_iconn.size() <= 1 && (Option (opt_SingleClient) || Option (opt_SystemdActivated))) {
 	DTRACE("Last connection terminated in single-client mode; quitting\n");
 	Quit();
     }
@@ -300,9 +300,19 @@ void CGleris::Init (argc_t argc, argv_t argv)
     XChangeProperty (_dpy, _curCli->Drawable(), _atoms[a_NET_WM_PID], _atoms[a_CARDINAL], 32, PropModeReplace, (unsigned char*) &mypid, 1);
 
     // Start listening on server sockets
+    unsigned nSystemdFds;
     if (Option (opt_SingleClient)) {
 	DTRACE ("Single client mode. Listening on stdin.\n");
 	AddConnection (STDIN_FILENO, true);
+    } else if ((nSystemdFds = CFile::SystemdFdsAvailable())) {
+	for (unsigned fd = CFile::SD_LISTEN_FDS_START; fd < nSystemdFds + CFile::SD_LISTEN_FDS_START; ++fd)
+	    if (!_localSocket.BindSystemdFd (fd, PF_LOCAL) && !_tcpSocket.BindSystemdFd (fd, PF_INET))
+		XError::emit ("invalid socket passed in by systemd");
+	SetOption (opt_SystemdActivated);
+	if (_localSocket.IsOpen())
+	    WatchFd (_localSocket.Fd());
+	if (_tcpSocket.IsOpen())
+	    WatchFd (_tcpSocket.Fd());
     } else {
 	const char* sockfmt = GLERIS_XDG_SOCKET;
 	const char* sockdir = getenv ("XDG_RUNTIME_DIR");

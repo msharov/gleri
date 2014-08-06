@@ -17,6 +17,7 @@
 class CFile {
 public:
     enum { c_DefaultBacklog = 16 };
+    enum { SD_LISTEN_FDS_START = 3 };
 public:
     inline constexpr	CFile (void) noexcept	: _fd(-1) {}
     constexpr explicit	CFile (int fd) noexcept	: _fd(fd) {}
@@ -50,6 +51,8 @@ public:
     inline void		WaitForRead (void) const noexcept;
     inline void		WaitForWrite (void) const noexcept;
     static void		Error (const char* op) NORETURN;
+    static inline unsigned	SystemdFdsAvailable (void) noexcept;
+    bool		BindSystemdFd (int fd, sa_family_t family);
 protected:
     void		BindStream (const sockaddr* sa, socklen_t sasz, unsigned backlog = c_DefaultBacklog);
     bool		ConnectStream (const sockaddr* sa, socklen_t sasz);
@@ -161,6 +164,15 @@ inline bool CFile::Connect (uint32_t addr, uint16_t port)
     sa.sin_port = htons(port);
     sa.sin_addr.s_addr = htonl(addr);
     return (ConnectStream ((const sockaddr*) &sa, sizeof(sa)));
+}
+
+/*static*/ unsigned CFile::SystemdFdsAvailable (void) noexcept
+{
+    const char* e = getenv("LISTEN_PID");
+    if (!e || getpid() != (pid_t) strtoul(e, NULL, 10))
+	return (0);
+    e = getenv("LISTEN_FDS");
+    return (e ? strtoul (e, NULL, 10) : 0);
 }
 
 //----------------------------------------------------------------------

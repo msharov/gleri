@@ -34,12 +34,12 @@ and <tt>/usr/lib</tt> respectively. The project executable needs to be
 linked with <tt>libgleri.a</tt>.
 </p><p>
 To run the project, the gleris service must either be running, with
-UNIX socket in <tt>XDG_RUNTIME_DIR</tt>, TCP socket 6540, or be in
-<tt>PATH</tt> to be launched in single-client mode. The gleris service is
-the part of the system that will actually use Xlib and OpenGL to create
-windows and draw on them. Each GLERI client application will connect to
-a gleris process through a socket and send commands for window creation
-and drawing.
+UNIX socket in <tt>XDG_RUNTIME_DIR</tt>, TCP socket 6540, have systemd
+listening on those sockets and activate it, or be in <tt>PATH</tt> to
+be launched in single-client mode. The gleris service is the part of the
+system that will actually use Xlib and OpenGL to create windows and draw
+on them. Each GLERI client application will connect to a gleris process
+through a socket and send commands for window creation and drawing.
 </p>
 
 <h2>The Application Object</h2>

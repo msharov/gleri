@@ -14,6 +14,7 @@ class CGleris : public CApp {
 public:
     enum EOption {
 	opt_SingleClient,
+	opt_SystemdActivated,
 	opt_TCPSocket,
 	opt_Last
     };

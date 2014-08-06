@@ -59,7 +59,8 @@ The service is called gleris and can be used either standalone, or
 be launched individually by libgleri-using applications. By default,
 only the local $HOME/.config/gleris.socket is created. If you want a
 TCP socket, run gleris -t, which will make it listen on localhost port
-6540+display.
+6540+display. Alternatively, you can use systemd socket activation to
+create appropriate sockets and have them passed to gleris automatically.
 
 You can then forward that port with ssh to wherever with the ssh -R
 command. When you do this, you'll need to also copy the xauth token and
@@ -78,9 +79,11 @@ Other minimum requirements are Linux kernel 2.6.28, GCC 4.6 or clang++
 OpenGL (currently it only has OpenGL ES support). Required libraries
 are zlib, libpng, and libjpeg.
 
-OpenGL 3.3+ is required. Due to the still dire driver situation on Linux,
-that means using Catalyst on Radeons, nVidia binary drivers for nVidia
-cards, and Mesa 10.1 for Intel (SandyBridge and above)
+OpenGL 3.3+ is required. The current open source drivers support it
+on Intel hardware since Mesa 10.1 and radeon and noveau since 10.2,
+but performance may still be unimpressive. For now, binary drivers
+still deliver the best results, along with GL4 capabilites, so they are
+recommended for most people.
 
 To build:	./configure && make
 To install:	make install

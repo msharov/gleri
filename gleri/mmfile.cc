@@ -39,6 +39,35 @@ bool CFile::ConnectStream (const sockaddr* sa, socklen_t sasz)
     return (false);
 }
 
+// This accepts \p fd passed in by systemd socket activation if \p family matches
+bool CFile::BindSystemdFd (int fd, sa_family_t family)
+{
+    // Already open, close before binding
+    if (IsOpen())
+	return (false);
+    int v;
+    socklen_t l = sizeof(v);
+    // The incoming socket must be a stream socket
+    if (getsockopt (fd, SOL_SOCKET, SO_TYPE, &v, &l) < 0 || v != SOCK_STREAM)
+	return (false);
+    // It must be a listening server socket
+    if (getsockopt (fd, SOL_SOCKET, SO_ACCEPTCONN, &v, &l) < 0 || v != true)
+	return (false);
+    // And it must match the family (PF_LOCAL or PF_INET)
+    struct sockaddr_storage ss;
+    l = sizeof(ss);
+    if (getsockname(fd, (struct sockaddr*) &ss, &l) < 0 || ss.ss_family != (int) family)
+	return (false);
+    // If matches, need to set the fd nonblocking for the poll loop to work
+    int f = fcntl (fd, F_GETFL);
+    if (f < 0)
+	return (false);
+    if (0 > fcntl (fd, F_SETFL, f| O_NONBLOCK| O_CLOEXEC))
+	return (false);
+    Attach (fd);
+    return (true);
+}
+
 void CFile::Close (void)
 {
     int r = close (_fd);
