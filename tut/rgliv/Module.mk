@@ -24,6 +24,25 @@ ${tut/rgliv/EXE}: tut/rgliv/%: ${tut/rgliv/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."
 	@${LD} ${LDFLAGS} -o $@ ${tut/rgliv/OBJS} ${tut/rgliv/LIBS}
 
+################ Installation ##########################################
+
+ifdef BINDIR
+tut/rgliv/EXEI	:= $(addprefix ${BINDIR}/,$(notdir ${tut/rgliv/EXE}))
+
+install:		tut/rgliv/install
+tut/rgliv/install:	${tut/rgliv/EXEI}
+${tut/rgliv/EXEI}:	${tut/rgliv/EXE}
+	@echo "Installing $< as $@ ..."
+	@${INSTALLEXE} $< $@
+
+uninstall:		tut/rgliv/uninstall
+tut/rgliv/uninstall:
+	@if [ -f ${tut/rgliv/EXEI} ]; then\
+	    echo "Removing ${tut/rgliv/EXEI} ...";\
+	    rm -f ${tut/rgliv/EXEI};\
+	fi
+endif
+
 ################ Maintenance ###########################################
 
 clean:	tut/rgliv/clean
