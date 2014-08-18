@@ -14,7 +14,7 @@ CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ct
 ,_pendingFrame()
 ,_pconn (pconn)
 ,_color (0xffffffff)
-,_syncEvent()
+,_syncEvent (CEvent::VSync, 1000000000/60)
 ,_nextVSync (NotWaitingForVSync)
 ,_curShaderId (CGObject::NoObject)
 ,_curShader (G::GoidNull)
@@ -27,8 +27,6 @@ CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ct
     DTRACE ("[%x] Create: window %x, context %x\n", iid, win, ctx);
     _winfo.h = 0;	// Make invalid until explicit resize
     _query[query_FrameEnd] = 0;
-    _syncEvent.type = CEvent::FrameSync;
-    _syncEvent.key = 1000000000/60;
     _vao[0] = CGObject::NoObject;
     _vao[1] = CGObject::NoObject;
 }

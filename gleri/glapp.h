@@ -18,8 +18,8 @@ public:
     inline WC*			CreateWindow (A... a)	{ WC* w = new WC (GenWId(), a...); OpenWindow(w); return (w); }
     inline void			ForwardError (const CCmd::SMsgHeader&, const XError& e, int) const { throw e; }
     inline void			OnExport (const char*, int) {}
-    inline void			SendUICommand (const char* cmd)	{ SendUIEvent (CEvent::Command, cmd); }
-    inline void			SendUIChange (const char* cmd)	{ SendUIEvent (CEvent::UIChange, cmd); }
+    inline void			SendUICommand (const char* cmd)	{ SendUIEvent (CEvent::CommandEvent (cmd)); }
+    inline void			SendUIChanged (const char* cmd)	{ SendUIEvent (CEvent::UIChangedEvent (cmd)); }
 protected:
     inline			CGLApp (void);
     virtual void		OnFd (int fd);
@@ -31,7 +31,7 @@ private:
     static int			LaunchServer (void);
     void			OpenWindow (CWindow* w);
     void			FinishWindowProcessing (void);
-    void			SendUIEvent (CEvent::EType et, const char* cmd);
+    void			SendUIEvent (const CEvent& e);
 private:
     vector<CWindow*>		_wins;
     CCmdBuf			_srvbuf;

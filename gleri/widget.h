@@ -86,7 +86,7 @@ protected:
     inline virtual void	OnButtonUp (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnMotion (coord_t, coord_t, key_t)	{ }
     inline virtual void	OnCommand (const char*)			{ }
-    inline virtual void	OnUIChange (const char*)		{ }
+    inline virtual void	OnUIChanged (const char*)		{ }
 private:
     PRGL*		_prgl;
 public:

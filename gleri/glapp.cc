@@ -158,10 +158,8 @@ void CGLApp::FinishWindowProcessing (void)
 	Quit();
 }
 
-void CGLApp::SendUIEvent (CEvent::EType et, const char* cmd)
+void CGLApp::SendUIEvent (const CEvent& e)
 {
-    uintptr_t cmdn = (uintptr_t) cmd;
-    CEvent e = { uint32_t(cmdn), 0, 0, et, uint32_t(cmdn>>32) };
     for (auto w : _wins)
 	w->OnEvent (e);
 }

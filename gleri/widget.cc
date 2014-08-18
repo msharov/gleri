@@ -14,7 +14,7 @@ void CWidget::OnEvent (const CEvent& e)
 	case CEvent::ButtonUp:		OnButtonUp (e.key, e.x, e.y);	break;
 	case CEvent::Motion:		OnMotion (e.x, e.y, e.key);	break;
 	case CEvent::Command:		OnCommand (e.CommandName());	break;
-	case CEvent::UIChange:		OnUIChange (e.CommandName());	break;
+	case CEvent::UIChanged:		OnUIChanged (e.CommandName());	break;
 	default:			break;
     }
 }

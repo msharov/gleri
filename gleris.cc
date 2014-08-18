@@ -522,7 +522,7 @@ void CGleris::OnXEvent (void)
 	} else if (xev.type == FocusIn || xev.type == FocusOut) {
 	    bool bFocusIn = (xev.type == FocusIn);
 	    DTRACE ("[%x] %s focus\n", icli->IId(), bFocusIn ? "Receive" : "Lose");
-	    icli->Event ((CEvent){0,bFocusIn,0,CEvent::Focus,0});
+	    icli->Event (CEvent (CEvent::Focus, bFocusIn));
 	} else if (xev.type == MapNotify) {
 	    DTRACE ("[%x] Receive map notification\n", icli->IId());
 	    if (icli->Info().IsPopupMenu()) {	// override-redirect windows do not automatically get focus
@@ -532,13 +532,13 @@ void CGleris::OnXEvent (void)
 						 ButtonPressMask| ButtonReleaseMask| PointerMotionMask,
 						 GrabModeAsync, GrabModeAsync, None, None, CurrentTime)) {
 		    DTRACE ("[%x] Pointer grab failed\n", icli->IId());
-		    icli->Event ((CEvent){0,0,0,CEvent::Close,0});
+		    icli->Event (CEvent (CEvent::Close));
 		}
 	    }
 	} else if (xev.type == DestroyNotify) {
 	    DTRACE ("[%x] Receive destroy notification\n", icli->IId());
 	    icli->SetDrawable (None);
-	    icli->Event ((CEvent){0,0,0,CEvent::Destroy,0});
+	    icli->Event (CEvent (CEvent::Destroy));
 	    try { icli->WriteCmds(); } catch (...) {};	// If this fails, the client is already disconnected
 	    foreach (auto,c,_win) {
 		if (*c == icli) {
@@ -549,10 +549,10 @@ void CGleris::OnXEvent (void)
 	} else if (xev.type == ClientMessage) {
 	    if ((Atom) xev.xclient.data.l[0] == _atoms[a_WM_DELETE_WINDOW]) {
 		DTRACE ("[%x] WM delete window\n", icli->IId());
-		icli->Event ((CEvent){0,0,0,CEvent::Close,0});
+		icli->Event (CEvent (CEvent::Close));
 	    } else if ((Atom) xev.xclient.data.l[0] == _atoms[a_NET_WM_PING]) {
 		DTRACE ("[%x] WM ping\n", icli->IId());
-		icli->Event ((CEvent){0,0,0,CEvent::Ping,(uint32_t)xev.xclient.data.l[1]});
+		icli->Event (CEvent::PingEvent (xev.xclient.data.l[1]));
 	    #ifndef NDEBUG
 	    } else {
 		DTRACE ("[%x] Unknown WM_PROTOCOLS message %s\n", icli->IId(), XGetAtomName(_dpy, xev.xclient.data.l[0]));
@@ -631,32 +631,19 @@ void CGleris::OnXEvent (void)
 	ekey &= ~KMod::Shift;
 
     // Return the event
-    CEvent e;
-    e.key = ekey;
-    e.x = xev.x;
-    e.y = xev.y;
-    e.type = (xev.type == KeyRelease) ? CEvent::KeyUp : CEvent::KeyDown;
-    return (e);
+    return (CEvent (xev.type == KeyRelease ? CEvent::KeyUp : CEvent::KeyDown, ekey, xev.x, xev.y));
 }
 
 /*static*/ inline CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept
 {
-    CEvent e;
-    e.key = xev.button| (ModsFromXState(xev.state) & (KMod::Shift| KMod::Ctrl| KMod::Alt));
-    e.x = xev.x;
-    e.y = xev.y;
-    e.type = (xev.type == ButtonRelease) ? CEvent::ButtonUp : CEvent::ButtonDown;
-    return (e);
+    return (CEvent (xev.type == ButtonRelease ? CEvent::ButtonUp : CEvent::ButtonDown,
+		    xev.button| (ModsFromXState(xev.state) & (KMod::Shift| KMod::Ctrl| KMod::Alt)),
+		    xev.x, xev.y));
 }
 
 /*static*/ inline CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept
 {
-    CEvent e;
-    e.key = ModsFromXState(xev.state);
-    e.x = xev.x;
-    e.y = xev.y;
-    e.type = CEvent::Motion;
-    return (e);
+    return (CEvent (CEvent::Motion, ModsFromXState(xev.state), xev.x, xev.y));
 }
 
 void CGleris::OnFd (int fd)
@@ -890,7 +877,7 @@ void CGleris::ClientEvent (const CGLWindow& cli, const CEvent& e)
 	xev.xclient.message_type = _atoms[a_WM_PROTOCOLS];
 	xev.xclient.format = 32;
 	xev.xclient.data.l[0] = _atoms[a_NET_WM_PING];
-	xev.xclient.data.l[1] = e.time;
+	xev.xclient.data.l[1] = e.Time();
 	xev.xclient.data.l[2] = cli.Drawable();
 	XSendEvent (_dpy, cli.Drawable(), false, SubstructureRedirectMask| SubstructureNotifyMask, &xev);
     }

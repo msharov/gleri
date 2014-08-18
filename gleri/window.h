@@ -46,8 +46,8 @@ public:
     inline void		Destroy (void)			{ _destroyPending = true; }
 protected:
     inline rcwininfo_t	Info (void) const		{ return (_info); }
-    inline uint32_t	LastRenderTimeNS (void) const	{ return (_fsync.time); }
-    inline uint32_t	RefreshTimeNS (void) const	{ return (_fsync.key); }
+    inline uint32_t	LastRenderTimeNS (void) const	{ return (_vsync.time); }
+    inline uint32_t	RefreshTimeNS (void) const	{ return (_vsync.key); }
     inline virtual void	OnFocus (bool)				{ }
     inline virtual void	OnKey (key_t)				{ }
     inline virtual void	OnKeyUp (key_t)				{ }
@@ -55,7 +55,7 @@ protected:
     inline virtual void	OnButtonUp (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnMotion (coord_t, coord_t, key_t)	{ }
     inline virtual void	OnCommand (const char*)			{ }
-    inline virtual void	OnUIChange (const char*)		{ }
+    inline virtual void	OnUIChanged (const char*)		{ }
     template <typename W>
     inline void		DrawT (const W& w);
     template <typename Drw>
@@ -65,7 +65,7 @@ protected:
     inline uint64_t	NowMS (void) const noexcept;
 private:
     WinInfo		_info;
-    CEvent		_fsync;
+    CEvent		_vsync;
     uint64_t		_nextVSync;
     bool		_drawPending;
     bool		_closePending;
@@ -76,14 +76,14 @@ private:
 
 inline CWindow::CWindow (iid_t wid) noexcept
 : PRGL(wid)
-,_fsync()
+,_vsync()
 ,_nextVSync (NotWaitingForVSync)
 ,_drawPending (false)
 ,_closePending (false)
 ,_destroyPending (false)
 {
     memset (&_info,0,sizeof(_info));
-    _fsync.key = 1000000000/60;
+    _vsync.key = 1000000000/60;
 }
 
 template <typename W>
