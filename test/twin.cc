@@ -145,22 +145,22 @@ void CTestWindow::OnKey (key_t key)
     if (key == 'q' || key == Key::Escape) {
 	printf ("Event received, quitting\n");
 	Close();
-    } else if (key == Key::Up) {
+    } else if (key == Key::Up || key == 'k') {
 	if (--_wy < 0)
 	    _wy = 0;
 	_wsy = walk_StripUp;
 	_wsx += walk_SpriteW;
-    } else if (key == Key::Down) {
+    } else if (key == Key::Down || key == 'j') {
 	if (++_wy > Info().h-walk_SpriteH)
 	    _wy = Info().h-walk_SpriteH;
 	_wsy = walk_StripDown;
 	_wsx += walk_SpriteW;
-    } else if (key == Key::Left) {
+    } else if (key == Key::Left || key == 'h') {
 	if (--_wx < 0)
 	    _wx = 0;
 	_wsy = walk_StripLeft;
 	_wsx += walk_SpriteW;
-    } else if (key == Key::Right) {
+    } else if (key == Key::Right || key == 'l') {
 	if (++_wx > Info().w-walk_SpriteW)
 	    _wx = Info().w-walk_SpriteW;
 	_wsy = walk_StripRight;

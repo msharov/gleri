@@ -598,13 +598,13 @@ void CGleris::OnXEvent (void)
 
     // Convert X-specific ranges to unicode
     enum : uint32_t {
-	XK_Prefix		= 0xff00,
+	XK_Prefix		= 0xf000,
 	XK_Offset		= XK_Prefix - Key::XKBase,
 	XF86XK_Prefix		= 0x1008FF00,
 	XF86XK_Offset		= XF86XK_Prefix - Key::XFKSBase,
 	XK_Unicode_Prefix	= 0x01000000
     };
-    if (ksym >= 0xff00 && ksym <= 0xffff)
+    if (ksym >= XK_Prefix && ksym <= 0xffff)
 	ksym -= XK_Offset;
     else if (ksym >= XF86XK_Prefix)
 	ksym -= XF86XK_Offset;
@@ -629,6 +629,15 @@ void CGleris::OnXEvent (void)
     // Remove Shift mod from uppercase letters
     if ((ekey & KMod::Shift) && uint16_t(ekey) >= 'A' && uint16_t(ekey) <= 'Z')
 	ekey &= ~KMod::Shift;
+    // Remove self modifiers from the modifier keys
+    if (uint16_t(ekey) == Key::Shift)
+	ekey &= ~KMod::Shift;
+    else if (uint16_t(ekey) == Key::Ctrl)
+	ekey &= ~KMod::Ctrl;
+    else if (uint16_t(ekey) == Key::Alt)
+	ekey &= ~KMod::Alt;
+    else if (uint16_t(ekey) == Key::Banner)
+	ekey &= ~KMod::Banner;
 
     // Return the event
     return (CEvent (xev.type == KeyRelease ? CEvent::KeyUp : CEvent::KeyDown, ekey, xev.x, xev.y));
