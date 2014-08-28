@@ -40,6 +40,7 @@ public:
     static CEvent	PingEvent (uint64_t time)	{ return (LongnumEvent (Ping, time)); }
     static CEvent	CommandEvent (const char* cmd)	{ return (LongnumEvent (Command, uintptr_t(cmd))); }
     static CEvent	UIChangedEvent (const char* c)	{ return (LongnumEvent (Command, uintptr_t(c))); }
+    static CEvent	UIAcceptedEvent (const char* c)	{ return (LongnumEvent (Command, uintptr_t(c))); }
     inline const char*	CommandName (void) const	{ return ((const char*) MakeLongnum()); }
     inline time_t	Time (void) const		{ return ((time_t) MakeLongnum()); }
     inline int		IValue (void) const		{ return (key); }

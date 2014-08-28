@@ -56,6 +56,7 @@ protected:
     inline virtual void	OnMotion (coord_t, coord_t, key_t)	{ }
     inline virtual void	OnCommand (const char*)			{ }
     inline virtual void	OnUIChanged (const char*)		{ }
+    inline virtual void	OnUIAccepted (const char*)		{ }
     template <typename W>
     inline void		DrawT (const W& w);
     template <typename Drw>

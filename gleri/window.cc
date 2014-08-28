@@ -28,6 +28,7 @@ void CWindow::OnEvent (const CEvent& e)
 	case CEvent::Motion:		OnMotion (e.x, e.y, e.key);	break;
 	case CEvent::Command:		OnCommand (e.CommandName());	break;
 	case CEvent::UIChanged:		OnUIChanged (e.CommandName());	break;
+	case CEvent::UIAccepted:	OnUIAccepted (e.CommandName());	break;
     }
 }
 
