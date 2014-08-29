@@ -202,7 +202,12 @@ void CGLWindow::Shader (const CShader& sh) noexcept
 
 void CGLWindow::Parameter (const char* varname, const CBuffer& buf, G::Type type, GLuint nels, GLuint offset, GLuint stride) noexcept
 {
-    Parameter (glGetAttribLocation (ShaderId(), varname), buf, type, nels, offset, stride);
+    GLuint slot;
+    if (varname && !varname[1] && varname[0] <= ' ')
+	slot = varname[0];
+    else
+	slot = glGetAttribLocation (ShaderId(), varname);
+    Parameter (slot, buf, type, nels, offset, stride);
 }
 
 void CGLWindow::Parameter (GLuint slot, const CBuffer& buf, G::Type type, GLuint nels, GLuint offset, GLuint stride) noexcept

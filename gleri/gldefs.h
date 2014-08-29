@@ -17,7 +17,8 @@ typedef uint16_t	dim_t;
 typedef uint32_t	color_t;
 
 enum Type : uint16_t {
-    BYTE = 0x1400,
+    Type_BASE = 0x1400,
+    BYTE = Type_BASE,
     UNSIGNED_BYTE,
     SHORT,
     UNSIGNED_SHORT,

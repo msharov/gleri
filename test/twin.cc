@@ -251,7 +251,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);
 
     drw.Shader (G::default_GradientShader);
-    drw.VertexPointer (_vbuf, G::SHORT, 2, vb_SkewQuadOffset*(2*sizeof(short)));
+    drw.Parameter ("Vertex", _vbuf, G::SHORT, 2, vb_SkewQuadOffset*(2*sizeof(short)));
     drw.ColorPointer (_cbuf);
     drw.TriangleStrip (0, vb_SkewQuadSize);
     drw.DefaultShader();

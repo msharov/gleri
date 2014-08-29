@@ -363,8 +363,9 @@ Here are the commands with their protocol names and parameters:
     <dd>Binds a texture to a specified framebuffer component slot</dd>
 <dt>BindFont (goid_t f)</dt>
     <dd>Set active font for the <tt>Text</tt> command. Fonts are loaded with <tt>RGL::LoadResource</tt></dd>
-<dt>Parameter (uint8_t slot, goid_t buf, G::Type type, uint8_t sz, uint32_t offset, uint32_t stride)</dt>
-    <dd>The equivalent of <tt>glVertexAttribPointer</tt>. Sets a vertex attribute for the active shader.</dd>
+<dt>Parameter (const char* slot, goid_t buf, G::Type type, uint8_t sz, uint16_t stride, uint32_t offset)</dt>
+    <dd>The equivalent of <tt>glVertexAttribPointer</tt>. Sets a vertex attribute for the active shader.
+	Slot may be specified as a name or a number. Numbered slots are written as a 1-char string.</dd>
 <dt>Uniformf (const char* name, float x, float y, float z, float w)</dt>
     <dd>Set a uniform parameter with float values</dd>
 <dt>Uniformi (const char* name, int x, int y, int z, int w)</dt>

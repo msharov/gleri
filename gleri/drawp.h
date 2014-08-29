@@ -85,7 +85,8 @@ public:
     inline void		FramebufferComponent (goid_t id, goid_t texid)	{ FramebufferComponent (id, G::FramebufferComponent (G::FRAMEBUFFER, G::COLOR_ATTACHMENT0, G::TEXTURE_2D, 0, texid)); }
     inline void		SaveFramebuffer (coord_t x, coord_t y, dim_t w, dim_t h, const char* filename, G::Texture::Format fmt, uint8_t quality = 100);
     inline void		Font (goid_t f)					{ Cmd (ECmd::BindFont, f); }
-    inline void		Parameter (uint8_t slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0)	{ Cmd (ECmd::Parameter, buf, type, slot, sz, offset, stride); }
+    inline void		Parameter (uint32_t slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0)	{ Cmd (ECmd::Parameter, uint32_t(1), slot, buf, uint8_t(type-G::Type_BASE), sz, stride, offset); }
+    inline void		Parameter (const char* slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0)	{ Cmd (ECmd::Parameter, slot, buf, uint8_t(type-G::Type_BASE), sz, stride, offset); }
     inline void		Uniform (const char* name, float x, float y, float z, float w)	{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
     inline void		Uniformi (const char* name, int x, int y, int z, int w)	{ Cmd (ECmd::Uniformi, name, x,y,z,w); }
     inline void		Uniformv (const char* name, const float* v);
@@ -111,9 +112,9 @@ public:
     inline void		Triangles (uint32_t start, uint32_t sz)			{ DrawArrays (G::TRIANGLES, start, sz); }
     inline void		TriangleStrip (uint32_t start, uint32_t sz)		{ DrawArrays (G::TRIANGLE_STRIP, start, sz); }
     inline void		TriangleFan (uint32_t start, uint32_t sz)		{ DrawArrays (G::TRIANGLE_FAN, start, sz); }
-    inline void		VertexPointer (goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Vertex, buf, type, sz, offset, stride); }
-    inline void		ColorPointer (goid_t buf, G::Type type = G::UNSIGNED_BYTE, uint8_t sz = 4, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_Color, buf, type, sz, offset, stride); }
-    inline void		TexCoordPointer (goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint32_t stride = 0) { Parameter (G::param_TexCoord, buf, type, sz, offset, stride); }
+    inline void		VertexPointer (goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0) { Parameter (G::param_Vertex, buf, type, sz, offset, stride); }
+    inline void		ColorPointer (goid_t buf, G::Type type = G::UNSIGNED_BYTE, uint8_t sz = 4, uint32_t offset = 0, uint16_t stride = 0) { Parameter (G::param_Color, buf, type, sz, offset, stride); }
+    inline void		TexCoordPointer (goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0) { Parameter (G::param_TexCoord, buf, type, sz, offset, stride); }
     inline void		Screenshot (const char* filename)			{ SaveFramebuffer (0,0,0,0,filename,G::Texture::Format::JPEG); }
 			// Reading interface
     template <typename F>
@@ -210,9 +211,9 @@ template <typename F>
 	    case ECmd::BindFramebufferComponent: { goid_t id; G::FramebufferComponent c; Args(is,id,c); f.BindFramebufferComponent(f.LookupFramebuffer(id),c); } break;
 	    case ECmd::BindFont: { goid_t fid; Args(is,fid); f.BindFont(fid); } break;
 	    case ECmd::Parameter: {
-		goid_t buf; uint32_t offset, stride; G::Type type; uint8_t slot, size;
-		Args(is,buf,type,slot,size,offset,stride);
-		f.Parameter (slot, f.LookupBuffer(buf), type, size, offset, stride);
+		goid_t buf; uint32_t offset; uint16_t stride; uint8_t type, size; const char* slot = nullptr;
+		Args(is,slot,buf,type,size,stride,offset);
+		f.Parameter (slot, f.LookupBuffer(buf), G::Type(G::Type_BASE+type), size, offset, stride);
 		} break;
 	    case ECmd::Uniformf: { const char* name = nullptr; ArrayArg<float,4> uv; Args(is,name,uv); f.Uniform4fv (name, uv._v); } break;
 	    case ECmd::Uniformi: { const char* name = nullptr; ArrayArg<int,4> uv; Args(is,name,uv); f.Uniform4iv (name, uv._v); } break;
