@@ -263,7 +263,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
 
     // Create the root gl context (share root)
     static const WinInfo rootinfo (0, 0, 1, 1, 0, 0x33, 0x43, WinInfo::MSAA_OFF, WinInfo::type_Normal, WinInfo::state_Hidden, WinInfo::flag_None);
-    Window rctxw = CreateWindow (rootinfo);	// Temporary window to create the root gl context
+    Window rctxw = CreateWindow (rootinfo, _rootWindow);	// Temporary window to create the root gl context
     GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig[0], GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
 	XError::emit ("failed to create an OpenGL context");
@@ -402,31 +402,6 @@ unsigned CGleris::WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noe
 	if (winfo.flags & (1<<f))
 	    a[ac++] = _atoms[a_NET_WM_STATE+1+f];
     return (ac);
-}
-
-Window CGleris::CreateWindow (const WinInfo& winfo)
-{
-    XSetWindowAttributes swa;
-    swa.colormap = _colormap[winfo.aa];
-    swa.background_pixmap = None;
-    swa.backing_store = NotUseful;
-    swa.border_pixel = BlackPixel (_dpy, _visinfo[winfo.aa]->screen);
-    swa.event_mask =
-	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
-	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask;
-    swa.save_under = swa.override_redirect = winfo.IsDecoless();
-
-    Window win = XCreateWindow (_dpy, _rootWindow, winfo.x, winfo.y, winfo.w, winfo.h, 0,
-				_visinfo[winfo.aa]->depth, InputOutput, _visinfo[winfo.aa]->visual,
-				CWBackPixmap| CWBackingStore| CWOverrideRedirect|
-				CWSaveUnder| CWBorderPixel| CWColormap| CWEventMask, &swa);
-    DTRACE ("Created window %x, %ux%u+%d+%d\n", win, winfo.w,winfo.h, winfo.x,winfo.y);
-    if (!win)
-	XError::emit ("failed to create window");
-    XSync (_dpy, False);
-    if (_xlib_error)
-	throw XError (true, _xlib_error);
-    return (win);
 }
 
 /*static*/ void CGleris::DTRACE_EventType (const XEvent& e) noexcept
@@ -718,8 +693,14 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
     if (winfo.aa > WinInfo::MSAA_MAX)
 	winfo.aa = WinInfo::MSAA_MAX;
 
+    // Find the parent window
+    Window parentWid = _rootWindow;
+    for (const auto w : _win)
+	if (w->Matches (piconn->Fd(), winfo.parent))
+	    parentWid = w->Drawable();
+
     // Create the window
-    Window wid = CreateWindow (winfo);
+    Window wid = CreateWindow (winfo, parentWid);
 
     // Create the OpenGL context
     int context_attribs[] = {
@@ -751,12 +732,8 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
 
     // Set additional window attributes and map if not hidden
     if (winfo.IsParented()) {
-	for (const auto w : _win) {
-	    if (w->Matches (rcli.Fd(), winfo.parent)) {
-		DTRACE ("[%x] Setting parent window of %x to %x\n", rcli.IId(), wid, w->Drawable());
-		XSetTransientForHint (_dpy, wid, w->Drawable());
-	    }
-	}
+	DTRACE ("[%x] Setting parent window of %x to %x\n", rcli.IId(), wid, parentWid);
+	XSetTransientForHint (_dpy, wid, parentWid);
     }
     if (winfo.IsDecoless())	// override-redirect windows do not receive configure events
 	rcli.Resize (winfo.x, winfo.y, winfo.w, winfo.h);
@@ -787,8 +764,9 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
     }
     XChangeProperty (_dpy, wid, _atoms[a_WM_PROTOCOLS], _atoms[a_ATOM], 32, PropModeReplace,
 		     (const unsigned char*) &_atoms[a_WM_DELETE_WINDOW], 2);
-    XChangeProperty (_dpy, wid, _atoms[a_NET_WM_WINDOW_TYPE], _atoms[a_ATOM], 32, PropModeReplace,
-		     (const unsigned char*) &_atoms[a_NET_WM_WINDOW_TYPE+1+winfo.wtype], 1);
+    if (a_NET_WM_WINDOW_TYPE+1+winfo.wtype < a_Last)
+	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_WINDOW_TYPE], _atoms[a_ATOM], 32, PropModeReplace,
+			 (const unsigned char*) &_atoms[a_NET_WM_WINDOW_TYPE+1+winfo.wtype], 1);
     uint32_t wsa [16];
     unsigned nwsa = WinStateAtoms (winfo, wsa);
     if (nwsa)
@@ -801,6 +779,35 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
     if (_xlib_error)
 	throw XError (true, _xlib_error);
     return (_curCli);
+}
+
+Window CGleris::CreateWindow (const WinInfo& winfo, Window parentWid)
+{
+    XSetWindowAttributes swa;
+    swa.colormap = _colormap[winfo.aa];
+    swa.background_pixmap = None;
+    swa.backing_store = NotUseful;
+    swa.border_pixel = BlackPixel (_dpy, _visinfo[winfo.aa]->screen);
+    swa.event_mask =
+	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
+	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask;
+    swa.save_under = swa.override_redirect = winfo.IsDecoless();
+    if (winfo.wtype != WinInfo::type_Embedded)
+	parentWid = _rootWindow;
+
+    Window win = XCreateWindow (_dpy, parentWid, winfo.x, winfo.y, winfo.w, winfo.h, 0,
+				_visinfo[winfo.aa]->depth, InputOutput, _visinfo[winfo.aa]->visual,
+				CWBackPixmap| CWBackingStore| CWOverrideRedirect|
+				CWSaveUnder| CWBorderPixel| CWColormap| CWEventMask, &swa);
+    DTRACE ("Created window %x, %ux%u+%d+%d\n", win, winfo.w,winfo.h, winfo.x,winfo.y);
+    if (winfo.wtype == WinInfo::type_Embedded)
+	DTRACE ("\tThe window is embedded in window %x\n", parentWid);
+    if (!win)
+	XError::emit ("failed to create window");
+    XSync (_dpy, False);
+    if (_xlib_error)
+	throw XError (true, _xlib_error);
+    return (win);
 }
 
 inline void CGleris::ActivateClient (CGLWindow& rcli) noexcept

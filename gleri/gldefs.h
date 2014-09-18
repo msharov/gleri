@@ -414,6 +414,7 @@ public:
 	type_Tooltip,
 	type_Splash,
 	type_Dragged,
+	type_Embedded,
 	type_FirstParented = type_Dialog,
 	type_FirstDecoless = type_PopupMenu,
 	type_FirstPopupMenu = type_PopupMenu,

@@ -97,7 +97,7 @@ public:
     inline void		OnNoClient (const CCmd::SMsgHeader& h) const noexcept { DTRACE("Error: received command %s for a nonexistent object\n", h.Cmdname()); }
 private:
     inline void		OnArgs (argc_t argc, argv_t argv) noexcept;
-    Window		CreateWindow (rcwininfo_t winfo);
+    Window		CreateWindow (rcwininfo_t winfo, Window parentWid);
     inline void		AddConnection (int fd, bool canPassFd = false);
     void		RemoveConnection (int fd) noexcept;
     inline CCmdBuf*	LookupConnection (int fd) noexcept;
