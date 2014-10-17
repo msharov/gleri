@@ -49,11 +49,13 @@ protected:
     inline uint32_t	LastRenderTimeNS (void) const	{ return (_vsync.time); }
     inline uint32_t	RefreshTimeNS (void) const	{ return (_vsync.key); }
     inline virtual void	OnFocus (bool)				{ }
+    inline virtual void	OnVisibility (Visibility::State)	{ }
     inline virtual void	OnKey (key_t)				{ }
     inline virtual void	OnKeyUp (key_t)				{ }
     inline virtual void	OnButton (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnButtonUp (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnMotion (coord_t, coord_t, key_t)	{ }
+    inline virtual void	OnCrossing (bool, coord_t, coord_t, key_t) { }
     inline virtual void	OnCommand (const char*)			{ }
     inline virtual void	OnUIChanged (const char*)		{ }
     inline virtual void	OnUIAccepted (const char*)		{ }

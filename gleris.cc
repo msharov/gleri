@@ -498,6 +498,13 @@ void CGleris::OnXEvent (void)
 	    bool bFocusIn = (xev.type == FocusIn);
 	    DTRACE ("[%x] %s focus\n", icli->IId(), bFocusIn ? "Receive" : "Lose");
 	    icli->Event (CEvent (CEvent::Focus, bFocusIn));
+	} else if (xev.type == EnterNotify || xev.type == LeaveNotify) {
+	    bool bEnter = (xev.type == EnterNotify);
+	    DTRACE ("[%x] %s window at %d:%d\n", icli->IId(), bEnter ? "Enter" : "Leave", xev.xcrossing.x, xev.xcrossing.y);
+	    icli->Event (CEvent (CEvent::Crossing, ModsFromXState(xev.xcrossing.state), xev.xcrossing.x, xev.xcrossing.y, bEnter));
+	} else if (xev.type == VisibilityNotify) {
+	    DTRACE ("[%x] Visibility change to %d\n", icli->IId(), xev.xvisibility.state);
+	    icli->Event (CEvent (CEvent::Visibility, xev.xvisibility.state));
 	} else if (xev.type == MapNotify) {
 	    DTRACE ("[%x] Receive map notification\n", icli->IId());
 	    if (icli->Info().IsPopupMenu()) {	// override-redirect windows do not automatically get focus
@@ -790,7 +797,8 @@ Window CGleris::CreateWindow (const WinInfo& winfo, Window parentWid)
     swa.border_pixel = BlackPixel (_dpy, _visinfo[winfo.aa]->screen);
     swa.event_mask =
 	StructureNotifyMask| ExposureMask| KeyPressMask| KeyReleaseMask|
-	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask;
+	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask|
+	EnterWindowMask| LeaveWindowMask| VisibilityChangeMask;
     swa.save_under = swa.override_redirect = winfo.IsDecoless();
     if (winfo.wtype != WinInfo::type_Embedded)
 	parentWid = _rootWindow;
