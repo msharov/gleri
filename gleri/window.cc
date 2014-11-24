@@ -21,7 +21,7 @@ void CWindow::OnEvent (const CEvent& e)
 	case CEvent::Ping:		Event (e);			break;
 	case CEvent::VSync:		_vsync = e;			break;
 	case CEvent::Focus:		OnFocus (e.key);		break;
-	case CEvent::Visibility:	OnVisibility (Visibility::State(e.key)); break;
+	case CEvent::Visibility:	OnVisibility (Visibility(e.key)); break;
 	case CEvent::KeyDown:		OnKey (e.key);			break;
 	case CEvent::KeyUp:		OnKeyUp (e.key);		break;
 	case CEvent::ButtonDown:	OnButton (e.key, e.x, e.y);	break;

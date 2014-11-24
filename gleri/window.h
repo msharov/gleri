@@ -48,8 +48,8 @@ protected:
     inline rcwininfo_t	Info (void) const		{ return (_info); }
     inline uint32_t	LastRenderTimeNS (void) const	{ return (_vsync.time); }
     inline uint32_t	RefreshTimeNS (void) const	{ return (_vsync.key); }
-    inline virtual void	OnFocus (bool)				{ }
-    inline virtual void	OnVisibility (Visibility::State)	{ }
+    inline virtual void	OnFocus (bool)			{ }
+    inline virtual void	OnVisibility (Visibility)	{ }
     inline virtual void	OnKey (key_t)				{ }
     inline virtual void	OnKeyUp (key_t)				{ }
     inline virtual void	OnButton (key_t, coord_t, coord_t)	{ }

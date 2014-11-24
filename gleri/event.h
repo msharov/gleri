@@ -58,14 +58,16 @@ private:
 
 namespace Key {
     enum : uint32_t {
-	ModShift = 24,				///< Bits used by the keycode without KMod modifiers
-	ModMask = (UINT32_MAX<<ModShift),	///< Mask to get the KMod values
-	KeyMask = ~ModMask,			///< Mask to get the keycode without modifiers
 	UnicodePrivateUseRegionStart = 0xe000,	///< Used for non-character keycodes below
 	UnicodePrivateUseRegionEnd = 0xf8ff,
 	X11_XKBase = 0xff00,			///< Add to key to get the value from X11/keysymdef.h
 	X11_XF86XK_Base = 0x1008ff00,		///< Add to key to get the value from X11/XF86keysym.h
 	X11_XKUnicodeBase = 0x01000000		///< Unicode character constants in X11/keysymdef.h
+    };
+    enum : uint32_t {
+	ModShift = 24,				///< Bits used by the keycode without KMod modifiers
+	ModMask = (UINT32_MAX<<ModShift),	///< Mask to get the KMod values
+	KeyMask = ~ModMask			///< Mask to get the keycode without modifiers
     };
     enum : uint32_t {
 	Null, Menu, PageUp, Copy, Break,
@@ -79,24 +81,23 @@ namespace Key {
 	// Space through ~ are printable characters
 	// Then there are keys with unicode values
 	// Put the rest of the codes in the Unicode private use region
-	Other = UnicodePrivateUseRegionStart,
-	Back = Other, Calculator, Center, Documents, Eject,
+	F0 = UnicodePrivateUseRegionStart, F1, F2, F3, F4,
+	F5, F6, F7, F8, F9,
+	F10, F11, F12, F13, F14,
+	F15, F16, F17, F18, F19,
+	F20, F21, F22, F23, F24,
+	Back, Calculator, Center, Documents, Eject,
 	Explorer, Favorites, Find, Forward, Help,
 	Hibernate, History, LogOff, Mail, Mute,
 	New, Open, Options, Play, PowerDown,
 	Print, Refresh, Save, ScreenSaver, Spell,
 	Stop, VolumeDown, VolumeUp, WWW, WheelButton,
 	ZoomIn, ZoomOut,
-	F0, F1, F2, F3, F4,
-	F5, F6, F7, F8, F9,
-	F10, F11, F12, F13, F14,
-	F15, F16, F17, F18, F19,
-	F20, F21, F22, F23, F24,
-	XKBase = Other+0x100,	// These are special keys from X11/keysymdef.h that do not convert to any of the above values
+	XKBase = F0+0x100,	// These are special keys from X11/keysymdef.h that do not convert to any of the above values
 	XFKSBase = XKBase+0x200	// ... and these are from X11/XF86keysym.h . Add the Key::X11_ bases to get the X11 value.
 	// Can add more until UnicodePrivateUseRegionEnd
     };
-} // namespace Key
+}; // namespace Key
 
 namespace Button {
     enum : uint32_t {
@@ -126,10 +127,8 @@ namespace KMod {
     };
 } // namespace KMod
 
-namespace Visibility {
-    enum State : uint32_t {
-	Unobscured,
-	PartiallyObscured,
-	FullyObscured
-    };
-} // namespace Visibility
+enum class Visibility : uint32_t {
+    Unobscured,
+    PartiallyObscured,
+    FullyObscured
+};
