@@ -11,10 +11,10 @@
 
 namespace G {
 
-typedef uint32_t	goid_t;
-typedef int16_t		coord_t;
-typedef uint16_t	dim_t;
-typedef uint32_t	color_t;
+using goid_t	= uint32_t;
+using coord_t	= int16_t;
+using dim_t	= uint16_t;
+using color_t	= uint32_t;
 
 enum Type : uint16_t {
     Type_BASE = 0x1400,
@@ -358,10 +358,10 @@ enum class Format : uint8_t {
 
 namespace Font {
 struct Info {
-    inline dim_t	Height (void) const		{ return (h); }
-    inline dim_t	Width (void) const		{ return (w); }
-    inline dim_t	Width (uint16_t) const		{ return (Width()); }
-    inline dim_t	Width (const char* s) const	{ return (Width()*strlen(s)); }
+    inline dim_t	Height (void) const		{ return h; }
+    inline dim_t	Width (void) const		{ return w; }
+    inline dim_t	Width (uint16_t) const		{ return Width(); }
+    inline dim_t	Width (const char* s) const	{ return Width()*strlen(s); }
     dim_t		w,h;
     uint16_t		ascent;
     uint16_t		nvarw;
@@ -453,9 +453,9 @@ public:
     inline void read (bstri& is)	{ is.iread (*this); }
     inline void write (bstro& os) const	{ os.iwrite (*this); }
     inline void write (bstrs& ss) const	{ ss.iwrite (*this); }
-    inline bool	IsParented (void) const	{ return (wtype >= type_FirstParented && wtype <= type_LastParented); }
-    inline bool	IsDecoless (void) const	{ return (wtype >= type_FirstDecoless && wtype <= type_LastDecoless); }
-    inline bool	IsPopupMenu (void)const	{ return (wtype >= type_FirstPopupMenu && wtype <= type_LastPopupMenu); }
+    inline bool	IsParented (void) const	{ return wtype >= type_FirstParented && wtype <= type_LastParented; }
+    inline bool	IsDecoless (void) const	{ return wtype >= type_FirstDecoless && wtype <= type_LastDecoless; }
+    inline bool	IsPopupMenu (void)const	{ return wtype >= type_FirstPopupMenu && wtype <= type_LastPopupMenu; }
 };
 
 // These are in rglp.cc
@@ -474,7 +474,7 @@ public:
     inline		XError (bool, char*& msg)	:_msg(msg) { msg = nullptr; }
     inline		XError (const XError& e)	:_msg(strdup(e.what())) {}
     inline		~XError (void) noexcept		{ free (_msg); }
-    inline const char*	what (void) const noexcept	{ return (_msg); }
+    inline const char*	what (void) const noexcept	{ return _msg; }
     static void		emit (const char* e) NORETURN	{ throw XError (e); }
 private:
     char*		_msg;
@@ -492,16 +492,16 @@ void hexdump (const void* pv, size_t n) noexcept;
 template <typename Ctr, typename Condition>
 inline void erase_if (Ctr& v, Condition f)
 {
-    for (typename Ctr::iterator i = v.begin(); i != v.end(); ++i)
+    for (auto i = v.begin(); i != v.end(); ++i)
 	if (f(*i))
 	    --(i = v.erase(i));
 }
 
 /// Creates uint32_t color value from components
 inline constexpr G::color_t RGBA (uint8_t r, uint8_t g, uint8_t b, uint8_t a)
-    { return (vpack4(r,g,b,a)); }
+    { return vpack4(r,g,b,a); }
 inline constexpr G::color_t RGBA (G::color_t c)
-    { return (__builtin_bswap32(c)); }
+    { return __builtin_bswap32(c); }
 
 /// Creates uint32_t color value from components
 inline static G::color_t ARGB (G::color_t c)
@@ -510,14 +510,14 @@ inline static G::color_t ARGB (G::color_t c)
     if (!__builtin_constant_p(c)) asm("rol\t$8,%0":"+r"(c)); else
 #endif
 	c = (c<<8)|(c>>24);
-    return (RGBA(c));
+    return RGBA(c);
 }
 
 /// Creates uint32_t color value from components
 inline constexpr G::color_t RGB (uint8_t r, uint8_t g, uint8_t b)
-    { return (RGBA(r,g,b,UINT8_MAX)); }
+    { return RGBA(r,g,b,UINT8_MAX); }
 inline constexpr G::color_t RGB (G::color_t c)
-    { return (RGBA((c<<8)|UINT8_MAX)); }
+    { return RGBA((c<<8)|UINT8_MAX); }
 
 //----------------------------------------------------------------------
 // Tesselator macros for vertex arrays.

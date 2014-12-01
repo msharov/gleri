@@ -23,10 +23,10 @@ public:
     constexpr explicit	CFile (int fd) noexcept	: _fd(fd) {}
     inline		CFile (const char* filename, int flags, mode_t mode = 0);
     inline		~CFile (void) noexcept	{ close (_fd); }
-    inline int		Fd (void) const		{ return (_fd); }
-    inline bool		IsOpen (void) const	{ return (_fd >= 0); }
+    inline int		Fd (void) const		{ return _fd; }
+    inline bool		IsOpen (void) const	{ return _fd >= 0; }
     inline void		Attach (int fd)		{ _fd = fd; }
-    inline int		Detach (void)		{ int fd = _fd; _fd = -1; return (fd); }
+    inline int		Detach (void)		{ auto fd = _fd; _fd = -1; return fd; }
     inline void		Open (const char* filename, int flags, mode_t mode = 0);
     inline void		CreateSocket (int domain);
     inline void		Bind (const char* sockpath, unsigned backlog = c_DefaultBacklog);
@@ -69,10 +69,10 @@ private:
 
 class CMMFile : public CFile {
 public:
-    typedef unsigned char	value_type;
-    typedef unsigned		size_type;
-    typedef value_type*		pointer;
-    typedef const value_type*	const_pointer;
+    using value_type		= unsigned char;
+    using size_type		= unsigned;
+    using pointer		= value_type*;
+    using const_pointer		= const value_type*;
 public:
     inline			CMMFile (void) noexcept		: CFile(),_sz(0),_p(nullptr) { }
     inline			CMMFile (int fd)		: CFile(fd),_sz(Size()),_p((pointer) CFile::Map(_sz)) { }
@@ -82,8 +82,8 @@ public:
     inline void			Close (void)			{ Unmap(); CFile::Close(); }
     inline void			Map (void)			{ _p = (pointer) CFile::Map (_sz = Size()); }
     inline void			Unmap (void) noexcept		{ CFile::Unmap (_p, _sz); }
-    inline const_pointer	MMData (void) const		{ return (_p); }
-    inline size_type		MMSize (void) const		{ return (_sz); }
+    inline const_pointer	MMData (void) const		{ return _p; }
+    inline size_type		MMSize (void) const		{ return _sz; }
 private:
     size_type			_sz;
     pointer			_p;
@@ -154,7 +154,7 @@ inline bool CFile::Connect (const char* sockpath)
     sockaddr_un sa;
     sa.sun_family = PF_LOCAL;
     strcpy (sa.sun_path, sockpath);
-    return (ConnectStream ((const sockaddr*) &sa, sizeof(sa)));
+    return ConnectStream ((const sockaddr*) &sa, sizeof(sa));
 }
 
 inline bool CFile::Connect (uint32_t addr, uint16_t port)
@@ -163,16 +163,16 @@ inline bool CFile::Connect (uint32_t addr, uint16_t port)
     sa.sin_family = PF_INET;
     sa.sin_port = htons(port);
     sa.sin_addr.s_addr = htonl(addr);
-    return (ConnectStream ((const sockaddr*) &sa, sizeof(sa)));
+    return ConnectStream ((const sockaddr*) &sa, sizeof(sa));
 }
 
 /*static*/ unsigned CFile::SystemdFdsAvailable (void) noexcept
 {
     const char* e = getenv("LISTEN_PID");
     if (!e || getpid() != (pid_t) strtoul(e, NULL, 10))
-	return (0);
+	return 0;
     e = getenv("LISTEN_FDS");
-    return (e ? strtoul (e, NULL, 10) : 0);
+    return e ? strtoul (e, NULL, 10) : 0;
 }
 
 //----------------------------------------------------------------------

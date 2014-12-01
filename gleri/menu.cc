@@ -10,7 +10,7 @@
 CMenuEntry::SSize CMenuEntry::OnMeasure (void) const
 {
     const auto& f = *Font();
-    return (SSize (f.Width() + f.Width(_text), f.Height() + f.Height()/2));
+    return SSize (f.Width() + f.Width(_text), f.Height() + f.Height()/2);
 }
 
 void CMenuEntry::OnResize (dim_t w, dim_t h)
@@ -62,11 +62,11 @@ void CPopupMenu::OnInit (void)
     CWindow::OnInit();
 
     for (const char *i = _mdef; *i;) {
-	const char* mtype = i;
-	unsigned sz = -1;
-	const char* mtext = strnext (mtype, sz);
-	const char* maccel = strnext (mtext, sz);
-	const char* mid = strnext (maccel, sz);
+	auto mtype = i;
+	auto sz = UINT_MAX;
+	auto mtext = strnext (mtype, sz);
+	auto maccel = strnext (mtext, sz);
+	auto mid = strnext (maccel, sz);
 	i = strnext (mid, sz);
 	if (*mtype == 'm')
 	    _items.emplace_back<CMenuEntry> (mtext, mid, maccel);
@@ -81,8 +81,8 @@ void CPopupMenu::OnResize (dim_t w, dim_t h)
 {
     CWindow::OnResize (w,h);
     _items.OnResize (w, h);
-    coord_t rw = w-1, rh = h-1;
-    coord_t borderpts[] = { 0,rh, rw,rh, rw,0,  rw,0, 0,0, 0,rh };
+    coord_t rw = w-1, rh = h-1,
+	    borderpts[] = { 0,rh, rw,rh, rw,0,  rw,0, 0,0, 0,rh };
     if (_border)
 	BufferSubData (_border, borderpts, sizeof(borderpts));
     else

@@ -12,12 +12,12 @@
 
 class CApp {
 public:
-    typedef int			argc_t;
-    typedef char* const*	argv_t;
+    using argc_t	= int;
+    using argv_t	= char* const*;
     enum : uint64_t { NoTimer = UINT64_MAX };
 public:
     inline		CApp (void);
-    static inline CApp&	Instance (void)		{ assert (gs_pApp); return (*gs_pApp); }
+    static inline CApp&	Instance (void)		{ assert (gs_pApp); return *gs_pApp; }
     static uint64_t	NowMS (void) noexcept;
     void		WaitForTime (uint64_t tms);
     inline void		Init (argc_t, argv_t argv, int logfac = LOG_USER, int logopt = LOG_CONS| LOG_PERROR)	{ openlog (argv[0], logopt, logfac); }
@@ -36,7 +36,7 @@ protected:
     enum { qc_ShellSignalQuitOffset = 128 };
     #undef S
     //}}}
-    static inline bool	SigInSet (int sig, uint32_t sset)	{ return ((1u<<sig)&sset); }
+    static inline bool	SigInSet (int sig, uint32_t sset)	{ return 1u<<sig&sset; }
     static int		AckSignal (void) noexcept;
     void		WatchFd (int fd);
     void		StopWatchingFd (int fd) noexcept;
@@ -85,11 +85,11 @@ inline int Tmain (typename App::argc_t argc, typename App::argv_t argv)
     } catch (XError& e) {
 	syslog (LOG_ERR, e.what());
     }
-    return (ec);
+    return ec;
 }
 
 #define GLERI_APP(app) \
     int main (CApp::argc_t argc, CApp::argv_t argv) \
-    { return (Tmain<app>(argc,argv)); }
+    { return Tmain<app>(argc,argv); }
 
 //}}}-------------------------------------------------------------------

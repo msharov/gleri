@@ -14,8 +14,8 @@ public:
     using PRGL::dim_t;
     using PRGL::color_t;
     using PRGL::WinInfo;
-    typedef uint32_t		key_t;
-    typedef const WinInfo&	rcwininfo_t;
+    using key_t		= uint32_t;
+    using rcwininfo_t	= const WinInfo&;
     enum { NotWaitingForVSync = UINT64_MAX };
 public:
     inline explicit	CWindow (iid_t wid) noexcept;
@@ -37,17 +37,17 @@ public:
     inline virtual void	OnTextureInfo (goid_t, const G::Texture::Header&)	{ }
     inline virtual void	OnFontInfo (goid_t, G::Font::Info&)			{ }
     inline void		WriteCmds (void)		{ if (!_closePending) PRGL::WriteCmds(); }
-    inline iid_t	IId (void) const		{ return (PRGL::IId()); }
+    inline iid_t	IId (void) const		{ return PRGL::IId(); }
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
-    inline bool		Matches (int fd, iid_t iid)const{ return (PRGL::Matches(fd,iid)); }
-    inline bool		Matches (int fd) const		{ return (PRGL::Matches(fd)); }
+    inline bool		Matches (int fd, iid_t iid)const{ return PRGL::Matches(fd,iid); }
+    inline bool		Matches (int fd) const		{ return PRGL::Matches(fd); }
     void		Close (void);
-    inline bool		DestroyPending (void) const	{ return (_destroyPending); }
+    inline bool		DestroyPending (void) const	{ return _destroyPending; }
     inline void		Destroy (void)			{ _destroyPending = true; }
 protected:
-    inline rcwininfo_t	Info (void) const		{ return (_info); }
-    inline uint32_t	LastRenderTimeNS (void) const	{ return (_vsync.time); }
-    inline uint32_t	RefreshTimeNS (void) const	{ return (_vsync.key); }
+    inline rcwininfo_t	Info (void) const		{ return _info; }
+    inline uint32_t	LastRenderTimeNS (void) const	{ return _vsync.time; }
+    inline uint32_t	RefreshTimeNS (void) const	{ return _vsync.key; }
     inline virtual void	OnFocus (bool)			{ }
     inline virtual void	OnVisibility (Visibility)	{ }
     inline virtual void	OnKey (key_t)				{ }
@@ -110,7 +110,7 @@ inline void CWindow::OnSaveFramebufferData (goid_t id, const char* filename, con
 inline void CWindow::OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d)
 {
     bstri is (bstri::const_pointer(d._p), d._sz);
-    EResource rtype = EResource(type);
+    auto rtype = EResource(type);
     if (rtype == EResource::FONT) {
 	G::Font::Info fi;
 	is >> fi;
@@ -125,7 +125,7 @@ inline void CWindow::OnResourceInfo (goid_t id, uint16_t type, const SDataBlock&
 //----------------------------------------------------------------------
 
 #define ONDRAWDECL				\
-    virtual void Draw (void);			\
+    virtual void Draw (void) override;		\
     template <typename Drw>			\
     inline void
 

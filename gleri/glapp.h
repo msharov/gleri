@@ -13,20 +13,20 @@ public:
     void			Init (argc_t argc, argv_t argv);
     CWindow*			ClientRecord (int fd, CWindow::iid_t wid);
     inline void			CloseClient (CWindow* w){ w->Destroy(); }
-    static inline CGLApp&	Instance (void)		{ return (static_cast<CGLApp&>(CApp::Instance())); }
+    static inline CGLApp&	Instance (void)		{ return static_cast<CGLApp&>(CApp::Instance()); }
     template <typename WC, typename... A>
-    inline WC*			CreateWindow (A... a)	{ WC* w = new WC (GenWId(), a...); OpenWindow(w); return (w); }
+    inline WC*			CreateWindow (A... a)	{ auto w = new WC (GenWId(), a...); OpenWindow(w); return w; }
     inline void			ForwardError (const CCmd::SMsgHeader&, const XError& e, int) const { throw e; }
     inline void			OnExport (const char*, int) {}
     inline void			SendUICommand (const char* cmd)	{ SendUIEvent (CEvent::CommandEvent (cmd)); }
     inline void			SendUIChanged (const char* cmd)	{ SendUIEvent (CEvent::UIChangedEvent (cmd)); }
 protected:
     inline			CGLApp (void);
-    virtual void		OnFd (int fd);
-    virtual void		OnFdError (int fd);
-    virtual void		OnTimer (uint64_t tms);
+    virtual void		OnFd (int fd) override;
+    virtual void		OnFdError (int fd) override;
+    virtual void		OnTimer (uint64_t tms) override;
 private:
-    inline CWindow::iid_t	GenWId (void)		{ return (++_nextwid); }
+    inline CWindow::iid_t	GenWId (void)		{ return ++_nextwid; }
     void			ConnectToServer (void);
     static int			LaunchServer (void);
     void			OpenWindow (CWindow* w);
@@ -61,5 +61,5 @@ inline void CWindow::WaitForTime (uint64_t tms) const
 }
 inline uint64_t CWindow::NowMS (void) const noexcept
 {
-    return (CApp::NowMS());
+    return CApp::NowMS();
 }

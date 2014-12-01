@@ -30,10 +30,10 @@ inline void CShader::Sources::ShaderSource (GLuint id, GLuint idx) const noexcep
 
 void CShader::Sources::LoadFromPak (const CDatapak& pak)
 {
-    for (GLuint i = 0; i < shader_NStages; ++i) {
-	GLuint sz = 0;
+    for (auto i = 0u; i < shader_NStages; ++i) {
+	auto sz = 0u;
 	if (_stage[i]) {
-	    const char* shsrc = (const char*) pak.File (_stage[i], sz);
+	    auto shsrc = (const char*) pak.File (_stage[i], sz);
 	    if (!shsrc) {
 		DTRACE ("Error: no file %s in pak %x\n", _stage[i], pak.CId());
 		throw XError ("no file %s in pak %x", _stage[i], pak.CId());
@@ -46,11 +46,11 @@ void CShader::Sources::LoadFromPak (const CDatapak& pak)
 
 void CShader::Load (const Sources& src)
 {
-    GLint result = False;
-    int infoLogLength = 0;
+    auto result = False;
+    auto infoLogLength = 0;
 
     GLuint stages [Sources::shader_NStages];
-    for (GLuint i = 0; i < Sources::shader_NStages; ++i) {
+    for (auto i = 0u; i < Sources::shader_NStages; ++i) {
 	if (!src.HaveStage(i)) {
 	    stages[i] = NoObject;
 	    continue;
@@ -72,7 +72,7 @@ void CShader::Load (const Sources& src)
 	}
     }
 
-    for (GLuint i = 0; i < Sources::shader_NStages; ++i)
+    for (auto i = 0u; i < Sources::shader_NStages; ++i)
 	if (stages[i] != NoObject)
 	    glAttachShader (Id(), stages[i]);
     glLinkProgram (Id());
@@ -86,7 +86,7 @@ void CShader::Load (const Sources& src)
 	throw XError ("shader linker error:\n%s", infoLog);
     }
 
-    for (GLuint i = 0; i < Sources::shader_NStages; ++i)
+    for (auto i = 0u; i < Sources::shader_NStages; ++i)
 	if (stages[i] != NoObject)
 	    glDeleteShader (stages[i]);
 }

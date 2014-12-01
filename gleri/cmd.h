@@ -12,12 +12,12 @@
 
 class CCmd {
 public:
-    typedef uint32_t		size_type;
-    typedef uint8_t		value_type;
-    typedef uint16_t		iid_t;
-    typedef uint32_t		cmd_t;
-    typedef value_type*		pointer;
-    typedef const value_type*	const_pointer;
+    using size_type	= uint32_t;
+    using value_type	= uint8_t;
+    using iid_t		= uint16_t;
+    using cmd_t		= uint32_t;
+    using pointer	= value_type*;
+    using const_pointer	= const value_type*;
     struct SMsgHeader {
 	size_type	sz;
 	iid_t		iid;
@@ -25,10 +25,10 @@ public:
 	uint8_t		hsz;
 	uint32_t	objname;
     public:
-	inline const char*	Cmdname (void) const	{ return ((const char*)this+sizeof(*this)); }
-	inline const_pointer	Msgdata (void) const	{ return ((const_pointer)this+hsz); }
-	inline size_type	Msgsize (void) const	{ return (hsz+sz); }
-	inline bstri		Msgstrm (void) const	{ return (bstri (Msgdata(), sz)); }
+	inline const char*	Cmdname (void) const	{ return (const char*)this+sizeof(*this); }
+	inline const_pointer	Msgdata (void) const	{ return (const_pointer)this+hsz; }
+	inline size_type	Msgsize (void) const	{ return hsz+sz; }
+	inline bstri		Msgstrm (void) const	{ return bstri (Msgdata(), sz); }
     };
     struct SDataBlock {
 	const void*	_p;
@@ -50,23 +50,23 @@ protected:
     enum { c_MsgAlignment = 8 };
 protected:
     static inline bstrs& variadic_arg_size (bstrs& ss)
-	{ return (ss); }
+	{ return ss; }
     template <typename A, typename... Arg>
     static inline bstrs& variadic_arg_size (bstrs& ss, const A& a, const Arg&... args)
-	{ ss << a; return (variadic_arg_size (ss, args...)); }
+	{ ss << a; return variadic_arg_size (ss, args...); }
 
     static inline bstri& variadic_arg_read (bstri& is)
-	{ return (is); }
+	{ return is; }
     template <typename A, typename... Arg>
     static inline bstri& variadic_arg_read (bstri& is, A& a, Arg&... args)
-	{ is >> a; return (variadic_arg_read (is, args...)); }
+	{ is >> a; return variadic_arg_read (is, args...); }
 
     template <typename Stm>
     static inline Stm& variadic_arg_write (Stm& os)
-	{ return (os); }
+	{ return os; }
     template <typename Stm, typename A, typename... Arg>
     static inline Stm& variadic_arg_write (Stm& os, const A& a, const Arg&... args)
-	{ os << a; return (variadic_arg_write (os, args...)); }
+	{ os << a; return variadic_arg_write (os, args...); }
 };
 
 //----------------------------------------------------------------------
@@ -76,17 +76,17 @@ public:
     inline explicit		CCmdBuf (iid_t iid) noexcept	:_outf(),_iid(iid) {}
     inline			CCmdBuf (iid_t iid, int fd, bool fdpass)	:_outf(fd),_iid(iid),_bFdPass(fdpass) {}
     inline			~CCmdBuf (void) noexcept	{ if(_buf) free(_buf); _outf.Detach(); }
-    inline iid_t		IId (void) const		{ return (_iid); }
-    inline int			Fd (void) const			{ return (_outf.Fd()); }
+    inline iid_t		IId (void) const		{ return _iid; }
+    inline int			Fd (void) const			{ return _outf.Fd(); }
     inline void			SetFd (int fd, bool fdPass = false)	{ _outf.Attach (fd); _bFdPass = fdPass; }
-    inline bool			CanPassFd (void) const		{ return (_bFdPass); }
-    inline size_type		size (void) const		{ return (_used); }
-    inline size_type		capacity (void) const		{ return (_sz); }
+    inline bool			CanPassFd (void) const		{ return _bFdPass; }
+    inline size_type		size (void) const		{ return _used; }
+    inline size_type		capacity (void) const		{ return _sz; }
     void			ForwardError (const char* m)	{ Cmd (ECmd::Error, m); }
     void			Export (const char* ol)		{ Cmd (ECmd::Export, ol); }
     void			ReadCmds (void);
     void			WriteCmds (void);
-    inline bstri		BeginRead (void) const		{ return (bstri(_buf,_used)); }
+    inline bstri		BeginRead (void) const		{ return bstri(_buf,_used); }
     inline void			EndRead (const bstri& is)	{ EndRead(is.ipos()); }
     template <typename OT, typename PT>
     inline void			ProcessMessages (PT& pp);
@@ -97,7 +97,7 @@ protected:
     static unsigned		LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept;
     template <typename... Arg>
     static inline void		Args (bstri& is, Arg&... args);
-    inline CFile&		Outfile (void)			{ return (_outf); }
+    inline CFile&		Outfile (void)			{ return _outf; }
 private:
     enum class ECmd : cmd_t {	// COM interface
 	Error,
@@ -118,9 +118,9 @@ private:
     static inline bool		namecmp (const void* s1, const void* s2, size_type n) noexcept;
     inline size_type		nextcapacity (size_type v) const noexcept;
     inline pointer		addspace (size_type need) noexcept;
-    inline size_type		remaining (void) const	{ return (_sz-_used); }
-    inline pointer		begin (void)		{ return (_buf); }
-    inline pointer		end (void)		{ return (begin()+size()); }
+    inline size_type		remaining (void) const	{ return _sz-_used; }
+    inline pointer		begin (void)		{ return _buf; }
+    inline pointer		end (void)		{ return begin()+size(); }
     void			EndRead (bstri::const_pointer p) noexcept;
 private:
     pointer			_buf	= nullptr;
@@ -146,9 +146,9 @@ inline void CCmdBuf::Cmd (ECmd cmd, const Arg&... args)
 template <typename OT, typename PT>
 inline void CCmdBuf::ProcessMessages (PT& pp)
 {
-    bstri is = BeginRead();
+    auto is = BeginRead();
     while (is.remaining() >sizeof(SMsgHeader)) {// While have commands
-	const SMsgHeader& h = *is.iptr<SMsgHeader>();
+	auto& h = *is.iptr<SMsgHeader>();
 	if (is.remaining() < h.Msgsize())
 	    break;
 	is.skip (h.Msgsize());
@@ -179,7 +179,7 @@ template <typename... Arg>
 template <typename F>
 /*static*/ inline void CCmdBuf::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
 {
-    bstri cmdis (h.Msgstrm());
+    auto cmdis (h.Msgstrm());
     switch (LookupCmd (h.Cmdname(), h.hsz)) {
 	case ECmd::Error: 	{ const char* m = nullptr; Args(cmdis,m); XError::emit(m); } break;
 	case ECmd::Export:	{ const char* m = nullptr; Args(cmdis,m); f.OnExport(m,cmdbuf.Fd()); } break;

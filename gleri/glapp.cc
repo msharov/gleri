@@ -35,8 +35,8 @@ CWindow* CGLApp::ClientRecord (int fd, CWindow::iid_t wid)
 {
     for (auto w : _wins)
 	if (w->Matches (fd, wid))
-	    return (w);
-    return (nullptr);
+	    return w;
+    return nullptr;
 }
 
 void CGLApp::ConnectToServer (void)
@@ -59,7 +59,7 @@ void CGLApp::ConnectToServer (void)
     bool bConnected, bCanPassFd = (xdispstr[0] == ':');
     if (bCanPassFd) {		// Try local server, PF_LOCAL socket
 	char sockpath [sizeof(sockaddr_un::sun_path)];
-	const char* sockfmt = GLERIS_XDG_SOCKET;
+	auto sockfmt = GLERIS_XDG_SOCKET;
 	const char* sockdir = getenv ("XDG_RUNTIME_DIR");
 	if (!sockdir) {
 	    sockfmt = GLERIS_SOCKET;
@@ -109,7 +109,7 @@ void CGLApp::ConnectToServer (void)
 	CFile::Error ("fork");
     else if (cpid > 0) {
 	close (sock[1]);
-	return (sock[0]);
+	return sock[0];
     } else {
 	close (sock[0]);
 	dup2 (sock[1], 0);

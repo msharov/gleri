@@ -117,13 +117,13 @@ CCmdBuf* CGleris::LookupConnection (int fd) noexcept
 {
     for (auto i = _iconn.begin(); i < _iconn.end(); ++i)
 	if ((*i)->Fd() == fd)
-	    return (*i);
-    return (nullptr);
+	    return *i;
+    return nullptr;
 }
 
 void CGleris::Authenticate (CCmdBuf& cmdbuf, uint32_t pid, uint32_t screen, const char* hostname, const SDataBlock& argv, const SDataBlock& xauth)
 {
-    CIConn& pconn = static_cast<CIConn&>(cmdbuf);
+    auto& pconn = static_cast<CIConn&>(cmdbuf);
     if (!xauth._p || xauth._sz != ArraySize(_xauth) || 0 != memcmp(_xauth, xauth._p, ArraySize(_xauth)))
 	XError::emit ("invalid xauth token");
     pconn.SetAuthenticated();
@@ -150,7 +150,7 @@ void CGleris::ForwardError (const char* cmdname, const XError& e, int fd, iid_t 
 	    errbuf.SetFd (fd);
 	    pcli = &errbuf;
 	}
-	size_t bufsz = 16+strlen(cmdname)+2+strlen(e.what())+1;
+	auto bufsz = 16+strlen(cmdname)+2+strlen(e.what())+1;
 	char buf [bufsz];
 	snprintf (buf, bufsz, "%s: %s", cmdname, e.what());
 	DTRACE ("[%x] Forwarding error: %s\n", pcli->IId(), buf);
@@ -177,7 +177,7 @@ void CGleris::OnExport (const char*, int fd)
     XGetErrorText (dpy, ee->error_code, ArrayBlock(errortext));
     if (!_xlib_error)	// If multiple errors arrive, the first is likely the important one
 	asprintf (&_xlib_error, "%lu.%hhu.%hhu: %s", ee->serial, ee->request_code, ee->minor_code, errortext);
-    return (0);
+    return 0;
 }
 
 /*static*/ int CGleris::XlibIOErrorHandler (Display*) noexcept
@@ -215,7 +215,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
 
     GetAtoms();
 
-    int glx_major = 0, glx_minor = 0;
+    auto glx_major = 0, glx_minor = 0;
     if (!glXQueryVersion (_dpy, &glx_major, &glx_minor) || (glx_major<<4|glx_minor) < 0x14)
 	XError::emit ("X server does not support GLX 1.4");
     DTRACE("Opened X server connection. GLX %d.%d available\n", glx_major, glx_minor);
@@ -231,8 +231,8 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	GLX_DEPTH_SIZE,		16,
 	0
     };
-    int fbcount;
-    GLXFBConfig* fbcs = glXChooseFBConfig (_dpy, DefaultScreen(_dpy), fbconfattr, &fbcount);
+    auto fbcount = 0;
+    auto fbcs = glXChooseFBConfig (_dpy, DefaultScreen(_dpy), fbconfattr, &fbcount);
     if (!fbcs || !fbcount)
 	XError::emit ("no suitable visuals available");
     DTRACE("%d fbconfigs available\n", fbcount);
@@ -246,32 +246,32 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	    #endif
 	}
     }
-    for (unsigned i = 0; i < ArraySize(_fbconfig); ++i)	// Check for unavailable MSAA configs
+    for (auto i = 0u; i < ArraySize(_fbconfig); ++i)	// Check for unavailable MSAA configs
 	if (!_fbconfig[i])				// [0] is always valid at this point, so propagate
 	    _fbconfig[i] = _fbconfig[i-1];
     XFree (fbcs);
 
-    for (unsigned i = 0; i < ArraySize(_visinfo); ++i)
+    for (auto i = 0u; i < ArraySize(_visinfo); ++i)
 	if (!(_visinfo[i] = glXGetVisualFromFBConfig (_dpy, _fbconfig[i])))
 	    XError::emit ("no suitable visuals available");
     _rootWindow = RootWindow(_dpy, _visinfo[0]->screen);
     //
     // Create global resources
     //
-    for (unsigned i = 0; i < ArraySize(_colormap); ++i)
+    for (auto i = 0u; i < ArraySize(_colormap); ++i)
 	_colormap[i] = XCreateColormap(_dpy, _rootWindow, _visinfo[i]->visual, AllocNone);
 
     // Create the root gl context (share root)
     static const WinInfo rootinfo (0, 0, 1, 1, 0, 0x33, 0x43, WinInfo::MSAA_OFF, WinInfo::type_Normal, WinInfo::state_Hidden, WinInfo::flag_None);
-    Window rctxw = CreateWindow (rootinfo, _rootWindow);	// Temporary window to create the root gl context
-    GLXContext ctx = glXCreateNewContext (_dpy, _fbconfig[0], GLX_RGBA_TYPE, nullptr, True);
+    auto rctxw = CreateWindow (rootinfo, _rootWindow);	// Temporary window to create the root gl context
+    auto ctx = glXCreateNewContext (_dpy, _fbconfig[0], GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
 	XError::emit ("failed to create an OpenGL context");
     glXMakeCurrent (_dpy, rctxw, ctx);
 
     // The root context is needed to get the highest supported opengl version
-    GLint major = 0, minor = 0;
-    const char* verstr = (const char*) glGetString (GL_VERSION);
+    auto major = 0, minor = 0;
+    auto verstr = (const char*) glGetString (GL_VERSION);
     if (verstr)
 	major = atoi(verstr);
     if (major >= 3) {
@@ -287,7 +287,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
     XDestroyWindow (_dpy, rctxw);
 
     AddConnection (-1, false);			// Dummy connection object for the share root window
-    uint32_t mypid = getpid();
+    auto mypid = getpid();
     char hostname [HOST_NAME_MAX];
     gethostname (ArrayBlock(hostname));
     Authenticate (*_iconn.back(), mypid, 0, hostname, CCmd::SDataBlock(argv[0],strlen(argv[0])), CCmd::SDataBlock(_xauth,sizeof(_xauth)));
@@ -300,11 +300,11 @@ void CGleris::Init (argc_t argc, argv_t argv)
     XChangeProperty (_dpy, _curCli->Drawable(), _atoms[a_NET_WM_PID], _atoms[a_CARDINAL], 32, PropModeReplace, (unsigned char*) &mypid, 1);
 
     // Start listening on server sockets
-    unsigned nSystemdFds;
+    auto nSystemdFds = CFile::SystemdFdsAvailable();
     if (Option (opt_SingleClient)) {
 	DTRACE ("Single client mode. Listening on stdin.\n");
 	AddConnection (STDIN_FILENO, true);
-    } else if ((nSystemdFds = CFile::SystemdFdsAvailable())) {
+    } else if (nSystemdFds) {
 	for (unsigned fd = CFile::SD_LISTEN_FDS_START; fd < nSystemdFds + CFile::SD_LISTEN_FDS_START; ++fd)
 	    if (!_localSocket.BindSystemdFd (fd, PF_LOCAL) && !_tcpSocket.BindSystemdFd (fd, PF_INET))
 		XError::emit ("invalid socket passed in by systemd");
@@ -314,7 +314,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	if (_tcpSocket.IsOpen())
 	    WatchFd (_tcpSocket.Fd());
     } else {
-	const char* sockfmt = GLERIS_XDG_SOCKET;
+	auto sockfmt = GLERIS_XDG_SOCKET;
 	const char* sockdir = getenv ("XDG_RUNTIME_DIR");
 	if (!sockdir) {
 	    sockfmt = GLERIS_SOCKET;
@@ -387,7 +387,7 @@ void CGleris::GetAtoms (void) noexcept
 
 unsigned CGleris::WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noexcept
 {
-    unsigned ac = 0;
+    auto ac = 0u;
     if (winfo.wstate & WinInfo::state_MaximizedX)
 	a[ac++] = _atoms[a_NET_WM_STATE_MAXIMIZED_HORZ];
     if (winfo.wstate & WinInfo::state_MaximizedY)
@@ -398,10 +398,10 @@ unsigned CGleris::WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noe
 	a[ac++] = _atoms[a_NET_WM_STATE_FULLSCREEN];
     if (winfo.wstate == WinInfo::state_Gamescreen)
 	a[ac++] = _atoms[a_NET_WM_STATE_FULLSCREEN_EXCLUSIVE];
-    for (unsigned f = 0; f < 8; ++f)
+    for (auto f = 0; f < 8; ++f)
 	if (winfo.flags & (1<<f))
 	    a[ac++] = _atoms[a_NET_WM_STATE+1+f];
-    return (ac);
+    return ac;
 }
 
 /*static*/ void CGleris::DTRACE_EventType (const XEvent& e) noexcept
@@ -447,10 +447,10 @@ unsigned CGleris::WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noe
 	"\0GenericEvent"
 	"\0Invalid";
     //}}}
-    const char* en = c_EventNames;
-    int t = min(e.type,LASTEvent);
+    auto en = c_EventNames;
+    auto t = min(e.type,LASTEvent);
     unsigned enl = sizeof(c_EventNames);
-    for (int i = 0; i < t; ++i)
+    for (auto i = 0; i < t; ++i)
 	en = strnext(en,enl);
     DTRACE ("Received X event %s for window %x\n", en, e.xany.window);
 #else
@@ -470,7 +470,7 @@ void CGleris::OnXEvent (void)
 	    continue;
 	}
 
-	CGLWindow* icli = ClientRecordForWindow (xev.xany.window);
+	auto icli = ClientRecordForWindow (xev.xany.window);
 	if (!icli) {
 	    DTRACE ("No window associated with this event\n");
 	    continue;
@@ -564,10 +564,10 @@ void CGleris::OnXEvent (void)
 	10,		KMod::RightShift
     };
     uint32_t mods = 0;
-    for (unsigned i = 0; i < ArraySize(c_Modmap); i+=2)
+    for (auto i = 0u; i < ArraySize(c_Modmap); i+=2)
 	if (state & (1u << c_Modmap[i]))
 	    mods |= (1u << c_Modmap[i+1]);
-    return (mods);
+    return mods;
 }
 
 /*static*/ inline CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept
@@ -576,7 +576,7 @@ void CGleris::OnXEvent (void)
     char keybuf [8];
     KeySym ksym;
     XComposeStatus kmods;
-    int bufused = XLookupString (const_cast<XKeyEvent*>(&xev), ArrayBlock(keybuf), &ksym, &kmods);
+    auto bufused = XLookupString (const_cast<XKeyEvent*>(&xev), ArrayBlock(keybuf), &ksym, &kmods);
 
     // Convert X-specific ranges to unicode
     enum : uint32_t {
@@ -597,7 +597,7 @@ void CGleris::OnXEvent (void)
 
     // Map KeySyms to CEvent Key enum
     uint32_t ekey = 0;
-    for (unsigned i = 0; i < ArraySize(c_Keymap); i+=2)
+    for (auto i = 0u; i < ArraySize(c_Keymap); i+=2)
 	if (c_Keymap[i] == ksym)
 	    ekey = c_Keymap[i+1];
     if (!ekey && bufused > 0 && (ksym >= ' ' && ksym <= '~')) {
@@ -622,33 +622,35 @@ void CGleris::OnXEvent (void)
 	ekey &= ~KMod::Banner;
 
     // Return the event
-    return (CEvent (xev.type == KeyRelease ? CEvent::KeyUp : CEvent::KeyDown, ekey, xev.x, xev.y));
+    return CEvent (xev.type == KeyRelease ? CEvent::KeyUp : CEvent::KeyDown, ekey, xev.x, xev.y);
 }
 
 /*static*/ inline CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept
 {
-    return (CEvent (xev.type == ButtonRelease ? CEvent::ButtonUp : CEvent::ButtonDown,
+    return CEvent (xev.type == ButtonRelease ? CEvent::ButtonUp : CEvent::ButtonDown,
 		    xev.button| (ModsFromXState(xev.state) & (KMod::Shift| KMod::Ctrl| KMod::Alt)),
-		    xev.x, xev.y));
+		    xev.x, xev.y);
 }
 
 /*static*/ inline CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept
 {
-    return (CEvent (CEvent::Motion, ModsFromXState(xev.state), xev.x, xev.y));
+    return CEvent (CEvent::Motion, ModsFromXState(xev.state), xev.x, xev.y);
 }
 
 void CGleris::OnFd (int fd)
 {
     CApp::OnFd(fd);
-    CCmdBuf* pic;
     if (fd == _localSocket.Fd() || fd == _tcpSocket.Fd()) {
-	int cfd = accept4 (fd, nullptr, nullptr, SOCK_NONBLOCK| SOCK_CLOEXEC);
+	auto cfd = accept4 (fd, nullptr, nullptr, SOCK_NONBLOCK| SOCK_CLOEXEC);
 	if (cfd < 0)
 	    XError::emit ("accept");
 	AddConnection (cfd, fd == _localSocket.Fd());
-    } else if ((pic = LookupConnection(fd))) {
-	pic->ReadCmds();
-	pic->ProcessMessages<PRGL> (*this);
+    } else {
+	auto pic = LookupConnection(fd);
+	if (pic) {
+	    pic->ReadCmds();
+	    pic->ProcessMessages<PRGL> (*this);
+	}
     }
     OnXEvent();
 }
@@ -687,12 +689,12 @@ void CGleris::OnTimer (uint64_t tms)
 
 CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, CCmdBuf* piconn)
 {
-    CIConn* pconn = static_cast<CIConn*>(piconn);
+    auto pconn = static_cast<CIConn*>(piconn);
     if (pconn && !pconn->Authenticated())
 	XError::emit ("unauthenticated connection can not open windows");
     // Parse requested GL version, high byte max version, low byte min version
-    uint8_t reqver = min(max(winfo.mingl,winfo.maxgl), _glversion);
-    int major = reqver>>4, minor = reqver&0xf;
+    auto reqver = min(max(winfo.mingl,winfo.maxgl), _glversion);
+    auto major = reqver>>4, minor = reqver&0xf;
     DTRACE ("Creating client window, opengl version %d.%d\n", major, minor);
     if (reqver < winfo.mingl)
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
@@ -701,7 +703,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
 	winfo.aa = WinInfo::MSAA_MAX;
 
     // Find the parent window
-    Window parentWid = _rootWindow;
+    auto parentWid = _rootWindow;
     for (const auto w : _win)
 	if (w->Matches (piconn->Fd(), winfo.parent))
 	    parentWid = w->Drawable();
@@ -717,7 +719,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
 	GLX_CONTEXT_PROFILE_MASK_ARB,	GLX_CONTEXT_CORE_PROFILE_BIT_ARB,
 	None
     };
-    GLXContext ctx = glXCreateContextAttribsARB (_dpy, _fbconfig[winfo.aa], _win.empty() ? nullptr : _win[0]->ContextId(), True, context_attribs);
+    auto ctx = glXCreateContextAttribsARB (_dpy, _fbconfig[winfo.aa], _win.empty() ? nullptr : _win[0]->ContextId(), True, context_attribs);
     if (!ctx)
 	throw XError ("X server does not support OpenGL %d.%d", major, minor);
     if (!glXIsDirect (_dpy, ctx)) {
@@ -730,7 +732,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
     _win.push_back (new CGLWindow (iid, winfo, wid, ctx, static_cast<CIConn*>(piconn)));
 
     // Activate the new context and set default parameters
-    CGLWindow& rcli = *_win.back();
+    auto& rcli = *_win.back();
     if (piconn)
 	rcli.SetFd (piconn->Fd(), piconn->CanPassFd());
     ActivateClient (rcli);
@@ -775,7 +777,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
 	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_WINDOW_TYPE], _atoms[a_ATOM], 32, PropModeReplace,
 			 (const unsigned char*) &_atoms[a_NET_WM_WINDOW_TYPE+1+winfo.wtype], 1);
     uint32_t wsa [16];
-    unsigned nwsa = WinStateAtoms (winfo, wsa);
+    auto nwsa = WinStateAtoms (winfo, wsa);
     if (nwsa)
 	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_STATE], _atoms[a_ATOM], 32, PropModeReplace, (const unsigned char*) wsa, nwsa);
     if (winfo.wstate != WinInfo::state_Hidden)
@@ -785,7 +787,7 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
     XSync (_dpy, False);
     if (_xlib_error)
 	throw XError (true, _xlib_error);
-    return (_curCli);
+    return _curCli;
 }
 
 Window CGleris::CreateWindow (const WinInfo& winfo, Window parentWid)
@@ -815,7 +817,7 @@ Window CGleris::CreateWindow (const WinInfo& winfo, Window parentWid)
     XSync (_dpy, False);
     if (_xlib_error)
 	throw XError (true, _xlib_error);
-    return (win);
+    return win;
 }
 
 inline void CGleris::ActivateClient (CGLWindow& rcli) noexcept
@@ -869,18 +871,18 @@ CGLWindow* CGleris::ClientRecord (int fd, iid_t iid) noexcept
     for (auto& icli : _win) {
 	if (icli->Matches (fd,iid)) {
 	    ActivateClient (*icli);
-	    return (icli);
+	    return icli;
 	}
     }
-    return (nullptr);
+    return nullptr;
 }
 
 CGLWindow* CGleris::ClientRecordForWindow (Window w) noexcept
 {
     for (auto& icli : _win)
 	if (icli->Drawable() == w)
-	    return (icli);
-    return (nullptr);
+	    return icli;
+    return nullptr;
 }
 
 void CGleris::ClientDraw (CGLWindow& cli, G::goid_t fbid, bstri cmdis)

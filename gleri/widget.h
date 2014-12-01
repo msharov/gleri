@@ -8,15 +8,15 @@
 
 class CWidget {
 public:
-    typedef PRGL::iid_t		iid_t;
-    typedef PRGL::draww_t	draww_t;
-    typedef PRGL::WinInfo	WinInfo;
-    typedef PRGL::goid_t	goid_t;
-    typedef PRGL::coord_t	coord_t;
-    typedef PRGL::dim_t		dim_t;
-    typedef PRGL::color_t	color_t;
-    typedef PRGL::pfontinfo_t	pfontinfo_t;
-    typedef CWindow::key_t	key_t;
+    using iid_t		= PRGL::iid_t;
+    using draww_t	= PRGL::draww_t;
+    using WinInfo	= PRGL::WinInfo;
+    using goid_t	= PRGL::goid_t;
+    using coord_t	= PRGL::coord_t;
+    using dim_t		= PRGL::dim_t;
+    using color_t	= PRGL::color_t;
+    using pfontinfo_t	= PRGL::pfontinfo_t;
+    using key_t		= CWindow::key_t;
     enum EFlags {
 	f_Focused
     };
@@ -36,49 +36,49 @@ public:
     virtual void	Draw (PDraw<bstrs>& drw) const = 0;
     virtual void	Draw (PDraw<bstro>& drw) const = 0;
     virtual SSize	OnMeasure (void) const = 0;
-    inline bool		Flag (EFlags f) const		{ return (_flags & (1<<f)); }
+    inline bool		Flag (EFlags f) const		{ return _flags & (1<<f); }
     inline void		SetFlag (EFlags f, bool v=true)	{ if (v) _flags |= (1<<f); else _flags &= ~(1<<f); }
-    inline bool		Encloses (coord_t x, coord_t y) const	{ return (dim_t(x-_x) < _w && dim_t(y-_y) < _h); };
+    inline bool		Encloses (coord_t x, coord_t y) const	{ return dim_t(x-_x) < _w && dim_t(y-_y) < _h; };
 			// PRGL forwards
-    inline iid_t	IId (void) const		{ return (_prgl->IId()); }
-    inline pfontinfo_t	Font (void) const		{ return (_prgl->Font()); }
-    inline pfontinfo_t	Font (goid_t id) const		{ return (_prgl->Font(id)); }
+    inline iid_t	IId (void) const		{ return _prgl->IId(); }
+    inline pfontinfo_t	Font (void) const		{ return _prgl->Font(); }
+    inline pfontinfo_t	Font (goid_t id) const		{ return _prgl->Font(id); }
     inline void		Close (void)			{ ((CWindow*)_prgl)->Close(); }	// Hacky, but don't want to give direct PRGL access in window
     inline void		Event (const CEvent& e)		{ _prgl->Event(e); }
-    inline goid_t	BufferData (G::BufferType bt, const void* data, uint32_t dsz, G::BufferHint hint = G::STATIC_DRAW)	{ return (_prgl->BufferData(bt,data,dsz,hint)); }
-    inline goid_t	BufferData (G::BufferType bt, const char* f, G::BufferHint hint = G::STATIC_DRAW)			{ return (_prgl->BufferData(bt,f,hint)); }
-    inline goid_t	BufferData (goid_t pak, G::BufferType bt, const char* f, G::BufferHint hint = G::STATIC_DRAW)		{ return (_prgl->BufferData(pak,bt,f,hint)); }
+    inline goid_t	BufferData (G::BufferType bt, const void* data, uint32_t dsz, G::BufferHint hint = G::STATIC_DRAW)	{ return _prgl->BufferData(bt,data,dsz,hint); }
+    inline goid_t	BufferData (G::BufferType bt, const char* f, G::BufferHint hint = G::STATIC_DRAW)			{ return _prgl->BufferData(bt,f,hint); }
+    inline goid_t	BufferData (goid_t pak, G::BufferType bt, const char* f, G::BufferHint hint = G::STATIC_DRAW)		{ return _prgl->BufferData(pak,bt,f,hint); }
     inline void		BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset = 0)	{ _prgl->BufferSubData(id,data,dsz,offset); }
     inline void		FreeBuffer (goid_t id)				{ _prgl->FreeBuffer(id); }
-    inline goid_t	LoadDatapak (const void* d, uint32_t dsz)	{ return (_prgl->LoadDatapak(d,dsz)); }
-    inline goid_t	LoadDatapak (const char* f)			{ return (_prgl->LoadDatapak(f)); }
-    inline goid_t	LoadDatapak (goid_t pak, const char* f)		{ return (_prgl->LoadDatapak(pak,f)); }
+    inline goid_t	LoadDatapak (const void* d, uint32_t dsz)	{ return _prgl->LoadDatapak(d,dsz); }
+    inline goid_t	LoadDatapak (const char* f)			{ return _prgl->LoadDatapak(f); }
+    inline goid_t	LoadDatapak (goid_t pak, const char* f)		{ return _prgl->LoadDatapak(pak,f); }
     inline void		FreeDatapak (goid_t id)				{ _prgl->FreeDatapak(id); }
-    inline goid_t	LoadTexture (G::TextureType tt, const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(tt,d,dsz,storeas)); }
-    inline goid_t	LoadTexture (G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)			{ return (_prgl->LoadTexture(tt,f,storeas)); }
-    inline goid_t	LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return (_prgl->LoadTexture(pak,tt,f,storeas)); }
-    inline goid_t	CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGB, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE) { return (_prgl->CreateTexture(tt,w,h,d,fmt,comp)); }
-    inline goid_t	CreateDepthTexture (dim_t w, dim_t h)		{ return (_prgl->CreateDepthTexture (w, h)); }
+    inline goid_t	LoadTexture (G::TextureType tt, const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return _prgl->LoadTexture(tt,d,dsz,storeas); }
+    inline goid_t	LoadTexture (G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)			{ return _prgl->LoadTexture(tt,f,storeas); }
+    inline goid_t	LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA)	{ return _prgl->LoadTexture(pak,tt,f,storeas); }
+    inline goid_t	CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGB, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE) { return _prgl->CreateTexture(tt,w,h,d,fmt,comp); }
+    inline goid_t	CreateDepthTexture (dim_t w, dim_t h)		{ return _prgl->CreateDepthTexture (w, h); }
     inline void		FreeTexture (goid_t id)				{ _prgl->FreeTexture(id); }
-    inline goid_t	CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na)				{ return (_prgl->CreateFramebuffer(pa,na)); }
-    inline goid_t	CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc)				{ return (_prgl->CreateFramebuffer(fbc)); }
-    inline goid_t	CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer)					{ return (_prgl->CreateFramebuffer(depthbuffer,colorbuffer)); }
+    inline goid_t	CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na)				{ return _prgl->CreateFramebuffer(pa,na); }
+    inline goid_t	CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc)				{ return _prgl->CreateFramebuffer(fbc); }
+    inline goid_t	CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer)					{ return _prgl->CreateFramebuffer(depthbuffer,colorbuffer); }
     inline void		FreeFramebuffer (goid_t id)			{ _prgl->FreeFramebuffer(id); }
-    inline goid_t	LoadFont (const void* d, uint32_t dsz)		{ return (_prgl->LoadFont(d,dsz)); }
-    inline goid_t	LoadFont (const char* f)			{ return (_prgl->LoadFont(f)); }
-    inline goid_t	LoadFont (goid_t pak, const char* f)		{ return (_prgl->LoadFont(pak,f)); }
+    inline goid_t	LoadFont (const void* d, uint32_t dsz)		{ return _prgl->LoadFont(d,dsz); }
+    inline goid_t	LoadFont (const char* f)			{ return _prgl->LoadFont(f); }
+    inline goid_t	LoadFont (goid_t pak, const char* f)		{ return _prgl->LoadFont(pak,f); }
     inline void		FreeFont (goid_t id)				{ _prgl->FreeFont(id); }
-    inline goid_t	LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)	{ return (_prgl->LoadShader(v,tc,te,g,f)); }
-    inline goid_t	LoadShader (const char* v, const char* tc, const char* te, const char* f)			{ return (_prgl->LoadShader(v,tc,te,f)); }
-    inline goid_t	LoadShader (const char* v, const char* g, const char* f)					{ return (_prgl->LoadShader(v,g,f)); }
-    inline goid_t	LoadShader (const char* v, const char* f)							{ return (_prgl->LoadShader(v,f)); }
-    inline goid_t	LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* g, const char* f)	{ return (_prgl->LoadShader(pak,v,tc,te,g,f)); }
-    inline goid_t	LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* f)		{ return (_prgl->LoadShader(pak,v,tc,te,f)); }
-    inline goid_t	LoadShader (goid_t pak, const char* v, const char* g, const char* f)				{ return (_prgl->LoadShader(pak,v,g,f)); }
-    inline goid_t	LoadShader (goid_t pak, const char* v, const char* f)						{ return (_prgl->LoadShader(pak,v,f)); }
+    inline goid_t	LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)	{ return _prgl->LoadShader(v,tc,te,g,f); }
+    inline goid_t	LoadShader (const char* v, const char* tc, const char* te, const char* f)			{ return _prgl->LoadShader(v,tc,te,f); }
+    inline goid_t	LoadShader (const char* v, const char* g, const char* f)					{ return _prgl->LoadShader(v,g,f); }
+    inline goid_t	LoadShader (const char* v, const char* f)							{ return _prgl->LoadShader(v,f); }
+    inline goid_t	LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* g, const char* f)	{ return _prgl->LoadShader(pak,v,tc,te,g,f); }
+    inline goid_t	LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* f)		{ return _prgl->LoadShader(pak,v,tc,te,f); }
+    inline goid_t	LoadShader (goid_t pak, const char* v, const char* g, const char* f)				{ return _prgl->LoadShader(pak,v,g,f); }
+    inline goid_t	LoadShader (goid_t pak, const char* v, const char* f)						{ return _prgl->LoadShader(pak,v,f); }
     inline void		FreeShader (goid_t id)										{ _prgl->FreeShader(id); }
     template <typename W, typename... Args>
-    inline W*		CreateSubWidget (Args... args)	{ return (new W (_prgl, args...)); }
+    inline W*		CreateSubWidget (Args... args)	{ return new W (_prgl, args...); }
 protected:
     inline virtual void	OnKey (key_t)				{ }
     inline virtual void	OnKeyUp (key_t)				{ }

@@ -19,19 +19,19 @@
 
 /*static*/ inline const char* PRGLR::LookupCmdName (ECmd cmd, size_type& sz) noexcept
 {
-    return (CCmdBuf::LookupCmdName((unsigned)cmd,sz,_cmdNames+1,sizeof(_cmdNames)-2));
+    return CCmdBuf::LookupCmdName((unsigned)cmd,sz,_cmdNames+1,sizeof(_cmdNames)-2);
 }
 
 /*static*/ PRGLR::ECmd PRGLR::LookupCmd (const char* name, size_type bleft) noexcept
 {
-    return (ECmd(CCmdBuf::LookupCmd(name+1,bleft,_cmdNames+1,sizeof(_cmdNames)-2)));
+    return ECmd(CCmdBuf::LookupCmd(name+1,bleft,_cmdNames+1,sizeof(_cmdNames)-2));
 }
 
 bstro PRGLR::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
 {
     size_type msz;
-    const char* m = LookupCmdName(cmd, msz);
-    return (CCmdBuf::CreateCmd (c_ObjectName, m-1, msz+1, sz, unwritten));
+    auto m = LookupCmdName(cmd, msz);
+    return CCmdBuf::CreateCmd (c_ObjectName, m-1, msz+1, sz, unwritten);
 }
 
 void PRGLR::SaveFB (goid_t id, const char* filename, CFile& f)

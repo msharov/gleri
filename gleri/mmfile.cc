@@ -16,7 +16,7 @@
 void CFile::BindStream (const sockaddr* sa, socklen_t sasz, unsigned backlog)
 {
     CreateSocket (sa->sa_family);
-    int doreuse = 1;
+    auto doreuse = 1;
     if (0 > setsockopt (_fd, SOL_SOCKET, SO_REUSEADDR, &doreuse, sizeof(doreuse)))
 	Error ("setsockopt");
     if (0 > bind (_fd, sa, sasz))
@@ -32,11 +32,11 @@ bool CFile::ConnectStream (const sockaddr* sa, socklen_t sasz)
     while (0 > (crv = connect (_fd, sa, sasz)) && errno == EINPROGRESS)
 	WaitForWrite();
     if (crv >= 0)
-	return (true);
+	return true;
     ForceClose();
     if (errno != ECONNREFUSED && errno != ENOENT)
 	Error ("connect");
-    return (false);
+    return false;
 }
 
 // This accepts \p fd passed in by systemd socket activation if \p family matches
@@ -44,33 +44,33 @@ bool CFile::BindSystemdFd (int fd, sa_family_t family)
 {
     // Already open, close before binding
     if (IsOpen())
-	return (false);
+	return false;
     int v;
     socklen_t l = sizeof(v);
     // The incoming socket must be a stream socket
     if (getsockopt (fd, SOL_SOCKET, SO_TYPE, &v, &l) < 0 || v != SOCK_STREAM)
-	return (false);
+	return false;
     // It must be a listening server socket
     if (getsockopt (fd, SOL_SOCKET, SO_ACCEPTCONN, &v, &l) < 0 || v != true)
-	return (false);
+	return false;
     // And it must match the family (PF_LOCAL or PF_INET)
     struct sockaddr_storage ss;
     l = sizeof(ss);
     if (getsockname(fd, (struct sockaddr*) &ss, &l) < 0 || ss.ss_family != (int) family)
-	return (false);
+	return false;
     // If matches, need to set the fd nonblocking for the poll loop to work
-    int f = fcntl (fd, F_GETFL);
+    auto f = fcntl (fd, F_GETFL);
     if (f < 0)
-	return (false);
+	return false;
     if (0 > fcntl (fd, F_SETFL, f| O_NONBLOCK| O_CLOEXEC))
-	return (false);
+	return false;
     Attach (fd);
-    return (true);
+    return true;
 }
 
 void CFile::Close (void)
 {
-    int r = close (_fd);
+    auto r = close (_fd);
     if (r < 0)
 	Error ("close");
     Detach();
@@ -82,21 +82,21 @@ size_t CFile::Read (void* d, size_t dsz)
     while (0 >= (br = read (_fd, d, dsz))) {
 	if (!br) {
 	    close (_fd);
-	    return (0);
+	    return 0;
 	}
 	if (errno == EAGAIN)
-	    return (0);
+	    return 0;
 	if (errno != EINTR)
 	    Error ("read");
     }
-    return (br);
+    return br;
 }
 
 void CFile::Write (const void* d, size_t dsz)
 {
-    const char* p = (const char*) d;
+    auto p = (const char*) d;
     while (dsz) {
-	ssize_t bw = write (_fd, p, dsz);
+	auto bw = write (_fd, p, dsz);
 	if (bw <= 0) {
 	    if (errno == EAGAIN) {
 		WaitForWrite();
@@ -115,21 +115,21 @@ size_t CFile::Size (void) const
     struct stat st;
     if (0 > fstat (_fd, &st) || !S_ISREG(st.st_mode))
 	Error ("stat");
-    return (st.st_size);
+    return st.st_size;
 }
 
 void* CFile::Map (size_t dsz)
 {
-    void* p = mmap (nullptr, dsz, PROT_READ, MAP_PRIVATE, _fd, 0);
+    auto p = mmap (nullptr, dsz, PROT_READ, MAP_PRIVATE, _fd, 0);
     if (p == MAP_FAILED)
 	Error ("mmap");
-    return (p);
+    return p;
 }
 
 void CFile::CopyTo (CFile& outf, size_t n)
 {
     for (char buf [BUFSIZ]; n;) {
-	size_t br = Read (buf, min(n,sizeof(buf)));
+	auto br = Read (buf, min(n,sizeof(buf)));
 	if (!br)
 	    WaitForRead();
 	outf.Write (buf, br);
@@ -141,7 +141,7 @@ void CFile::CopyTo (CFile& outf, size_t n)
 void CFile::SendfileTo (CFile& outf, size_t n)
 {
     while (n) {
-	ssize_t bw = sendfile (outf.Fd(), _fd, nullptr, n);
+	auto bw = sendfile (outf.Fd(), _fd, nullptr, n);
 	if (bw <= 0)
 	    Error ("sendfile");
 	n -= bw;
@@ -201,23 +201,23 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
     while (0 >= (br = recvmsg (_fd, &msg, 0))) {
 	if (!br) {
 	    close (_fd);
-	    return (0);
+	    return 0;
 	}
 	if (errno == EINTR)
 	    continue;
 	if (errno == EAGAIN)
-	    return (0);
+	    return 0;
 	Error ("recvmsg");
     }
 
-    cmsghdr* cmptr = CMSG_FIRSTHDR(&msg);
+    auto cmptr = CMSG_FIRSTHDR(&msg);
     if (cmptr && cmptr->cmsg_len == CMSG_LEN(sizeof(int))) {
 	int fd = *((int*) CMSG_DATA (cmptr));
 	if (fd < 0)
 	    Error ("fdpass");
 	*(int*)((char*)p+br-8) = fd;
     }
-    return (br);
+    return br;
 }
 
 /*static*/ void CFile::Error (const char* op)
@@ -250,7 +250,7 @@ unsigned GetXauthData (const SXDisplay& dpy, char data [XAUTH_DATA_LEN])
     else
 	snprintf (ArrayBlock(filename), "%s/.Xauthority", getenv("HOME"));
     if (access(filename,R_OK) != 0)
-	return (0);
+	return 0;
     CMMFile authfile (filename);
     bstri is (authfile.MMData(), authfile.MMSize());
     const uint16_t hostlen = strlen(dpy.host);
@@ -259,27 +259,27 @@ unsigned GetXauthData (const SXDisplay& dpy, char data [XAUTH_DATA_LEN])
 	is >> family;
 	match += (family == htons(XauthFamilyLocal));
 	enum { str_Host, str_Display, str_AuthName, str_AuthData, str_Last };
-	for (unsigned i = 0; i < str_Last; ++i) {
+	for (auto i = 0u; i < str_Last; ++i) {
 	    is >> sz; sz = ntohs(sz);
 	    if (is.remaining() < sz)
-		return (0);
+		return 0;
 	    if (i == str_Host && sz == hostlen)
 		match += !memcmp(is.iptr<char>(), dpy.host, hostlen);
 	    else if (i == str_Display) {
 		uint16_t dpynum = 0;
-		for (const char* d = is.iptr<char>(), *e = d+sz; d < e;)
+		for (auto d = is.iptr<char>(), e = d+sz; d < e;)
 		    dpynum = dpynum*10 + (*d++ - '0');
 		match += (dpynum == dpy.display);
 	    } else if (i == str_AuthName && sz == XAUTH_NAME_LEN)
 		match += !memcmp(is.iptr<char>(), XAUTH_NAME, XAUTH_NAME_LEN);
 	    else if (i == str_AuthData && sz == XAUTH_DATA_LEN && match == 4) {
 		memcpy (data, is.iptr<char>(), XAUTH_DATA_LEN);
-		return (sz);
+		return sz;
 	    }
 	    is.skip (sz);
 	}
     }
-    return (0);
+    return 0;
 }
 
 void ParseXDisplay (const char* dispstr, SXDisplay& dinfo)
@@ -288,13 +288,13 @@ void ParseXDisplay (const char* dispstr, SXDisplay& dinfo)
     dinfo.display = 0;
     dinfo.screen = 0;
     dinfo.host[sizeof(dinfo.host)-1] = 0;
-    char* pdpynum = strchr (dinfo.host, ':');
+    auto pdpynum = strchr (dinfo.host, ':');
     if (!pdpynum || pdpynum == dinfo.host) {
 	gethostname (dinfo.host, sizeof(dinfo.host)-1);
 	return;
     }
     *pdpynum++ = 0;
-    char* pscrnum = strchr (pdpynum, ':');
+    auto pscrnum = strchr (pdpynum, ':');
     if (pscrnum) {
 	*pscrnum++ = 0;
 	dinfo.screen = atoi (pscrnum);

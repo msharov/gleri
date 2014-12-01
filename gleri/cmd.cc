@@ -11,13 +11,13 @@
 {
 #if __x86__
     asm("repnz\tscasb\n\trepnz\tscasb":"+D"(n),"+c"(sz):"a"(0):"memory");
-    return (n);
+    return n;
 #else
     const char* nn = n;
     nn += strlen(nn)+1;
     nn += strlen(nn)+1;
     sz -= nn - n;
-    return (nn);
+    return nn;
 #endif
 }
 
@@ -25,9 +25,9 @@
 {
 #if __x86__
     asm("repz\tcmpsb":"+D"(s1),"+S"(s2),"+c"(n));
-    return (!n);
+    return !n;
 #else
-    return (!memcmp (s1,s2,n));
+    return !memcmp (s1,s2,n);
 #endif
 }
 
@@ -38,7 +38,7 @@
 	ns = nextname(s,cleft);
 	if (cmd == ci) {
 	    sz = ns-s;
-	    return (s);
+	    return s;
 	}
     }
     sz = 0;
@@ -52,21 +52,21 @@
     for (const char* s = cmdnames; cleft; ++ci) {
 	const char* ns = nextname(s,cleft);
 	if (ns-s == namesz && namecmp(s,name,namesz))
-	    return (ci);
+	    return ci;
 	s = ns;
     }
-    return (InvalidCmd);
+    return InvalidCmd;
 }
 
 inline CCmdBuf::size_type CCmdBuf::nextcapacity (size_type v) const noexcept
 {
 #if __x86__
     asm("bsr\t%0, %0":"+r"(v));
-    return (1<<(1+v));
+    return 1<<(1+v);
 #else
     size_type r = 64;
     while (r <= v) r *= 2;	// Next power of 2
-    return (r);
+    return r;
 #endif
 }
 
@@ -75,7 +75,7 @@ inline CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
     need += size();
     if (_sz < need)
 	_buf = (pointer) realloc (_buf,_sz = nextcapacity(need));
-    return (end());
+    return end();
 }
 
 bstro CCmdBuf::CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz, size_type unwritten) noexcept
@@ -95,7 +95,7 @@ bstro CCmdBuf::CreateCmd (uint32_t o, const char* m, size_type msz, size_type sz
     os.write (m, msz);
     os.align (c_MsgAlignment);
     _used += cmdsz;
-    return (os);
+    return os;
 }
 
 void CCmdBuf::EndRead (bstri::const_pointer p) noexcept
@@ -152,17 +152,17 @@ void CCmdBuf::SendFile (CFile& f, uint32_t fsz)
 
 /*static*/ inline const char* CCmdBuf::LookupCmdName (ECmd cmd, size_type& sz) noexcept
 {
-    return (CCmdBuf::LookupCmdName((unsigned)cmd,sz,ArrayBlock(_cmdNames)-1));
+    return CCmdBuf::LookupCmdName((unsigned)cmd,sz,ArrayBlock(_cmdNames)-1);
 }
 
 /*static*/ CCmdBuf::ECmd CCmdBuf::LookupCmd (const char* name, size_type bleft) noexcept
 {
-    return (ECmd(CCmdBuf::LookupCmd(name,bleft,ArrayBlock(_cmdNames)-1)));
+    return ECmd(CCmdBuf::LookupCmd(name,bleft,ArrayBlock(_cmdNames)-1));
 }
 
 bstro CCmdBuf::CreateCmd (ECmd cmd, size_type sz, size_type unwritten) noexcept
 {
     size_type msz;
     const char* m = LookupCmdName (cmd, msz);
-    return (CCmdBuf::CreateCmd (c_ObjectName, m, msz, sz, unwritten));
+    return CCmdBuf::CreateCmd (c_ObjectName, m, msz, sz, unwritten);
 }

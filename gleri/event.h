@@ -8,7 +8,7 @@
 
 class CEvent {
 public:
-    typedef uint16_t ctrlid_t;
+    using ctrlid_t	= uint16_t;
     enum : ctrlid_t { AllControls = numeric_limits<ctrlid_t>::max() };
     enum EType : uint32_t {
 	// Window control events
@@ -39,21 +39,21 @@ public:
 public:
     explicit constexpr	CEvent (EType ntype = Destroy, uint32_t nkey = 0, int16_t nx = 0, int16_t ny = 0, uint32_t ntime = 0)
 			    :key(nkey),x(nx),y(ny),type(ntype),time(ntime) {}
-    static CEvent	PingEvent (uint64_t time)	{ return (LongnumEvent (Ping, time)); }
-    static CEvent	CommandEvent (const char* cmd)	{ return (LongnumEvent (Command, uintptr_t(cmd))); }
-    static CEvent	UIChangedEvent (const char* c)	{ return (LongnumEvent (Command, uintptr_t(c))); }
-    static CEvent	UIAcceptedEvent (const char* c)	{ return (LongnumEvent (Command, uintptr_t(c))); }
-    inline const char*	CommandName (void) const	{ return ((const char*) MakeLongnum()); }
-    inline time_t	Time (void) const		{ return ((time_t) MakeLongnum()); }
-    inline int		IValue (void) const		{ return (key); }
-    inline ctrlid_t	SrcControl (void) const		{ return (x); }
-    inline ctrlid_t	DestControl (void) const	{ return (y); }
+    static CEvent	PingEvent (uint64_t time)	{ return LongnumEvent (Ping, time); }
+    static CEvent	CommandEvent (const char* cmd)	{ return LongnumEvent (Command, uintptr_t(cmd)); }
+    static CEvent	UIChangedEvent (const char* c)	{ return LongnumEvent (Command, uintptr_t(c)); }
+    static CEvent	UIAcceptedEvent (const char* c)	{ return LongnumEvent (Command, uintptr_t(c)); }
+    inline const char*	CommandName (void) const	{ return (const char*) MakeLongnum(); }
+    inline time_t	Time (void) const		{ return (time_t) MakeLongnum(); }
+    inline int		IValue (void) const		{ return key; }
+    inline ctrlid_t	SrcControl (void) const		{ return x; }
+    inline ctrlid_t	DestControl (void) const	{ return y; }
     inline void		read (bstri& is)		{ is.iread (*this); }
     inline void		write (bstro& os) const		{ os.iwrite (*this); }
     inline void		write (bstrs& ss) const		{ ss.iwrite (*this); }
 private:
-    static CEvent	LongnumEvent (EType ntype, uint64_t n)	{ return (CEvent (ntype, uint32_t(n), 0, 0, uint32_t(n>>32))); }
-    inline uint64_t	MakeLongnum (void) const	{ return ((uint64_t(time)<<32)|key); }
+    static CEvent	LongnumEvent (EType ntype, uint64_t n)	{ return CEvent (ntype, uint32_t(n), 0, 0, uint32_t(n>>32)); }
+    inline uint64_t	MakeLongnum (void) const	{ return (uint64_t(time)<<32)|key; }
 };
 
 namespace Key {

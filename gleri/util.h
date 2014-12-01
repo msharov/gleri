@@ -16,9 +16,9 @@
 #include <errno.h>
 
 /// Returns the number of elements in a static vector
-template <typename T, size_t N> constexpr static inline size_t ArraySize (T(&)[N]) { return (N); }
+template <typename T, size_t N> constexpr static inline size_t ArraySize (T(&)[N]) { return N; }
 /// Returns the end() for a static vector
-template <typename T, size_t N> constexpr static inline T* ArrayEnd (T(&a)[N]) { return (&a[N]); }
+template <typename T, size_t N> constexpr static inline T* ArrayEnd (T(&a)[N]) { return &a[N]; }
 /// Expands into a ptr,size expression for the given static vector; useful as link arguments.
 #define ArrayBlock(v)	&(v)[0], ArraySize(v)
 /// Expands into a begin,end expression for the given static vector; useful for algorithm arguments.
@@ -52,9 +52,9 @@ namespace {
 // Endian-dependent stuff
 #if USTL_BYTE_ORDER == USTL_LITTLE_ENDIAN
 constexpr static inline uint16_t vpack2 (uint8_t a, uint8_t b)
-    { return ((uint16_t(b)<<8)|a); }
+    { return uint16_t(b)<<8|a; }
 constexpr static inline uint32_t vpack4 (uint16_t a, uint16_t b)
-    { return ((uint32_t(b)<<16)|a); }
+    { return uint32_t(b)<<16|a; }
 static inline void vunpack2 (uint16_t v, uint8_t& a, uint8_t& b)
     { a = v; b = v>>8; }
 static inline void vunpack4 (uint32_t v, uint16_t& a, uint16_t& b)
@@ -62,16 +62,16 @@ static inline void vunpack4 (uint32_t v, uint16_t& a, uint16_t& b)
 static inline void vunpack4 (uint32_t v, uint8_t& a, uint8_t& b, uint8_t& c, uint8_t& d)
     { a = v; b = v>>8; c = v>>16; d = v>>24; }
 constexpr static inline uint16_t bole_swap2 (uint16_t v)
-    { return (v); }
+    { return v; }
 constexpr static inline uint32_t bole_swap4 (uint32_t v)
-    { return (v); }
+    { return v; }
 constexpr static inline uint64_t bole_swap8 (uint64_t v)
-    { return (v); }
+    { return v; }
 #else
 constexpr static inline uint16_t vpack2 (uint8_t a, uint8_t b)
-    { return ((uint16_t(a)<<8)|b); }
+    { return uint16_t(a)<<8|b; }
 constexpr static inline uint32_t vpack4 (uint16_t a, uint16_t b)
-    { return ((uint32_t(a)<<16)|b); }
+    { return uint32_t(a)<<16|b; }
 static inline void vunpack2 (uint16_t v, uint8_t& a, uint8_t& b)
     { b = v; a = v>>8; }
 static inline void vunpack4 (uint32_t v, uint16_t& a, uint16_t& b)
@@ -79,14 +79,14 @@ static inline void vunpack4 (uint32_t v, uint16_t& a, uint16_t& b)
 static inline void vunpack4 (uint32_t v, uint8_t& a, uint8_t& b, uint8_t& c, uint8_t& d)
     { d = v; c = v>>8; b = v>>16; a = v>>24; }
 constexpr static inline uint16_t bole_swap2 (uint16_t v)
-    { return (v>>8|v<<8); }
+    { return v>>8|v<<8; }
 constexpr static inline uint32_t bole_swap4 (uint32_t v)
-    { return (uint32_t(bole_swap2(v))<<16|bole_swap2(v>>16)); }
+    { return uint32_t(bole_swap2(v))<<16|bole_swap2(v>>16); }
 constexpr static inline uint64_t bole_swap8 (uint64_t v)
-    { return (uint64_t(bole_swap4(v))<<32|bole_swap4(v>>32)); }
+    { return uint64_t(bole_swap4(v))<<32|bole_swap4(v>>32); }
 #endif
 constexpr static inline uint32_t vpack4 (uint8_t a, uint8_t b, uint8_t c, uint8_t d)
-    { return (vpack4(vpack2(a,b),vpack2(c,d))); }
+    { return vpack4(vpack2(a,b),vpack2(c,d)); }
 
 inline void UnpackColorToFloats (uint32_t c, float& r, float& g, float& b, float& a)
 {
@@ -122,14 +122,14 @@ inline const char* strnext (const char* s, unsigned& n)
     else
 #endif
 	s+=strlen(s)+1;
-    return (s);
+    return s;
 }
 
 #if USE_USTL
-template <typename T> struct remove_const { typedef T type; };
-template <typename T> struct remove_const<const T> { typedef T type; };
-template <typename T> struct remove_pointer { typedef T type; };
-template <typename T> struct remove_pointer<T*> { typedef typename remove_const<T>::type type; };
+template <typename T> struct remove_const { using type = T; };
+template <typename T> struct remove_const<const T> { using type = T; };
+template <typename T> struct remove_pointer { using type = T; };
+template <typename T> struct remove_pointer<T*> { using type = typename remove_const<T>::type; };
 #endif
 
 /// Dereferencing iterator for containers of pointers
@@ -138,50 +138,50 @@ class dereferencing_iterator {
     I _i;
 public:
 #if !USE_USTL
-    typedef typename I::iterator_category iterator_category;
+    using iterator_category		= typename I::iterator_category;
 #endif
-    typedef I				iterator_type;
-    typedef typename iterator_traits<iterator_type>::difference_type difference_type;
-    typedef typename iterator_traits<iterator_type>::value_type pointer;
-    typedef typename remove_pointer<pointer>::type value_type;
-    typedef const value_type*		const_pointer;
-    typedef value_type&			reference;
-    typedef const value_type&		const_reference;
+    using iterator_type			= I;
+    using difference_type		= typename iterator_traits<iterator_type>::difference_type;
+    using pointer			= typename iterator_traits<iterator_type>::value_type;
+    using value_type			= typename remove_pointer<pointer>::type;
+    using const_pointer			= const value_type*;
+    using reference			= value_type&;
+    using const_reference		= const value_type&;
 public:
     inline				dereferencing_iterator (iterator_type i) :_i(i) {}
-    inline iterator_type		base (void)		{ return (_i); }
-    inline const iterator_type&		base (void) const	{ return (_i); }
-    inline bool				operator== (const dereferencing_iterator& i) const { return (base() == i.base()); }
-    inline bool				operator!= (const dereferencing_iterator& i) const { return (base() != i.base()); }
-    inline bool				operator< (const dereferencing_iterator& i) const { return (base() < i.base()); }
-    inline reference			operator* (void)	{ return (**_i); }
-    inline const_reference		operator* (void) const	{ return (**_i); }
-    inline pointer			operator-> (void)	{ return (*_i); }
-    inline const_pointer		operator-> (void) const	{ return (*_i); }
-    inline dereferencing_iterator&	operator++ (void)	{ ++_i; return (*this); }
-    inline dereferencing_iterator&	operator-- (void)	{ --_i; return (*this); }
-    inline dereferencing_iterator&	operator+= (int n)	{ _i += n; return (*this); }
-    inline dereferencing_iterator&	operator-= (int n)	{ _i -= n; return (*this); }
-    inline dereferencing_iterator	operator+ (int n) const	{ return (dereferencing_iterator(*this) += n); }
-    inline dereferencing_iterator	operator- (int n) const	{ return (dereferencing_iterator(*this) -= n); }
-    inline difference_type		operator- (const dereferencing_iterator& i)	{ return (base()-i.base()); }
+    inline iterator_type		base (void)		{ return _i; }
+    inline const iterator_type&		base (void) const	{ return _i; }
+    inline bool				operator== (const dereferencing_iterator& i) const { return base() == i.base(); }
+    inline bool				operator!= (const dereferencing_iterator& i) const { return base() != i.base(); }
+    inline bool				operator< (const dereferencing_iterator& i) const { return base() < i.base(); }
+    inline reference			operator* (void)	{ return **_i; }
+    inline const_reference		operator* (void) const	{ return **_i; }
+    inline pointer			operator-> (void)	{ return *_i; }
+    inline const_pointer		operator-> (void) const	{ return *_i; }
+    inline dereferencing_iterator&	operator++ (void)	{ ++_i; return *this; }
+    inline dereferencing_iterator&	operator-- (void)	{ --_i; return *this; }
+    inline dereferencing_iterator&	operator+= (int n)	{ _i += n; return *this; }
+    inline dereferencing_iterator&	operator-= (int n)	{ _i -= n; return *this; }
+    inline dereferencing_iterator	operator+ (int n) const	{ return dereferencing_iterator(*this) += n; }
+    inline dereferencing_iterator	operator- (int n) const	{ return dereferencing_iterator(*this) -= n; }
+    inline difference_type		operator- (const dereferencing_iterator& i)	{ return base()-i.base(); }
 };
 
 template <typename T>
 struct auto_free {
     inline explicit constexpr	auto_free (T* p)		: _p(p) {}
     inline			~auto_free (void) noexcept	{ if (_p) ::free(_p); }
-    inline const T*		base (void) const		{ return (_p); }
+    inline const T*		base (void) const		{ return _p; }
     inline void			free (void) noexcept		{ if (_p) { ::free(_p); _p = nullptr; } }
-    inline bool			operator! (void)		{ return (!_p); }
-    inline auto_free&		operator= (T* p)		{ _p = p; return (*this); }
-    inline			operator T* (void)		{ return (_p); }
-    inline			operator const T* (void) const	{ return (_p); }
+    inline bool			operator! (void)		{ return !_p; }
+    inline auto_free&		operator= (T* p)		{ _p = p; return *this; }
+    inline			operator T* (void)		{ return _p; }
+    inline			operator const T* (void) const	{ return _p; }
     template <typename S>
-    inline			operator S* (void)		{ return (reinterpret_cast<S*>(_p)); }
+    inline			operator S* (void)		{ return reinterpret_cast<S*>(_p); }
     template <typename S>
-    inline			operator const S* (void) const	{ return (reinterpret_cast<const S*>(_p)); }
-    inline const T*		operator+ (unsigned o) const	{ return (_p+o); }
+    inline			operator const S* (void) const	{ return reinterpret_cast<const S*>(_p); }
+    inline const T*		operator+ (unsigned o) const	{ return _p+o; }
 private:
     T* _p;
 };

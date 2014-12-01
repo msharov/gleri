@@ -115,7 +115,7 @@ void CGLWindow::ParseDrawlist (goid_t fbid, bstri cmdis)
 {
     // Clear VAO slots. Need only to do it here because buffers can not be freed during drawing, so all slots remain valid
     glBindVertexArray (_vao[0]);
-    for (GLuint i = 0; i < MAX_VAO_SLOTS; ++i)
+    for (auto i = 0u; i < MAX_VAO_SLOTS; ++i)
 	glDisableVertexAttribArray (i);
     // Clear GL state remembered from the previous frame
     _curShader = _curBuffer = _curTexture = _curFont = G::GoidNull;
@@ -129,11 +129,11 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
     if (_nextVSync != NotWaitingForVSync) {
 	DTRACE ("[%x] Waiting for vsync: ", IId());
 	bool bHaveQuery;
-	for (unsigned n = 0; !(bHaveQuery = QueryResultAvailable(_query[query_FrameEnd])) && ++n < 64;)
+	for (auto n = 0u; !(bHaveQuery = QueryResultAvailable(_query[query_FrameEnd])) && ++n < 64;)
 	    usleep(256);
 	if (bHaveQuery) {
 	    uint64_t times[ArraySize(_query)];	// Query times are in ns
-	    for (unsigned i = 0; i < ArraySize(_query); ++i)
+	    for (auto i = 0u; i < ArraySize(_query); ++i)
 		glGetQueryObjectui64v (_query[i], GL_QUERY_RESULT, &times[i]);
 	    _syncEvent.time = times[query_RenderEnd] - times[query_RenderBegin];
 	    _syncEvent.key = times[query_FrameEnd] - times[query_RenderBegin];
@@ -155,21 +155,21 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 	glXSwapBuffers (dpy, Drawable());
 	PostQuery (_query[query_FrameEnd]);
     }
-    return (_nextVSync);
+    return _nextVSync;
 }
 
 uint64_t CGLWindow::DrawFrameNoWait (bstri cmdis, Display* dpy)
 {
     if (_nextVSync != NotWaitingForVSync) {
 	_pendingFrame.assign (cmdis.ipos(), cmdis.end());
-	return (_nextVSync);
+	return _nextVSync;
     }
-    return (DrawFrame (cmdis, dpy));
+    return DrawFrame (cmdis, dpy);
 }
 
 uint64_t CGLWindow::DrawPendingFrame (Display* dpy)
 {
-    return (DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy));
+    return DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy);
 }
 
 //----------------------------------------------------------------------
@@ -220,7 +220,7 @@ void CGLWindow::Parameter (GLuint slot, const CBuffer& buf, G::Type type, GLuint
 
 void CGLWindow::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept
 {
-    GLint slot = glGetUniformLocation (ShaderId(), varname);
+    auto slot = glGetUniformLocation (ShaderId(), varname);
     if (slot < 0) return;
     DTRACE ("[%x] Uniform4f %s = %g,%g,%g,%g\n", IId(), varname, x,y,z,w);
     glUniform4f (slot, x, y, z, w);
@@ -228,7 +228,7 @@ void CGLWindow::Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z,
 
 void CGLWindow::Uniform4iv (const char* varname, const GLint* v) const noexcept
 {
-    GLint slot = glGetUniformLocation (ShaderId(), varname);
+    auto slot = glGetUniformLocation (ShaderId(), varname);
     if (slot < 0) return;
     DTRACE ("[%x] Uniform4iv %s = %d,%d,%d,%d\n", IId(), varname, v[0],v[1],v[2],v[3]);
     glUniform4iv (slot, 4, v);
@@ -236,7 +236,7 @@ void CGLWindow::Uniform4iv (const char* varname, const GLint* v) const noexcept
 
 void CGLWindow::UniformMatrix (const char* varname, const GLfloat* mat) const noexcept
 {
-    GLint slot = glGetUniformLocation (ShaderId(), varname);
+    auto slot = glGetUniformLocation (ShaderId(), varname);
     if (slot < 0) return;
     DTRACE ("[%x] UniformMatrix %s =\n\t%g,%g,%g,%g\n\t%g,%g,%g,%g\n\t%g,%g,%g,%g\n\t%g,%g,%g,%g\n", IId(), varname, mat[0],mat[1],mat[2],mat[3], mat[4],mat[5],mat[6],mat[7], mat[8],mat[9],mat[10],mat[11], mat[12],mat[13],mat[14],mat[15]);
     glUniformMatrix4fv (slot, 1, GL_FALSE, mat);
@@ -245,7 +245,7 @@ void CGLWindow::UniformMatrix (const char* varname, const GLfloat* mat) const no
 void CGLWindow::UniformTexture (const char* varname, const CTexture& t, GLuint itex) noexcept
 {
     if (Texture() == t.CId()) return;
-    GLint slot = glGetUniformLocation (ShaderId(), varname);
+    auto slot = glGetUniformLocation (ShaderId(), varname);
     if (slot < 0) return;
     DTRACE ("[%x] UniformTexture %s = %x slot %u\n", IId(), varname, t.CId(), itex);
     glActiveTexture (GL_TEXTURE0+itex);
@@ -329,7 +329,7 @@ void CGLWindow::BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bind
     GLenum targ = c_Target [min<uint8_t>(bindas, ArraySize(c_Target)-1)];
     glBindFramebuffer (targ, fb.Id());
     _curFb = fb.CId();
-    GLushort w = fb.Width(), h = fb.Height();
+    auto w = fb.Width(), h = fb.Height();
     if (!fb.Id()) {
 	w = _winfo.w;
 	h = _winfo.h;
@@ -365,7 +365,7 @@ void CGLWindow::SaveFramebuffer (coord_t x, coord_t y, coord_t w, coord_t h, con
 
 void CGLWindow::Text (coord_t x, coord_t y, const char* s)
 {
-    const CFont& f = (Font() == G::GoidNull ? _pconn->DefaultFont() : LookupFont(Font()));
+    const auto& f = (Font() == G::GoidNull ? _pconn->DefaultFont() : LookupFont(Font()));
     SetFontShader();
 
     DTRACE ("[%x] Text at %d:%d: '%s'\n", IId(), x,y,s);
@@ -404,7 +404,7 @@ inline bool CGLWindow::QueryResultAvailable (GLuint q) const
 {
     GLint haveQuery;
     glGetQueryObjectiv (q, GL_QUERY_RESULT_AVAILABLE, &haveQuery);
-    return (haveQuery);
+    return haveQuery;
 }
 
 //----------------------------------------------------------------------
@@ -425,8 +425,8 @@ void CGLWindow::CheckForErrors (void)
 	return;
     while (glGetError() != GL_NO_ERROR) {}	// Clear all subsequent errors
     e = min (7u, e-(GL_INVALID_ENUM-1));	// Report only first error
-    const char* etxt = c_ErrorText;
-    for (unsigned i = 0; i < e; ++i)
+    auto etxt = c_ErrorText;
+    for (auto i = 0u; i < e; ++i)
 	etxt = strnext(etxt, etxtsz);
     DTRACE ("GLError: %s\n", etxt);
     XError::emit (etxt);

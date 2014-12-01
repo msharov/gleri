@@ -12,10 +12,10 @@ public:
     inline		CMenuEntry (PRGL* prgl, const char* text, const char* id, const char* accel = "")
 			    : CWidget(prgl),_text(text),_id(id),_accel(accel),_backrect() {}
     ONWIGDRAWDECL	OnDraw (Drw& drw) const;
-    virtual SSize	OnMeasure (void) const;
-    virtual void	OnResize (dim_t w, dim_t h);
-    virtual void	OnKey (key_t key);
-    virtual void	OnButtonUp (key_t b, coord_t x, coord_t y);
+    virtual SSize	OnMeasure (void) const override;
+    virtual void	OnResize (dim_t w, dim_t h) override;
+    virtual void	OnKey (key_t key) override;
+    virtual void	OnButtonUp (key_t b, coord_t x, coord_t y) override;
 private:
     const char*		_text;
     const char*		_id;
@@ -27,15 +27,15 @@ private:
 
 class CPopupMenu : public CWindow {
 public:
-    static inline CPopupMenu*	Create (iid_t parent, coord_t x, coord_t y, const char* mdef)		{ return (CGLApp::Instance().CreateWindow<CPopupMenu>(parent,x,y,mdef)); }
+    static inline CPopupMenu*	Create (iid_t parent, coord_t x, coord_t y, const char* mdef)		{ return CGLApp::Instance().CreateWindow<CPopupMenu>(parent,x,y,mdef); }
     inline explicit	CPopupMenu (iid_t wid, iid_t parent, coord_t x, coord_t y, const char* mdef)	: CWindow(wid), _parent(parent),_border(0),_x(x),_y(y),_mdef(mdef),_items(this) {}
-    virtual void	OnInit (void);
-    virtual void	OnResize (dim_t w, dim_t h);
+    virtual void	OnInit (void) override;
+    virtual void	OnResize (dim_t w, dim_t h) override;
     ONDRAWDECL		OnDraw (Drw& drw) const;
-    virtual void	OnEvent (const CEvent& e);
+    virtual void	OnEvent (const CEvent& e) override;
 protected:
-    virtual void	OnKey (key_t key);
-    virtual void	OnMotion (coord_t x, coord_t y, key_t b);
+    virtual void	OnKey (key_t key) override;
+    virtual void	OnMotion (coord_t x, coord_t y, key_t b) override;
 private:
     iid_t		_parent;
     goid_t		_border;

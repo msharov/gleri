@@ -32,5 +32,5 @@ int main (int argc, const char* const* argv)
     }
     fclose (dsrc);
     fclose (dhdr);
-    return (EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }

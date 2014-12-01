@@ -9,15 +9,15 @@
 class CTestWindow : public CWindow {
 public:
     explicit		CTestWindow (iid_t wid);
-    virtual void	OnInit (void);
-    virtual void	OnResize (dim_t w, dim_t h);
-    virtual void	OnTimer (uint64_t tms);
+    virtual void	OnInit (void) override;
+    virtual void	OnResize (dim_t w, dim_t h) override;
+    virtual void	OnTimer (uint64_t tms) override;
     ONDRAWDECL		OnDraw (Drw& drw) const;
 			DRAWFBDECL(Offscreen);
 protected:
-    virtual void	OnKey (key_t key);
-    virtual void	OnButton (key_t b, coord_t x, coord_t y);
-    virtual void	OnCommand (const char* cmd);
+    virtual void	OnKey (key_t key) override;
+    virtual void	OnButton (key_t b, coord_t x, coord_t y) override;
+    virtual void	OnCommand (const char* cmd) override;
 private:
     goid_t		_vbuf;
     goid_t		_cbuf;

@@ -19,16 +19,16 @@ public:
 	opt_Last
     };
 public:
-    static CGleris&	Instance (void) noexcept { static CGleris app; return (app); }
+    static CGleris&	Instance (void) noexcept	{ static CGleris app; return app; }
     virtual		~CGleris (void) noexcept;
     void		Init (argc_t argc, argv_t argv);
-    inline bool		Option (EOption o) const	{ return (_options & (1<<o)); }
+    inline bool		Option (EOption o) const	{ return _options & (1<<o); }
 private:
     enum { c_SocketPathLen = sizeof(sockaddr_un::sun_path) };
-    typedef CGLWindow::iid_t	iid_t;
-    typedef PRGL::WinInfo	WinInfo;
-    typedef const WinInfo&	rcwininfo_t;
-    typedef CCmd::SDataBlock	SDataBlock;
+    using iid_t		= CGLWindow::iid_t;
+    using WinInfo	= PRGL::WinInfo;
+    using rcwininfo_t	= const WinInfo&;
+    using SDataBlock	= CCmd::SDataBlock;
     //{{{ EAtom
     enum EAtom : unsigned {
 	a_ATOM,
@@ -105,7 +105,7 @@ private:
     void		DestroyClient (CGLWindow*& pcli) noexcept;
     void		ForwardError (const char* cmdname, const XError& e, int fd, iid_t iid) noexcept;
     inline void		SetOption (EOption o)	{ _options |= (1<<o); }
-    inline iid_t	GenIId (void)		{ return (++_nextiid); }
+    inline iid_t	GenIId (void)		{ return ++_nextiid; }
     inline void		GetAtoms (void) noexcept;
     unsigned		WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noexcept;
     void		OnXEvent (void);
@@ -113,9 +113,9 @@ private:
    static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
    static inline CEvent	EventFromButton (const XButtonEvent& xev) noexcept;
    static inline CEvent	EventFromMotion (const XMotionEvent& xev) noexcept;
-    virtual void	OnFd (int fd);
-    virtual void	OnFdError (int fd);
-    virtual void	OnTimer (uint64_t tms);
+    virtual void	OnFd (int fd) override;
+    virtual void	OnFdError (int fd) override;
+    virtual void	OnTimer (uint64_t tms) override;
     static int		XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept;
     static int		XlibIOErrorHandler (Display*) noexcept NORETURN;
     inline void		OnXlibIOError (void) { _dpy = nullptr; }
@@ -132,9 +132,9 @@ private:
     uint8_t		_glversion;
     uint8_t		_options;
     Atom		_atoms [a_Last];
-    GLXFBConfig		_fbconfig[G::WinInfo::MSAA_MAX+1];
-    XVisualInfo*	_visinfo[G::WinInfo::MSAA_MAX+1];
-    Colormap		_colormap[G::WinInfo::MSAA_MAX+1];
+    GLXFBConfig		_fbconfig [G::WinInfo::MSAA_MAX+1];
+    XVisualInfo*	_visinfo [G::WinInfo::MSAA_MAX+1];
+    Colormap		_colormap [G::WinInfo::MSAA_MAX+1];
     char		_xauth [XAUTH_DATA_LEN];
     static char*	_xlib_error;
     static char		s_SocketPath [c_SocketPathLen];

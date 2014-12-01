@@ -52,16 +52,16 @@ public:
 	inline		Sources (const CDatapak& pak, const char* v, const char* g, const char* f) :_vertex(v),_tcontrol(nullptr),_teval(nullptr),_geometry(g),_fragment(f) { LoadFromPak (pak); }
 	inline		Sources (const CDatapak& pak, const char* v, const char* tc, const char* te, const char* f) :_vertex(v),_tcontrol(tc),_teval(te),_geometry(nullptr),_fragment(f) { LoadFromPak (pak); }
 	inline		Sources (const CDatapak& pak, const char* v, const char* tc, const char* te, const char* g, const char* f) :_vertex(v),_tcontrol(tc),_teval(te),_geometry(g),_fragment(f) { LoadFromPak (pak); }
-	inline bool	HaveStage (GLuint s) const	{ return (_stage[s]); }
-	inline GLushort	ShaderType (GLuint s) const	{ return (c_ShaderType[s]); }
+	inline bool	HaveStage (GLuint s) const	{ return _stage[s]; }
+	inline GLushort	ShaderType (GLuint s) const	{ return c_ShaderType[s]; }
 	inline void	ShaderSource (GLuint id, GLuint s) const noexcept;
     };
     //}}}
 public:
     inline		CShader (GLXContext ctx, goid_t cid, const Sources& src)
 			    : CGObject(ctx,cid,glCreateProgram()) { Load(src); }
-    inline		CShader (CShader&& v)			: CGObject(forward<CShader>(v)) {}
-    inline CShader&	operator= (CShader&& v)			{ CGObject::operator= (forward<CShader>(v)); return (*this); }
+    inline		CShader (CShader&& v)			: CGObject(move(v)) {}
+    inline CShader&	operator= (CShader&& v)			{ CGObject::operator= (move(v)); return *this; }
 			~CShader (void) noexcept;
 private:
     void		Load (const Sources& src);

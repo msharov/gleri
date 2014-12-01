@@ -45,7 +45,7 @@ void CWindow::OnTimer (uint64_t tms)
 bool CWindow::WaitingForVSync (void)
 {
     if (_nextVSync != NotWaitingForVSync)
-	return (_drawPending = true);
+	return _drawPending = true;
     WaitForTime (_nextVSync = NowMS() + RefreshTimeNS()/1000000 + 1);
-    return (_drawPending = false);
+    return _drawPending = false;
 }

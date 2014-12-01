@@ -39,12 +39,12 @@ CBuffer::CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::B
 	GL_TRANSFORM_FEEDBACK_BUFFER,
 	GL_UNIFORM_BUFFER
     };
-    return (c_BufferTypeEnum[min<uint16_t>(btype,ArraySize(c_BufferTypeEnum)-1)]);
+    return c_BufferTypeEnum[min<uint16_t>(btype,ArraySize(c_BufferTypeEnum)-1)];
 }
 
 CBuffer::~CBuffer (void) noexcept
 {
-    GLuint id = Id();
+    auto id = Id();
     if (id != NoObject)
 	glDeleteBuffers (1, &id);
 }
@@ -56,13 +56,13 @@ namespace {
 class CpioHeader {
 public:
     inline			CpioHeader (void)	{ }
-    inline GLuint		Filesize (void) const	{ return ((GLuint(filesize[0]) << 16) | filesize[1]); }
-    inline bool			MagicOk (void) const	{ return (magic == 070707); }
-    inline const char*		Filename (void) const	{ return ((const char*)this + sizeof(*this)); }
-    inline const GLubyte*	Filedata (void) const	{ return ((const GLubyte*)(Filename()+EvenUp(namesize))); }
-    inline const CpioHeader*	Next (void) const	{ return ((const CpioHeader*)(Filedata()+EvenUp(Filesize()))); }
+    inline GLuint		Filesize (void) const	{ return (GLuint(filesize[0]) << 16) | filesize[1]; }
+    inline bool			MagicOk (void) const	{ return magic == 070707; }
+    inline const char*		Filename (void) const	{ return (const char*)this + sizeof(*this); }
+    inline const GLubyte*	Filedata (void) const	{ return (const GLubyte*)(Filename()+EvenUp(namesize)); }
+    inline const CpioHeader*	Next (void) const	{ return (const CpioHeader*)(Filedata()+EvenUp(Filesize())); }
 protected:
-    inline GLuint		EvenUp (GLuint v) const	{ return (v+v%2); }
+    inline GLuint		EvenUp (GLuint v) const	{ return v+v%2; }
 protected:
     GLushort	magic;		///< Magic id 070707
     GLushort	dev;
@@ -89,7 +89,7 @@ CDatapak::CDatapak (GLXContext ctx, goid_t cid, GLubyte* p, GLuint psz) noexcept
 
 CDatapak::~CDatapak (void) noexcept
 {
-    GLuint id = Id();
+    auto id = Id();
     if (id != NoObject)
 	glDeleteBuffers (1, &id);
     if (_p)
@@ -99,15 +99,15 @@ CDatapak::~CDatapak (void) noexcept
 const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
 {
     if (!_p)
-	return (nullptr);
-    typedef const CpioHeader* pch_t;
-    for (pch_t pi = (pch_t)_p, pe = (pch_t)(_p+_sz); pi < pe; pi = pi->Next()) {
+	return nullptr;
+    using pch_t	= const CpioHeader*;
+    for (auto pi = (pch_t)_p, pe = (pch_t)(_p+_sz); pi < pe; pi = pi->Next()) {
 	if (!strcmp (pi->Filename(), filename)) {
 	    sz = pi->Filesize();
-	    return (pi->Filedata());
+	    return pi->Filedata();
 	}
     }
-    return (nullptr);
+    return nullptr;
 }
 
 //----------------------------------------------------------------------
@@ -119,9 +119,8 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
 
     zs.avail_in = isz;
     zs.next_in = const_cast<Bytef*>(p);
-    unsigned bufsz = 4096, bread = 0;
-    unsigned chunksz = bufsz;
-    GLubyte* out = (GLubyte*) malloc (bufsz);
+    auto bufsz = 4096u, bread = 0u, chunksz = bufsz;
+    auto out = (GLubyte*) malloc (bufsz);
     zs.avail_out = bufsz;
     zs.next_out = out;
 
@@ -130,7 +129,7 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
 	CFile::Error ("gzip");
 
     for (;;) {
-	int r = inflate (&zs, Z_NO_FLUSH);
+	auto r = inflate (&zs, Z_NO_FLUSH);
 	if (r == Z_STREAM_END)
 	    break;
 	else if (r == Z_OK) {
@@ -146,7 +145,7 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
     }
     osz = bread + chunksz-zs.avail_out;
     inflateEnd (&zs);
-    return (out);
+    return out;
 }
 
 //----------------------------------------------------------------------
@@ -158,10 +157,10 @@ CFramebuffer::CFramebuffer (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint
 {
     try {
 	glBindFramebuffer (GL_FRAMEBUFFER, Id());
-	const G::FramebufferComponent* icomp = (const G::FramebufferComponent*) p;
+	auto icomp = (const G::FramebufferComponent*) p;
 	unsigned ncomp = psz / sizeof(G::FramebufferComponent);
-	for (unsigned i = 0; i < ncomp; ++i) {
-	    const CTexture& tex = conn.LookupTexture (icomp[i].texture);
+	for (auto i = 0u; i < ncomp; ++i) {
+	    auto& tex = conn.LookupTexture (icomp[i].texture);
 	    Attach (icomp[i], tex);
 	    _w = tex.Width();
 	    _h = tex.Height();
@@ -187,8 +186,8 @@ void CFramebuffer::Attach (const G::FramebufferComponent& c, const CTexture& tex
     };
     //}}}
     DTRACE ("\tAttaching texture %x to target %u, attachment %u, level %u\n", tex.CId(), c.target, c.attachment, c.level);
-    GLenum targ = c_Target [min<uint8_t>(c.target, ArraySize(c_Target)-1)];
-    GLenum attach = c_Attachment [min<uint8_t>(c.attachment, ArraySize(c_Attachment)-1)];
+    auto targ = c_Target [min<uint8_t>(c.target, ArraySize(c_Target)-1)];
+    auto attach = c_Attachment [min<uint8_t>(c.attachment, ArraySize(c_Attachment)-1)];
     GLenum tt = CTexture::GLenumFromTextureType ((G::TextureType) c.textype);
     if (c.textype >= G::TEXTURE_3D)
 	glFramebufferTexture3D (targ, attach, tt, tex.Id(), 0, c.level);
@@ -200,7 +199,7 @@ void CFramebuffer::Attach (const G::FramebufferComponent& c, const CTexture& tex
 
 void CFramebuffer::Free (void) noexcept
 {
-    GLuint id = Id();
+    auto id = Id();
     if (id != NoObject) {
 	ResetId();
 	glDeleteFramebuffers (1, &id);

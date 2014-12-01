@@ -14,10 +14,10 @@ public:
 	is_reading = Stm::is_reading,
 	is_writing = Stm::is_writing
     };
-    typedef G::goid_t		goid_t;
-    typedef G::coord_t		coord_t;
-    typedef G::dim_t		dim_t;
-    typedef G::color_t		color_t;
+    using goid_t	= G::goid_t;
+    using coord_t	= G::coord_t;
+    using dim_t		= G::dim_t;
+    using color_t	= G::color_t;
 private:
     template <typename T, unsigned N> struct ArrayArg {
 	inline constexpr ArrayArg (const T* v = nullptr) :_v(v) {}
@@ -63,7 +63,7 @@ private:
 public:
     inline		PDraw (void)		:_os() {}
     inline explicit	PDraw (const Stm& os)	:_os(os) {}
-    inline size_type	size (void) const	{ return (_os.size()); }
+    inline size_type	size (void) const	{ return _os.size(); }
 			// Base drawing commands. See PDrawR reading equivalents below.
     inline void		Clear (color_t c = 0)					{ Cmd (ECmd::Clear, c); }
     inline void		Viewport (coord_t x, coord_t y, dim_t w, dim_t h)	{ Cmd (ECmd::Viewport, x,y,w,h); }
@@ -124,7 +124,7 @@ private:
     inline void		Cmd (ECmd cmd, const Arg&... args);
     template <typename... Arg>
     static inline void	Args (Stm& is, Arg&... args);
-    constexpr uint32_t	Header (ECmd cmd, uint16_t sz) const	{ return (vpack4(uint16_t(cmd),sz)); }
+    constexpr uint32_t	Header (ECmd cmd, uint16_t sz) const	{ return vpack4(uint16_t(cmd),sz); }
 private:
     Stm			_os;
 };

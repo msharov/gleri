@@ -14,10 +14,10 @@
 class CHelloWindow : public CWindow {
 public:			// You must define at least 3 functions
     explicit		CHelloWindow (iid_t wid);
-    virtual void	OnInit (void);
+    virtual void	OnInit (void) override;
     ONDRAWDECL		OnDraw (Drw& drw) const; // Note the macro return type
 			// To allow quitting, also recieve key events
-    virtual void	OnKey (key_t key);
+    virtual void	OnKey (key_t key) override;
 };
 
 // The constructor mainly passes the window instance id to CWindow
@@ -80,7 +80,7 @@ public:
     // to implement that. The function name is important: it's what
     // main will call.
     static inline CHello& Instance (void) {
-	static CHello s_App; return (s_App);
+	static CHello s_App; return s_App;
     }
     // Init is called from main() once before the main loop, with the args.
     void Init (argc_t argc, argv_t argv) {

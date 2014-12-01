@@ -10,12 +10,12 @@
 class PRGLR : private CCmdBuf {
 public:
     using CCmdBuf::iid_t;
-    typedef G::WinInfo		WinInfo;
-    typedef G::goid_t		goid_t;
-    typedef G::coord_t		coord_t;
-    typedef G::dim_t		dim_t;
-    typedef G::color_t		color_t;
-    typedef const WinInfo&	rcwininfo_t;
+    using WinInfo	= G::WinInfo;
+    using goid_t	= G::goid_t;
+    using coord_t	= G::coord_t;
+    using dim_t		= G::dim_t;
+    using color_t	= G::color_t;
+    using rcwininfo_t	= const WinInfo&;
     enum : uint32_t { c_ObjectName = vpack4('R','G','L','R') };
 private:
     enum class ECmd : cmd_t {
@@ -42,12 +42,12 @@ public:
 				// Reading interface
     template <typename F>
     static inline void		Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf);
-    inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
-    inline int			Fd (void) const			{ return (CCmdBuf::Fd()); }
-    inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
-    inline bool			Matches (int fd) const		{ return (Fd() == fd); }
+    inline iid_t		IId (void) const		{ return CCmdBuf::IId(); }
+    inline int			Fd (void) const			{ return CCmdBuf::Fd(); }
+    inline bool			Matches (int fd, iid_t iid)const{ return Fd() == fd && IId() == iid; }
+    inline bool			Matches (int fd) const		{ return Fd() == fd; }
 protected:
-    inline bool			CanPassFd (void) const		{ return (CCmdBuf::CanPassFd()); }
+    inline bool			CanPassFd (void) const		{ return CCmdBuf::CanPassFd(); }
 private:
     template <typename... Arg>
     inline void			Cmd (ECmd cmd, const Arg&... args);
@@ -94,7 +94,7 @@ inline void PRGLR::ResourceInfo (goid_t id, uint16_t type, const RInfo& ri)
 template <typename F>
 /*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
 {
-    bstri cmdis (h.Msgstrm());
+    auto cmdis (h.Msgstrm());
     auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);
     if (!clir)
 	return;

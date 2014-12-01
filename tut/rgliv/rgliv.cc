@@ -29,11 +29,11 @@ class CImageViewer : public CWindow {
     };
 public:
     explicit		CImageViewer (iid_t wid, const char* filename);
-    virtual void	OnInit (void);
+    virtual void	OnInit (void) override;
     ONDRAWDECL		OnDraw (Drw& drw) const;
-    virtual void	OnKey (key_t key);
-    virtual void	OnTextureInfo (goid_t, const G::Texture::Header&);
-    virtual void	OnResize (dim_t w, dim_t h);
+    virtual void	OnKey (key_t key) override;
+    virtual void	OnTextureInfo (goid_t, const G::Texture::Header&) override;
+    virtual void	OnResize (dim_t w, dim_t h) override;
 private:
     // There are two possible views, shown in the same window
     enum EView {
@@ -47,15 +47,15 @@ private:
     public:
 	inline		CFolderEntry (const char* name, uint32_t size, bool isFile = true)
 				:_size(size),_w(0),_h(0),_type(isFile ? Image : Folder),_thumb(_type) { _name = name; }
-	inline bool	operator< (const char* name) const	{ return (strcmp (_name.c_str(), name) < 0); }
-	inline bool	operator< (const CFolderEntry& e) const	{ return (_name < e._name); }
-	inline bool	operator== (const CFolderEntry& e)const	{ return (_name == e._name); }
-	inline const char*	Name (void) const		{ return (_name.c_str()); }
-	inline uint32_t	Size (void) const			{ return (_size); }
-	inline dim_t	Width (void) const			{ return (_w); }
-	inline dim_t	Height (void) const			{ return (_h); }
-	inline EType	Type (void) const			{ return (_type); }
-	inline uint8_t	ThumbIndex (void) const			{ return (_thumb); }
+	inline bool	operator< (const char* name) const	{ return strcmp (_name.c_str(), name) < 0; }
+	inline bool	operator< (const CFolderEntry& e) const	{ return _name < e._name; }
+	inline bool	operator== (const CFolderEntry& e)const	{ return _name == e._name; }
+	inline const char*	Name (void) const		{ return _name.c_str(); }
+	inline uint32_t	Size (void) const			{ return _size; }
+	inline dim_t	Width (void) const			{ return _w; }
+	inline dim_t	Height (void) const			{ return _h; }
+	inline EType	Type (void) const			{ return _type; }
+	inline uint8_t	ThumbIndex (void) const			{ return _thumb; }
 	inline void	SetThumbIndex (uint8_t i)		{ _thumb = i; }
 	inline void	ResetThumbIndex (void)			{ _thumb = _type; }
     private:
@@ -65,18 +65,18 @@ private:
 	EType		_type;
 	uint8_t		_thumb;
     };
-    typedef vector<CFolderEntry>	foldervec_t;
+    using foldervec_t	= vector<CFolderEntry>;
     //}}}
 private:
 			DRAWFBDECL(ThumbCache);
     void		LoadFolder (void);
     void		LoadEntry (void);
-    inline const CFolderEntry& CurEntry (void) const	{ return (_files[_selection]); }
+    inline const CFolderEntry& CurEntry (void) const	{ return _files[_selection]; }
     inline void		OnImageViewKey (key_t key);
     inline void		OnFolderViewKey (key_t key);
     void		BeginThumbUpdate (void);
-    static coord_t	CacheThumbX (unsigned thumbIndex)	{ return ((thumbIndex % c_CacheNEntriesX) * c_ThumbWidth); }
-    static coord_t	CacheThumbY (unsigned thumbIndex)	{ return ((thumbIndex / c_CacheNEntriesY) * c_ThumbHeight); }
+    static coord_t	CacheThumbX (unsigned thumbIndex)	{ return (thumbIndex % c_CacheNEntriesX) * c_ThumbWidth; }
+    static coord_t	CacheThumbY (unsigned thumbIndex)	{ return (thumbIndex / c_CacheNEntriesY) * c_ThumbHeight; }
 private:
     goid_t		_img;		///< Visible image in ImageView
     goid_t		_loadingImg;	///< Image currently being loaded. Not in _img to avoid drawing blank screen until loaded.
@@ -185,7 +185,7 @@ void CImageViewer::LoadEntry (void)
 	_selection = 0;
 	_firstentry = 0;
 	// Find the given filename in the directory listing.
-	for (unsigned i = 0; i < _files.size(); ++i) {
+	for (auto i = 0u; i < _files.size(); ++i) {
 	    if (!strcmp (_selectionName.c_str(), _files[i].Name())) {
 		_selection = i;
 		// If it is an image file, load it. This only happens when this
@@ -211,12 +211,12 @@ void CImageViewer::LoadFolder (void)
     _files.clear();
     _caching.FileIndex = UINT16_MAX;	// Stop thumb caching
     // List all subdirs and image files, loading entries into _files
-    DIR* dd = opendir (".");
+    auto dd = opendir (".");
     for (struct dirent* de; (de = readdir (dd));) {
 	struct stat st;
 	if (access (de->d_name, R_OK) != 0 || stat (de->d_name, &st) < 0)
 	    continue;						// Readable files only
-	size_t nlen = strlen(de->d_name);
+	auto nlen = strlen(de->d_name);
 	if ((!S_ISDIR(st.st_mode)				// List subfolders
 	     || (de->d_name[0] == '.' && de->d_name[1] != '.'))	// Including "..", but not other hidden files
 	    && (!S_ISREG(st.st_mode)				// Including regular files
@@ -250,8 +250,8 @@ ONDRAWIMPL(CImageViewer)::OnDraw (Drw& drw) const
 	drw.Color (color_FolderViewText);
 	// Bind the vertex pointer to _vertices to draw the selection rectangle
 	drw.VertexPointer (_vertices);
-	for (unsigned y = 0, ie = _firstentry; y <= (unsigned) Info().h-c_EntryHeight; y += c_EntryHeight) {	// Iterate over all visible entries
-	    for (unsigned x = 0; x <= (unsigned) Info().w-c_EntryWidth; ++ie, x += c_EntryWidth) {
+	for (auto y = 0u, ie = _firstentry; y <= (unsigned) Info().h-c_EntryHeight; y += c_EntryHeight) {	// Iterate over all visible entries
+	    for (auto x = 0u; x <= (unsigned) Info().w-c_EntryWidth; ++ie, x += c_EntryWidth) {
 		drw.Viewport (x,y,c_EntryWidth,c_EntryHeight);	// Set clipping rectangle to entry size. Clips long filenames.
 		if (ie >= _files.size())
 		    return;
@@ -260,9 +260,9 @@ ONDRAWIMPL(CImageViewer)::OnDraw (Drw& drw) const
 		    drw.TriangleStrip (0, 4);			// Selection bar is 4 points at offset 0
 		    drw.Color (color_FolderViewText);
 		}
-		uint8_t thumbIndex = _files[ie].ThumbIndex();	// Draw the thumbnail for the entry
+		auto thumbIndex = _files[ie].ThumbIndex();	// Draw the thumbnail for the entry
 		drw.Sprite (c_ThumbX, c_ThumbY, _thumbs, CacheThumbX (thumbIndex), CacheThumbY (thumbIndex), c_ThumbWidth, c_ThumbHeight);
-		const char* filename = _files[ie].Name();	// Draw the filename centered under the thumbnail
+		auto filename = _files[ie].Name();		// Draw the filename centered under the thumbnail
 		drw.Text (max<coord_t> (filenameX, (c_EntryWidth-Font()->Width(filename))/2), filenameY, _files[ie].Name());
 	    }
 	}
@@ -286,14 +286,14 @@ void CImageViewer::BeginThumbUpdate (void)
     unsigned pagesz = (Info().w/c_EntryWidth) * (Info().h/c_EntryHeight);
     pagesz = min<unsigned> (pagesz, _files.size()-_firstentry);
     // Find the first image without a thumb and initiate update from it
-    for (unsigned i = _firstentry; i < _firstentry+pagesz; ++i) {
+    for (auto i = _firstentry; i < _firstentry+pagesz; ++i) {
 	if (_files[i].ThumbIndex() >= 2)
 	    continue;	// Already have thumb
 	if (_files[i].Type() != CFolderEntry::Image)
 	    continue;	// Only images have thumbs
 	// Find a free thumb slot using the LRU criterium.
-	unsigned slot = 2;
-	for (unsigned s = 0; s < ArraySize(_caching.ThumbStamps); ++s)
+	auto slot = 2u;
+	for (auto s = 0u; s < ArraySize(_caching.ThumbStamps); ++s)
 	    if (_caching.ThumbStamps[s] < _caching.ThumbStamps[slot])
 		slot = s;
 	// If slot is used, reset its users to default
@@ -321,7 +321,7 @@ DRAWFBIMPL(CImageViewer,ThumbCache)
     drw.Viewport (CacheThumbX (_caching.ThumbIndex), CacheThumbY (_caching.ThumbIndex), c_ThumbWidth, c_ThumbHeight);
     drw.Clear (color_ThumbBackground);
     drw.Color (color_FolderViewText);
-    float scale = min (float(c_ThumbWidth)/_caching.ImageW, float(c_ThumbHeight)/_caching.ImageH);
+    auto scale = min (float(c_ThumbWidth)/_caching.ImageW, float(c_ThumbHeight)/_caching.ImageH);
     drw.Scale (scale, scale);		// Shrink the image to thumb dimensions
     if (_caching.ThumbIndex == CFolderEntry::Folder)
 	drw.LineLoop (4, 7);		// 7 points at offset 4, folder icon
@@ -372,7 +372,7 @@ void CImageViewer::OnKey (key_t key)
 {
     CWindow::OnKey (key);
     if (key == Key::Escape || key == 'q')
-	return (Close());
+	return Close();
     // Route to view-specific handler below
     if (_view == ImageView)
 	OnImageViewKey (key);
@@ -401,7 +401,7 @@ inline void CImageViewer::OnImageViewKey (key_t key)
 	_view = FolderView;
 	OnKey (0);			// Scrolls the view to selection
     } else if (key == '+' || key == '-') {	// Changes the zoom factor
-	float mult = (key == '+' ? 2.f : 0.5f);
+	auto mult = (key == '+' ? 2.f : 0.5f);
 	_iscale *= mult;
 	float scx = Info().w/2, scy = Info().h/2;
 	_ix = (_ix-scx)*mult+scx;	// Keep image center at screen center
@@ -418,7 +418,7 @@ inline void CImageViewer::OnImageViewKey (key_t key)
 	    LoadEntry();
     }
     // Clamp the image position resulting from above to viewport
-    float sw = _iw*_iscale, sh = _ih*_iscale;
+    auto sw = _iw*_iscale, sh = _ih*_iscale;
     if (sw > Info().w)
 	_ix = min (0.f, max (_ix, Info().w - sw));
     else
@@ -459,7 +459,7 @@ inline void CImageViewer::OnFolderViewKey (key_t key)
     // Clip selection to view, or reposition view to selection
     if (_selection >= _files.size())
 	_selection = 0;
-    uint32_t oldfirstentry = _firstentry;
+    auto oldfirstentry = _firstentry;
     if (unsigned(_selection-_firstentry) >= pagesz)
 	_firstentry = (_selection / pagesz) * pagesz;
     if (!_firstentry || oldfirstentry != _firstentry)	// If moved, something new might get exposed
@@ -473,7 +473,7 @@ class CImageViewerApp : public CGLApp {
     inline CImageViewerApp (void) : CGLApp(),_toOpen(nullptr) {}
 public:
     static inline CImageViewerApp& Instance (void) {
-	static CImageViewerApp s_App; return (s_App);
+	static CImageViewerApp s_App; return s_App;
     }
     void Init (argc_t argc, argv_t argv);
 private:
@@ -493,9 +493,9 @@ void CImageViewerApp::Init (argc_t argc, argv_t argv)
 	return;
     }
     // Chdir to it if a folder, otherwise chdir to its parent folder
-    const char* filename = "";
+    auto filename = "";
     if (!S_ISDIR(st.st_mode)) {
-	char* pslash = strrchr ((char*) _toOpen, '/');
+	auto pslash = strrchr ((char*) _toOpen, '/');
 	if (pslash) {
 	    *pslash = 0;	// Split into dir and filename
 	    filename = pslash+1;

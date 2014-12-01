@@ -44,10 +44,10 @@ CFont::CFont (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz) noexcept
     };
     //}}}------------------------------------------------------------------
 
-    const GLubyte* pend = p+psz;
-    const SPsf1Header* ph1 = (const SPsf1Header*) p;
-    const SPsf2Header* ph2 = (const SPsf2Header*) p;
-    GLuint nChars = 256;
+    auto pend = p+psz;
+    auto ph1 = (const SPsf1Header*) p;
+    auto ph2 = (const SPsf2Header*) p;
+    auto nChars = 256u;
     if (ph1->magic == PSF1_MAGIC) {
 	_info.w = 8;
 	_info.h = ph1->height;
@@ -61,8 +61,7 @@ CFont::CFont (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz) noexcept
     if (!_info.w) return;
     _rowwidth = 256/_info.w;
 
-    GLubyte* ftexbmp = (GLubyte*) malloc (256*256);
-    GLubyte *rowo = ftexbmp, *colo = ftexbmp;
+    auto ftexbmp = (GLubyte*) malloc (256*256), rowo = ftexbmp, colo = ftexbmp;
     const GLuint rowskip = _info.h*256, lineskip = 256-_info.w;
     for (GLuint c = 0, col = 0; c < nChars && p < pend; ++c, ++col, colo += _info.w) {
 	if (col >= _rowwidth) {

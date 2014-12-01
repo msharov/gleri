@@ -15,23 +15,23 @@ static inline bool AtomicSet (bool* p)
 #if __x86__
     bool o (true);
     asm ("xchg\t%0, %1":"+m"(*p),"+r"(o));
-    return (!o);
+    return !o;
 #elif __GNUC__ >= 4
-    return (!__sync_val_compare_and_swap (p, false, true));
+    return !__sync_val_compare_and_swap (p, false, true);
 #else
     const bool o (*p);
     *p = true;
-    return (!o);
+    return !o;
 #endif
 }
 static inline char _num_to_digit (uint8_t b)
 {
     char d = (b & 0xF) + '0';
-    return (d <= '9' ? d : d+('A'-'0'-10));
+    return d <= '9' ? d : d+('A'-'0'-10);
 }
 static inline bool _printable (char c)
 {
-    return (c >= 32 && c < 127);
+    return c >= 32 && c < 127;
 }
 } // namespace
 
@@ -98,14 +98,14 @@ void hexdump (const void* pv, size_t n) noexcept
 	swap(r,s_LastSignal);
     #endif
     if (r) alarm(0);
-    return (r);
+    return r;
 }
 
 /*static*/ uint64_t CApp::NowMS (void) noexcept
 {
     timeval tv;
     gettimeofday (&tv, NULL);
-    return (tv.tv_sec*1000+tv.tv_usec/1000);
+    return tv.tv_sec*1000+tv.tv_usec/1000;
 }
 
 void CApp::WatchFd (int fd)
@@ -131,23 +131,23 @@ void CApp::WaitForTime (uint64_t tms)
 
 inline bool CApp::CheckForQuitSignal (void) const
 {
-    int sig = AckSignal();
+    auto sig = AckSignal();
     if (sig == SIGCHLD)
 	waitpid(-1,nullptr,0);
-    return (SigInSet(sig,sigset_Quit));
+    return SigInSet(sig,sigset_Quit);
 }
 
 inline void CApp::WaitForFdsAndTimers (void)
 {
-    uint64_t timeToWait = _timer.back();
+    auto timeToWait = _timer.back();
     if (timeToWait != NoTimer)
 	timeToWait -= NowMS();
-    int prv = poll (&_watch[0], _watch.size(), uint32_t(timeToWait));
+    auto prv = poll (&_watch[0], _watch.size(), uint32_t(timeToWait));
     if (prv < 0 && errno != EINTR)
 	CFile::Error ("poll");
-    for (unsigned i = 0; i < _watch.size(); ++i) {
-	int efd = _watch[i].fd;
-	uint16_t rev = _watch[i].revents;
+    for (auto i = 0u; i < _watch.size(); ++i) {
+	auto efd = _watch[i].fd;
+	auto rev = _watch[i].revents;
 	if (rev & (POLLHUP| POLLNVAL)) {
 	    _watch.erase (_watch.begin()+i--);
 	    OnFdError (efd);
@@ -164,5 +164,5 @@ int CApp::Run (void)
 {
     while (!_quitting && !CheckForQuitSignal())
 	WaitForFdsAndTimers();
-    return (EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }

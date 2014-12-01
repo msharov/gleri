@@ -22,7 +22,7 @@ CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G:
 	Free();
 	return;
     }
-    CTexBuf tbuf = Load (p, psz);
+    auto tbuf = Load (p, psz);
     if (psz > sizeof(G::Texture::Header) && !tbuf.Data()) {
 	Free();
 	return;
@@ -61,12 +61,12 @@ CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G:
 	G::Texture::TEXTURE_2D_MULTISAMPLE_ARRAY,
 	G::Texture::TEXTURE_SAMPLER
     };
-    return (c_TextureTypeEnum[min<uint16_t>(ttype,ArraySize(c_TextureTypeEnum)-1)]);
+    return c_TextureTypeEnum[min<uint16_t>(ttype,ArraySize(c_TextureTypeEnum)-1)];
 }
 
 void CTexture::Free (void) noexcept
 {
-    GLuint id = Id();
+    auto id = Id();
     if (id != NoObject) {
 	ResetId();
 	glDeleteTextures (1, &id);
@@ -75,19 +75,19 @@ void CTexture::Free (void) noexcept
 
 /*static*/ inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) noexcept
 {
-    const G::Texture::Header& inh = *reinterpret_cast<const G::Texture::Header*>(p);
+    auto& inh = *reinterpret_cast<const G::Texture::Header*>(p);
     if (inh.magic == G::Texture::Header::Magic)
-	return (CTexBuf (inh, psz > sizeof(inh) ? CTexBuf::const_pointer(p+sizeof(inh)) : nullptr));
+	return CTexBuf (inh, psz > sizeof(inh) ? CTexBuf::const_pointer(p+sizeof(inh)) : nullptr);
     #if HAVE_PNG_H
     else if (inh.magic == vpack4(0x89,'P','N','G'))
-	return (LoadPNG (p, psz));
+	return LoadPNG (p, psz);
     #endif
     #if HAVE_JPEGLIB_H
     else if (uint16_t(inh.magic) == vpack2(0xff,0xd8))
-	return (LoadJPG (p, psz));
+	return LoadJPG (p, psz);
     #endif
     else
-	return (CTexBuf());
+	return CTexBuf();
 }
 
 /*static*/ void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format fmt, uint8_t quality)
@@ -108,7 +108,7 @@ void CTexture::Free (void) noexcept
 namespace {
 static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 {
-    const GLubyte** rbuf = (const GLubyte**) png_get_io_ptr(rs);
+    auto rbuf = (const GLubyte**) png_get_io_ptr(rs);
     memcpy (p, *rbuf, n);
     *rbuf += n;
 }
@@ -116,13 +116,13 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 
 /*static*/ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint) noexcept
 {
-    png_structp rs = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    auto rs = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     png_infop infos = nullptr;
     if (rs)
 	infos = png_create_info_struct (rs);
     if (setjmp (png_jmpbuf (rs)) || !infos) {
 	png_destroy_read_struct (&rs, &infos, nullptr);
-	return (CTexBuf());
+	return CTexBuf();
     }
     png_set_read_fn (rs, &p, png_data_source);
     png_read_info (rs, infos);
@@ -141,21 +141,21 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 		png_get_image_height (rs, infos));
 
     auto idata = tbuf.Data();
-    if (!idata) return (tbuf);
+    if (!idata) return tbuf;
     png_byte* rows [tbuf.Header().h];
-    for (GLuint i=0; i < tbuf.Header().h; ++i)
+    for (auto i = 0u; i < tbuf.Header().h; ++i)
 	rows[i] = (png_byte*)(idata+((tbuf.Header().h-1)-i)*tbuf.Header().w);
     png_read_image (rs, rows);
 
     png_destroy_read_struct (&rs, &infos, nullptr);
-    return (tbuf);
+    return tbuf;
 }
 
 /*static*/ void CTexture::SavePNG (int fd, const CTexBuf& tbuf)
 {
-    FILE* outfile = fdopen (fd, "wb");
+    auto outfile = fdopen (fd, "wb");
     if (!outfile) return;
-    png_structp png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+    auto png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     png_infop info_ptr = nullptr;
     if (png_ptr)
 	info_ptr = png_create_info_struct (png_ptr);
@@ -169,9 +169,9 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 		8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
 		PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
-    png_byte* ppix = const_cast<png_byte*>(reinterpret_cast<const GLubyte*>(tbuf.Data()));
+    auto ppix = const_cast<png_byte*>(reinterpret_cast<const GLubyte*>(tbuf.Data()));
     png_byte* pline [tbuf.Header().h];
-    for (unsigned i = 0; i < tbuf.Header().h; ++i)
+    for (auto i = 0u; i < tbuf.Header().h; ++i)
 	pline[i] = &ppix[((tbuf.Header().h-1)-i)*tbuf.Header().w*3];
 
     png_set_rows (png_ptr, info_ptr, pline);
@@ -199,19 +199,19 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     jpeg_read_header (&cinfo, TRUE);
     jpeg_start_decompress (&cinfo);
     unsigned w = cinfo.output_width, h = cinfo.output_height, s = cinfo.output_components;
-    unsigned linew = Align(w*3,4);	// OpenGL requires line padding to 4 bytes
+    auto linew = Align(w*3,4);	// OpenGL requires line padding to 4 bytes
     CTexBuf imgbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, h);
-    unsigned char* ppd = (unsigned char*) imgbuf.Data();
+    auto ppd = (unsigned char*) imgbuf.Data();
     while (cinfo.output_scanline < h) {
-	unsigned j = cinfo.output_scanline;
+	auto j = cinfo.output_scanline;
 	JSAMPLE linebuf[w*s], *jsarr[1] = {linebuf};
 	jpeg_read_scanlines (&cinfo, jsarr, 1);
-	unsigned char* poline = &ppd[((h-1)-j)*linew];
+	auto poline = &ppd[((h-1)-j)*linew];
 	if (s == 3)
 	    memcpy (poline, jsarr[0], w*s);
 	else if (s == 1) {
-	    for (unsigned i = 0; i < w; ++i) {
-		unsigned char c = jsarr[0][i];
+	    for (auto i = 0u; i < w; ++i) {
+		uint8_t c = jsarr[0][i];
 		poline[i*3+0] = c;
 		poline[i*3+1] = c;
 		poline[i*3+2] = c;
@@ -220,12 +220,12 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     }
     jpeg_finish_decompress (&cinfo);
     jpeg_destroy_decompress (&cinfo);
-    return (imgbuf);
+    return imgbuf;
 }
 
 /*static*/ void CTexture::SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality)
 {
-    FILE* outfile = fdopen (fd, "wb");
+    auto outfile = fdopen (fd, "wb");
     if (!outfile) return;
     jpeg_compress_struct cinfo;
     jpeg_error_mgr jerr;
@@ -241,9 +241,9 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     jpeg_set_quality (&cinfo, quality, TRUE);
     jpeg_start_compress (&cinfo, TRUE);
 
-    JSAMPROW ppix = const_cast<JSAMPROW>(reinterpret_cast<const GLubyte*>(tbuf.Data()));
+    auto ppix = const_cast<JSAMPROW>(reinterpret_cast<const GLubyte*>(tbuf.Data()));
     JSAMPROW pline [cinfo.image_height];
-    for (unsigned i = 0; i < cinfo.image_height; ++i)
+    for (auto i = 0u; i < cinfo.image_height; ++i)
 	pline[i] = &ppix[((cinfo.image_height-1)-i)*cinfo.image_width*3];
     jpeg_write_scanlines (&cinfo, pline, cinfo.image_height);
 

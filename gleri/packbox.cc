@@ -14,10 +14,10 @@ CPackbox::~CPackbox (void)
 
 CPackbox::iterator CPackbox::erase (iterator f, iterator l) noexcept
 {
-    wigvec_t::iterator wf = f.base(), wl = l.base();
-    for (wigvec_t::iterator i = wf; i < wl; ++i)
+    auto wf = f.base(), wl = l.base();
+    for (auto i = wf; i < wl; ++i)
 	delete *i;
-    return (_wigv.erase (f.base(), l.base()));
+    return _wigv.erase (f.base(), l.base());
 }
 
 ONWIGDRAWIMPL(CPackbox)::OnDraw (Drw& drw) const
@@ -37,7 +37,7 @@ CPackbox::SSize CPackbox::OnMeasure (void) const
 	sz.w = max (sz.w, is.w);
 	sz.h += is.h;
     }
-    return (sz);
+    return sz;
 }
 
 void CPackbox::OnResize (dim_t w, dim_t h)
@@ -56,21 +56,21 @@ CPackbox::iterator CPackbox::FindEnclosing (coord_t x, coord_t y) noexcept
 {
     foreach (iterator, i, *this)
 	if (i->Encloses (x, y))
-	    return (i);
-    return (end());
+	    return i;
+    return end();
 }
 
 CPackbox::size_type CPackbox::Focus (void) const noexcept
 {
-    for (uint16_t i = 0; i < size(); ++i)
+    for (auto i = 0u; i < size(); ++i)
 	if (_wigv[i]->Flag (f_Focused))
-	    return (i);
-    return (UINT16_MAX);
+	    return i;
+    return UINT16_MAX;
 }
 
 void CPackbox::SetFocus (size_type f) noexcept
 {
-    size_type oldfocus = Focus();
+    auto oldfocus = Focus();
     if (f >= size() || f == oldfocus)
 	return;
     if (oldfocus < size())

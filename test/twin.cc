@@ -131,8 +131,8 @@ void CTestWindow::OnResize (dim_t w, dim_t h)
 {
     CWindow::OnResize (w,h);
     printf ("Test window OnResize\n");
-    const coord_t sw = w-1, sh = h-1;
-    const coord_t _vdata1[] = { sh, sw,sh, sw };
+    const coord_t sw = w-1, sh = h-1,
+		_vdata1[] = { sh, sw,sh, sw };
     BufferSubData (_vbuf, _vdata1, sizeof(_vdata1), 3*sizeof(int16_t));
     _wx = 0; _wy = (h-walk_SpriteH)/2;
     _wsx = 0*walk_SpriteW; _wsy = walk_StripRight;
@@ -262,8 +262,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 
     drw.Color (255,255,255);
     drw.Text (300, 420, "A quick brown fox jumps over the lazy dog");
-    uint32_t lrt = LastRenderTimeNS();
-    uint32_t lft = RefreshTimeNS();
+    auto lrt = LastRenderTimeNS(), lft = RefreshTimeNS();
     drw.Textf (10,10, "FPS %6u, VSync %3u", 1000000000/(lrt?lrt:1), 1000000000/(lft?lft:1));
 
     drw.Color (128,90,150,220);

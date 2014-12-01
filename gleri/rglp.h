@@ -12,14 +12,14 @@ class PRGL : private CCmdBuf {
 public:
     using CCmdBuf::iid_t;
     using CCmdBuf::SDataBlock;
-    typedef PDraw<bstro>	draww_t;
-    typedef G::WinInfo		WinInfo;
-    typedef G::goid_t		goid_t;
-    typedef G::coord_t		coord_t;
-    typedef G::dim_t		dim_t;
-    typedef G::color_t		color_t;
+    using draww_t	= PDraw<bstro>;
+    using WinInfo	= G::WinInfo;
+    using goid_t	= G::goid_t;
+    using coord_t	= G::coord_t;
+    using dim_t	= G::dim_t;
+    using color_t	= G::color_t;
+    using pfontinfo_t	= const G::Font::Info*;
     enum : uint32_t { c_ObjectName = vpack4('R','G','L',0) };
-    typedef const G::Font::Info* pfontinfo_t;
 private:
     enum class ECmd : cmd_t {
 	Auth,
@@ -57,9 +57,9 @@ private:
 	inline SArgv (uint32_t argc, char* const* argv):_argv(argv),_argc(argc) {}
 	template <typename Stm>
 	inline void write (Stm& os) const {
-	    uint32_t* pstrsz = (uint32_t*) os.ipos();
+	    auto pstrsz = (uint32_t*) os.ipos();
 	    os.skip(4);	// Writing as a concatenated string (ay)
-	    for (uint32_t i = 0; i < _argc; ++i)
+	    for (auto i = 0u; i < _argc; ++i)
 		os.write_strz (_argv[i]);
 	    if (Stm::is_writing)
 		*pstrsz = os.ipos()-(typename Stm::pointer)pstrsz-4;
@@ -115,18 +115,18 @@ public:
 	_TEXTURE_LAST = TEXTURE_SAMPLER,
 	_N_TEXTURE_TYPES = _TEXTURE_LAST-_TEXTURE_FIRST+1
     };
-    inline static EResource	ResourceFromBufferType (G::BufferType btype)	{ return (EResource(uint16_t(EResource::_BUFFER_FIRST)+btype)); }
-    inline static G::BufferType	BufferTypeFromResource (EResource r)		{ return (G::BufferType(uint16_t(r)-uint16_t(EResource::_BUFFER_FIRST))); }
-    inline static EResource	ResourceFromTextureType (G::TextureType ttype)	{ return (EResource(uint16_t(EResource::_TEXTURE_FIRST)+ttype)); }
-   inline static G::TextureType	TextureTypeFromResource (EResource r)		{ return (G::TextureType(uint16_t(r)-uint16_t(EResource::_TEXTURE_FIRST))); }
+    inline static EResource	ResourceFromBufferType (G::BufferType btype)	{ return EResource(uint16_t(EResource::_BUFFER_FIRST)+btype); }
+    inline static G::BufferType	BufferTypeFromResource (EResource r)		{ return G::BufferType(uint16_t(r)-uint16_t(EResource::_BUFFER_FIRST)); }
+    inline static EResource	ResourceFromTextureType (G::TextureType ttype)	{ return EResource(uint16_t(EResource::_TEXTURE_FIRST)+ttype); }
+   inline static G::TextureType	TextureTypeFromResource (EResource r)		{ return G::TextureType(uint16_t(r)-uint16_t(EResource::_TEXTURE_FIRST)); }
     //}}}
 public:
     inline explicit		PRGL (iid_t iid) noexcept	: CCmdBuf(iid),_lastid(iid<<16) {}
-    inline iid_t		IId (void) const		{ return (CCmdBuf::IId()); }
-    inline bool			Matches (int fd, iid_t iid)const{ return (Fd() == fd && IId() == iid); }
-    inline bool			Matches (int fd) const		{ return (Fd() == fd); }
-    inline pfontinfo_t		Font (void) const		{ static constexpr G::Font::Info s_DefaultFontInfo = {10,18,0,0}; return (&s_DefaultFontInfo); }
-    inline pfontinfo_t		Font (goid_t) const		{ return (nullptr); }
+    inline iid_t		IId (void) const		{ return CCmdBuf::IId(); }
+    inline bool			Matches (int fd, iid_t iid)const{ return Fd() == fd && IId() == iid; }
+    inline bool			Matches (int fd) const		{ return Fd() == fd; }
+    inline pfontinfo_t		Font (void) const		{ static constexpr G::Font::Info s_DefaultFontInfo = {10,18,0,0}; return &s_DefaultFontInfo; }
+    inline pfontinfo_t		Font (goid_t) const		{ return nullptr; }
 				// Command writing
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
     inline void			SetFd (int fd, bool passFd)	{ CCmdBuf::SetFd(fd, passFd); }
@@ -151,7 +151,7 @@ public:
     inline goid_t		LoadTexture (G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		LoadTexture (goid_t pak, G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		CreateTexture (G::TextureType tt, dim_t w, dim_t h, dim_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGB, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE);
-    inline goid_t		CreateDepthTexture (dim_t w, dim_t h)	{ return (CreateTexture (G::TEXTURE_2D, w, h, 0, G::Pixel::DEPTH_COMPONENT, G::Pixel::FLOAT)); }
+    inline goid_t		CreateDepthTexture (dim_t w, dim_t h)	{ return CreateTexture (G::TEXTURE_2D, w, h, 0, G::Pixel::DEPTH_COMPONENT, G::Pixel::FLOAT); }
     inline void			FreeTexture (goid_t id);
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
     inline void			TexParameter (G::Texture::Parameter p, int v)			{ TexParameter (G::TEXTURE_2D,p,v); }
@@ -181,7 +181,7 @@ private:
     template <typename... Arg>
     inline void			CmdU (ECmd cmd, size_type unwritten, const Arg&... args);
     bstro			CreateCmd (ECmd cmd, size_type sz, size_type unwritten = 0) noexcept;
-    inline goid_t		GenId (void)			{ return (++_lastid); }
+    inline goid_t		GenId (void)			{ return ++_lastid; }
     static inline const char*	LookupCmdName (ECmd cmd, size_type& sz) noexcept;
     static ECmd			LookupCmd (const char* name, size_type bleft) noexcept;
 				// Generic loader interface
@@ -215,81 +215,81 @@ inline void PRGL::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
 }
 
 inline PRGL::draww_t PRGL::Draw (size_type sz, goid_t fbid)
-    { bstro os = CreateCmd (ECmd::Draw,sz+sizeof(fbid)+sizeof(sz)); os << fbid << sz; return (draww_t(os)); }
+    { auto os = CreateCmd (ECmd::Draw,sz+sizeof(fbid)+sizeof(sz)); os << fbid << sz; return draww_t(os); }
 inline PRGL::goid_t PRGL::LoadData (EResource dtype, const void* data, uint32_t dsz, uint16_t hint)
-    { goid_t id = GenId(); Cmd (ECmd::LoadData, id, dtype, hint, dsz, uint32_t(0), SDataBlock (data, dsz)); return (id); }
+    { auto id = GenId(); Cmd (ECmd::LoadData, id, dtype, hint, dsz, uint32_t(0), SDataBlock (data, dsz)); return id; }
 inline PRGL::goid_t PRGL::LoadPakFile (EResource dtype, goid_t pak, const char* filename, uint16_t hint)
-    { goid_t id = GenId(); Cmd (ECmd::LoadPakFile, id, dtype, hint, pak, filename); return (id); }
+    { auto id = GenId(); Cmd (ECmd::LoadPakFile, id, dtype, hint, pak, filename); return id; }
 inline void PRGL::FreeResource (goid_t id, EResource dtype)
     { Cmd (ECmd::FreeResource, id, dtype); if (id==_lastid) --_lastid; }
 
 inline PRGL::goid_t PRGL::BufferData (G::BufferType bt, const void* data, uint32_t dsz, G::BufferHint hint)
-    { return (LoadData (ResourceFromBufferType(bt), data, dsz, hint)); }
+    { return LoadData (ResourceFromBufferType(bt), data, dsz, hint); }
 inline PRGL::goid_t PRGL::BufferData (G::BufferType bt, const char* f, G::BufferHint hint)
-    { return (LoadFile (ResourceFromBufferType(bt), f, hint)); }
+    { return LoadFile (ResourceFromBufferType(bt), f, hint); }
 inline PRGL::goid_t PRGL::BufferData (goid_t pak, G::BufferType bt, const char* f, G::BufferHint hint)
-    { return (LoadPakFile (ResourceFromBufferType(bt), pak, f, hint)); }
+    { return LoadPakFile (ResourceFromBufferType(bt), pak, f, hint); }
 inline void PRGL::BufferSubData (goid_t id, const void* data, uint32_t dsz, uint32_t offset)
     { Cmd (ECmd::BufferSubData, id, offset, SDataBlock (data, dsz)); }
 inline void PRGL::FreeBuffer (goid_t id)
     { FreeResource (id, EResource::BUFFER_VERTEX); }
 
 inline PRGL::goid_t PRGL::LoadDatapak (const void* d, uint32_t dsz)
-    { return (LoadData (EResource::DATAPAK, d, dsz, 0)); }
+    { return LoadData (EResource::DATAPAK, d, dsz, 0); }
 inline PRGL::goid_t PRGL::LoadDatapak (const char* f)
-    { return (LoadFile (EResource::DATAPAK, f, 0)); }
+    { return LoadFile (EResource::DATAPAK, f, 0); }
 inline PRGL::goid_t PRGL::LoadDatapak (goid_t pak, const char* f)
-    { return (LoadPakFile (EResource::DATAPAK, pak, f, 0)); }
+    { return LoadPakFile (EResource::DATAPAK, pak, f, 0); }
 inline void PRGL::FreeDatapak (goid_t id)
     { FreeResource (id, EResource::DATAPAK); }
 
 inline PRGL::goid_t PRGL::LoadTexture (G::TextureType tt, const void* d, uint32_t dsz, G::Pixel::Fmt storeas)
-    { return (LoadData (ResourceFromTextureType(tt), d, dsz, storeas)); }
+    { return LoadData (ResourceFromTextureType(tt), d, dsz, storeas); }
 inline PRGL::goid_t PRGL::LoadTexture (G::TextureType tt, const char* filename, G::Pixel::Fmt storeas)
-    { return (LoadFile (ResourceFromTextureType(tt), filename, storeas)); }
+    { return LoadFile (ResourceFromTextureType(tt), filename, storeas); }
 inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas)
-    { return (LoadPakFile (ResourceFromTextureType(tt), pak, f, storeas)); }
+    { return LoadPakFile (ResourceFromTextureType(tt), pak, f, storeas); }
 inline PRGL::goid_t PRGL::CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d, G::Pixel::Fmt fmt, G::Pixel::Comp comp)
-    { const G::Texture::Header hdr = { G::Texture::Header::Magic, G::Texture::TEXTURE_2D, w, h, d, fmt, comp }; return (LoadTexture (tt, &hdr, sizeof(hdr), fmt)); }
+    { const G::Texture::Header hdr = { G::Texture::Header::Magic, G::Texture::TEXTURE_2D, w, h, d, fmt, comp }; return LoadTexture (tt, &hdr, sizeof(hdr), fmt); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, EResource::TEXTURE_2D); }
 
 inline PRGL::goid_t PRGL::CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na)
-    { return (LoadData (EResource::FRAMEBUFFER, pa, na*sizeof(G::FramebufferComponent), 0)); }
+    { return LoadData (EResource::FRAMEBUFFER, pa, na*sizeof(G::FramebufferComponent), 0); }
 inline PRGL::goid_t PRGL::CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc)
-    { return (CreateFramebuffer (fbc.begin(), fbc.size())); }
+    { return CreateFramebuffer (fbc.begin(), fbc.size()); }
 inline PRGL::goid_t PRGL::CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer)
-    { return (CreateFramebuffer (
+    { return CreateFramebuffer (
 		{{G::FRAMEBUFFER, G::DEPTH_ATTACHMENT, G::TEXTURE_2D, 0, depthbuffer},
-		 {G::FRAMEBUFFER, G::COLOR_ATTACHMENT0, G::TEXTURE_2D, 0, colorbuffer}})); }
+		 {G::FRAMEBUFFER, G::COLOR_ATTACHMENT0, G::TEXTURE_2D, 0, colorbuffer}}); }
 inline void PRGL::FreeFramebuffer (goid_t id)
     { FreeResource (id, EResource::FRAMEBUFFER); }
 
 inline PRGL::goid_t PRGL::LoadFont (const void* d, uint32_t dsz)
-    { return (LoadData (EResource::FONT, d, dsz, 0)); }
+    { return LoadData (EResource::FONT, d, dsz, 0); }
 inline PRGL::goid_t PRGL::LoadFont (const char* f)
-    { return (LoadFile (EResource::FONT, f, 0)); }
+    { return LoadFile (EResource::FONT, f, 0); }
 inline PRGL::goid_t PRGL::LoadFont (goid_t pak, const char* f)
-    { return (LoadPakFile (EResource::FONT, pak, f, 0)); }
+    { return LoadPakFile (EResource::FONT, pak, f, 0); }
 inline void PRGL::FreeFont (goid_t id)
     { FreeResource (id, EResource::FONT); }
 
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f)
-    { goid_t id = GenId(); Cmd (ECmd::LoadData, id, EResource::SHADER, G::STATIC_DRAW, uint32_t(0), uint32_t(0), SShader(v,tc,te,g,f)); return (id); }
+    { auto id = GenId(); Cmd (ECmd::LoadData, id, EResource::SHADER, G::STATIC_DRAW, uint32_t(0), uint32_t(0), SShader(v,tc,te,g,f)); return id; }
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* tc, const char* te, const char* f)
-    { return (LoadShader (v, tc, te, "", f)); }
+    { return LoadShader (v, tc, te, "", f); }
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* g, const char* f)
-    { return (LoadShader (v, "", "", g, f)); }
+    { return LoadShader (v, "", "", g, f); }
 inline PRGL::goid_t PRGL::LoadShader (const char* v, const char* f)
-    { return (LoadShader (v, "", "", "", f)); }
+    { return LoadShader (v, "", "", "", f); }
 inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* g, const char* f)
-    { goid_t id = GenId(); Cmd (ECmd::LoadPakFile, id, EResource::SHADER, G::STATIC_DRAW, pak, SShader(v,tc,te,g,f)); return (id); }
+    { auto id = GenId(); Cmd (ECmd::LoadPakFile, id, EResource::SHADER, G::STATIC_DRAW, pak, SShader(v,tc,te,g,f)); return id; }
 inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* tc, const char* te, const char* f)
-    { return (LoadShader (pak, v, tc, te, "", f)); }
+    { return LoadShader (pak, v, tc, te, "", f); }
 inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* g, const char* f)
-    { return (LoadShader (pak, v, "", "", g, f)); }
+    { return LoadShader (pak, v, "", "", g, f); }
 inline PRGL::goid_t PRGL::LoadShader (goid_t pak, const char* v, const char* f)
-    { return (LoadShader (pak, v, "", "", "", f)); }
+    { return LoadShader (pak, v, "", "", "", f); }
 inline void PRGL::FreeShader (goid_t id)
     { FreeResource (id, EResource::SHADER); }
 
@@ -299,11 +299,11 @@ inline void PRGL::FreeShader (goid_t id)
 template <typename F>
 /*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
 {
-    bstri cmdis (h.Msgstrm());
+    auto cmdis (h.Msgstrm());
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
-    ECmd cmd = LookupCmd (h.Cmdname(), h.hsz);
+    auto cmd = LookupCmd (h.Cmdname(), h.hsz);
     if (!clir ^ (cmd == ECmd::Open || cmd == ECmd::Auth))
-	return (f.OnNoClient (h));
+	return f.OnNoClient (h);
 
     switch (cmd) {
 	case ECmd::Auth: {
