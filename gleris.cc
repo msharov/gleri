@@ -608,17 +608,17 @@ void CGleris::OnXEvent (void)
 
     // Map modifiers to Mod constants
     ekey |= ModsFromXState (xev.state);
-    // Remove Shift mod from uppercase letters
-    if ((ekey & KMod::Shift) && uint16_t(ekey) >= 'A' && uint16_t(ekey) <= 'Z')
+    // Shift mod should only be present on special keys except Shift itself.
+    // Printable characters take uppercase form, or are accessed only with shift.
+    uint16_t ekeyc = ekey;
+    if (ekeyc == Key::Shift || (ekeyc > Key::Space && ekeyc < Key::F0))
 	ekey &= ~KMod::Shift;
-    // Remove self modifiers from the modifier keys
-    if (uint16_t(ekey) == Key::Shift)
-	ekey &= ~KMod::Shift;
-    else if (uint16_t(ekey) == Key::Ctrl)
+    // Remove self modifiers from the other modifier keys
+    if (ekeyc == Key::Ctrl)
 	ekey &= ~KMod::Ctrl;
-    else if (uint16_t(ekey) == Key::Alt)
+    else if (ekeyc == Key::Alt)
 	ekey &= ~KMod::Alt;
-    else if (uint16_t(ekey) == Key::Banner)
+    else if (ekeyc == Key::Banner)
 	ekey &= ~KMod::Banner;
 
     // Return the event
