@@ -552,7 +552,7 @@ void CGleris::OnXEvent (void)
     }
 }
 
-/*static*/ uint32_t CGleris::ModsFromXState (uint32_t state) noexcept
+/*static*/ CGleris::key_t CGleris::ModsFromXState (uint32_t state) noexcept
 {
     static const uint8_t c_Modmap[] = {
 	ShiftMapIndex,	KMod::ShiftShift,
@@ -563,7 +563,7 @@ void CGleris::OnXEvent (void)
 	9,		KMod::MiddleShift,
 	10,		KMod::RightShift
     };
-    uint32_t mods = 0;
+    key_t mods = 0;
     for (auto i = 0u; i < ArraySize(c_Modmap); i+=2)
 	if (state & (1u << c_Modmap[i]))
 	    mods |= (1u << c_Modmap[i+1]);
@@ -573,13 +573,12 @@ void CGleris::OnXEvent (void)
 /*static*/ inline CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept
 {
     // Lookup keysym and char equivalent
-    char keybuf [8];
     KeySym ksym;
     XComposeStatus kmods;
-    auto bufused = XLookupString (const_cast<XKeyEvent*>(&xev), ArrayBlock(keybuf), &ksym, &kmods);
+    XLookupString (const_cast<XKeyEvent*>(&xev), nullptr, 0, &ksym, &kmods);
 
     // Convert X-specific ranges to unicode
-    enum : uint32_t {
+    enum : key_t {
 	XK_Prefix		= 0xf000,
 	XK_Offset		= XK_Prefix - Key::XKBase,
 	XF86XK_Prefix		= 0x1008FF00,
@@ -596,15 +595,10 @@ void CGleris::OnXEvent (void)
     #include "xkeymap.h"	// Defines c_Keymap and c_Modmap
 
     // Map KeySyms to CEvent Key enum
-    uint32_t ekey = 0;
+    key_t ekey = ksym;
     for (auto i = 0u; i < ArraySize(c_Keymap); i+=2)
 	if (c_Keymap[i] == ksym)
 	    ekey = c_Keymap[i+1];
-    if (!ekey && bufused > 0 && (ksym >= ' ' && ksym <= '~')) {
-	ekey = keybuf[0];
-	if (ekey < ' ')
-	    ekey += 'a'-1;
-    }
 
     // Map modifiers to Mod constants
     ekey |= ModsFromXState (xev.state);

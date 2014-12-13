@@ -29,6 +29,7 @@ private:
     using WinInfo	= PRGL::WinInfo;
     using rcwininfo_t	= const WinInfo&;
     using SDataBlock	= CCmd::SDataBlock;
+    using key_t		= CEvent::key_t;
     //{{{ EAtom
     enum EAtom : unsigned {
 	a_ATOM,
@@ -109,7 +110,7 @@ private:
     inline void		GetAtoms (void) noexcept;
     unsigned		WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noexcept;
     void		OnXEvent (void);
-    static uint32_t	ModsFromXState (uint32_t state) noexcept;
+    static key_t	ModsFromXState (uint32_t state) noexcept;
    static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
    static inline CEvent	EventFromButton (const XButtonEvent& xev) noexcept;
    static inline CEvent	EventFromMotion (const XMotionEvent& xev) noexcept;
