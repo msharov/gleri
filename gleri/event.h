@@ -8,7 +8,9 @@
 
 class CEvent {
 public:
+    using key_t		= uint32_t;
     using ctrlid_t	= uint16_t;
+    using coord_t	= G::coord_t;
     enum : ctrlid_t { AllControls = numeric_limits<ctrlid_t>::max() };
     enum EType : uint32_t {
 	// Window control events
@@ -31,13 +33,13 @@ public:
 	UIAccepted	// Like UIChanged, but implies final selection. key is new value.
     };
 public:
-    uint32_t	key;
-    int16_t	x;
-    int16_t	y;
+    key_t	key;
+    coord_t	x;
+    coord_t	y;
     EType	type;
     uint32_t	time;
 public:
-    explicit constexpr	CEvent (EType ntype = Destroy, uint32_t nkey = 0, int16_t nx = 0, int16_t ny = 0, uint32_t ntime = 0)
+    explicit constexpr	CEvent (EType ntype = Destroy, key_t nkey = 0, coord_t nx = 0, coord_t ny = 0, uint32_t ntime = 0)
 			    :key(nkey),x(nx),y(ny),type(ntype),time(ntime) {}
     static CEvent	PingEvent (uint64_t time)	{ return LongnumEvent (Ping, time); }
     static CEvent	CommandEvent (const char* cmd)	{ return LongnumEvent (Command, uintptr_t(cmd)); }
@@ -52,24 +54,25 @@ public:
     inline void		write (bstro& os) const		{ os.iwrite (*this); }
     inline void		write (bstrs& ss) const		{ ss.iwrite (*this); }
 private:
-    static CEvent	LongnumEvent (EType ntype, uint64_t n)	{ return CEvent (ntype, uint32_t(n), 0, 0, uint32_t(n>>32)); }
+    static CEvent	LongnumEvent (EType ntype, uint64_t n)	{ return CEvent (ntype, key_t(n), 0, 0, uint32_t(n>>32)); }
     inline uint64_t	MakeLongnum (void) const	{ return (uint64_t(time)<<32)|key; }
 };
 
 namespace Key {
-    enum : uint32_t {
+    using key_t	= CEvent::key_t;
+    enum : key_t {
 	UnicodePrivateUseRegionStart = 0xe000,	///< Used for non-character keycodes below
 	UnicodePrivateUseRegionEnd = 0xf8ff,
 	X11_XKBase = 0xff00,			///< Add to key to get the value from X11/keysymdef.h
 	X11_XF86XK_Base = 0x1008ff00,		///< Add to key to get the value from X11/XF86keysym.h
 	X11_XKUnicodeBase = 0x01000000		///< Unicode character constants in X11/keysymdef.h
     };
-    enum : uint32_t {
+    enum : key_t {
 	ModShift = 24,				///< Bits used by the keycode without KMod modifiers
 	ModMask = (UINT32_MAX<<ModShift),	///< Mask to get the KMod values
 	KeyMask = ~ModMask			///< Mask to get the keycode without modifiers
     };
-    enum : uint32_t {
+    enum : key_t {
 	Null, Menu, PageUp, Copy, Break,
 	Insert, Delete, Pause, Backspace, Tab,
 	Enter, Redo, PageDown, Home, Alt,
@@ -100,14 +103,16 @@ namespace Key {
 }; // namespace Key
 
 namespace Button {
-    enum : uint32_t {
+    using button_t = CEvent::key_t;
+    enum : button_t {
 	NoButton, Left, Middle, Right, Wheel,
 	WheelUp, WheelDown, Back, Forward, Search
     };
 } // namespace Button
 
 namespace KMod {
-    enum : uint32_t {
+    using key_t = CEvent::key_t;
+    enum {
 	ShiftShift = Key::ModShift,
 	CtrlShift,
 	AltShift,
@@ -116,7 +121,7 @@ namespace KMod {
 	MiddleShift,
 	RightShift,
     };
-    enum : uint32_t {
+    enum : key_t {
 	Shift	= (1<<ShiftShift),
 	Ctrl	= (1<<CtrlShift),
 	Alt	= (1<<AltShift),
