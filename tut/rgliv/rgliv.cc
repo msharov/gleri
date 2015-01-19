@@ -27,6 +27,15 @@ class CImageViewer : public CWindow {
 	color_FolderViewText		= RGB(128,128,128),
 	color_ThumbBackground		= RGBA(0,0,0,0)
     };
+    // It is efficient to combine all vertices into a single vertex buffer object,
+    // but keeping track of the separate objects in it can be tedious. The VRENUM
+    // macro defines v_NameOffset and v_NameSize (in vertices) that can be passed
+    // to primitive drawing commands. The image viewer needs three objects:
+    enum {
+	VRENUM (EntrySquare, 4),	// The area of each file thumbnail and name. Also used as a selector.
+	VRENUM (FolderIcon, 7),		// The folder icon, as a line loop, drawn for folders in the selector view
+	VRENUM (FileIcon, 8)		// The file icon, drawn for files without a thumbnail
+    };
 public:
     explicit		CImageViewer (iid_t wid, const char* filename);
     virtual void	OnInit (void) override;
@@ -250,14 +259,15 @@ ONDRAWIMPL(CImageViewer)::OnDraw (Drw& drw) const
 	drw.Color (color_FolderViewText);
 	// Bind the vertex pointer to _vertices to draw the selection rectangle
 	drw.VertexPointer (_vertices);
-	for (auto y = 0u, ie = _firstentry; y <= (unsigned) Info().h-c_EntryHeight; y += c_EntryHeight) {	// Iterate over all visible entries
+	// Iterate over all visible entries
+	for (auto y = 0u, ie = _firstentry; y <= (unsigned) Info().h-c_EntryHeight; y += c_EntryHeight) {
 	    for (auto x = 0u; x <= (unsigned) Info().w-c_EntryWidth; ++ie, x += c_EntryWidth) {
 		drw.Viewport (x,y,c_EntryWidth,c_EntryHeight);	// Set clipping rectangle to entry size. Clips long filenames.
 		if (ie >= _files.size())
 		    return;
 		if (ie == _selection) {
 		    drw.Color (color_FolderViewSelection);
-		    drw.TriangleStrip (0, 4);			// Selection bar is 4 points at offset 0
+		    drw.TriangleStrip (v_EntrySquareOffset, v_EntrySquareSize);
 		    drw.Color (color_FolderViewText);
 		}
 		auto thumbIndex = _files[ie].ThumbIndex();	// Draw the thumbnail for the entry
@@ -324,9 +334,9 @@ DRAWFBIMPL(CImageViewer,ThumbCache)
     auto scale = min (float(c_ThumbWidth)/_caching.ImageW, float(c_ThumbHeight)/_caching.ImageH);
     drw.Scale (scale, scale);		// Shrink the image to thumb dimensions
     if (_caching.ThumbIndex == CFolderEntry::Folder)
-	drw.LineLoop (4, 7);		// 7 points at offset 4, folder icon
+	drw.LineLoop (v_FolderIconOffset, v_FolderIconSize);
     else if (_caching.ThumbIndex == CFolderEntry::Image)
-	drw.LineLoop (11, 8);		// 8 points at offset 11, file icon
+	drw.LineLoop (v_FileIconOffset, v_FileIconSize);
     else if (_caching.Image != G::GoidNull)
 	drw.Image ((c_ThumbWidth/scale-_caching.ImageW)/2,	// Center it
 		   (c_ThumbWidth/scale-_caching.ImageH)/2,	// in scaled coordinates, so /scale

@@ -23,22 +23,14 @@ static constexpr CTestWindow::color_t _cdata1[] = {
     RGB(0xff0000), RGB(0x00ff00), RGB(0x0000ff), RGBA(0x80808080)
 };
 enum {
-    vb_WindowBorderOffset,
-    vb_WindowBorderSize = 4,	// In vertices
-    vb_PurpleQuadOffset = vb_WindowBorderOffset+vb_WindowBorderSize,
-    vb_PurpleQuadSize = 4,
-    vb_BrokenLineOffset = vb_PurpleQuadOffset+vb_PurpleQuadSize,
-    vb_BrokenLineSize = 4,
-    vb_TransparentStripOffset = vb_BrokenLineOffset+vb_BrokenLineSize,
-    vb_TransparentStripSize = 4,
-    vb_SkewQuadOffset = vb_TransparentStripOffset+vb_TransparentStripSize,
-    vb_SkewQuadSize = 4,
-    vb_FanOverlayOffset = vb_SkewQuadOffset + vb_SkewQuadSize,
-    vb_FanOverlaySize = 4,
-    vb_SmallFbBorderOffset = vb_FanOverlayOffset + vb_FanOverlaySize,
-    vb_SmallFbBorderSize = 6,
-    vb_RedBorderOffset = vb_SmallFbBorderOffset + vb_SmallFbBorderSize,
-    vb_RedBorderSize = 4,
+    VRENUM (WindowBorder, 4),
+    VRENUM (PurpleQuad, 4),
+    VRENUM (BrokenLine, 4),
+    VRENUM (TransparentStrip, 4),
+    VRENUM (SkewQuad, 4),
+    VRENUM (FanOverlay, 4),
+    VRENUM (SmallFbBorder, 6),
+    VRENUM (RedBorder, 4)
 };
 enum {
     walk_SpriteW = 64,
@@ -233,9 +225,9 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.VertexPointer (_vbuf);
 
     drw.Color (0,255,255);
-    drw.LineLoop (vb_WindowBorderOffset, vb_WindowBorderSize);
+    drw.LineLoop (v_WindowBorderOffset, v_WindowBorderSize);
     drw.Color (255,255,255);
-    drw.LineStrip (vb_BrokenLineOffset, vb_BrokenLineSize);
+    drw.LineStrip (v_BrokenLineOffset, v_BrokenLineSize);
 
     #if HAVE_JPEGLIB_H
 	drw.Image (700, 20, _cat);
@@ -248,12 +240,12 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     #endif
 
     drw.Color (ARGB(0xc0804040));
-    drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);
+    drw.TriangleStrip (v_TransparentStripOffset, v_TransparentStripSize);
 
     drw.Shader (G::default_GradientShader);
-    drw.Parameter ("Vertex", _vbuf, G::SHORT, 2, vb_SkewQuadOffset*(2*sizeof(short)));
+    drw.Parameter ("Vertex", _vbuf, G::SHORT, 2, v_SkewQuadOffset*(2*sizeof(short)));
     drw.ColorPointer (_cbuf);
-    drw.TriangleStrip (0, vb_SkewQuadSize);
+    drw.TriangleStrip (0, v_SkewQuadSize);
     drw.DefaultShader();
     drw.VertexPointer (_vbuf);
 
@@ -266,11 +258,11 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Textf (10,10, "FPS %6u, VSync %3u", 1000000000/(lrt?lrt:1), 1000000000/(lft?lft:1));
 
     drw.Color (128,90,150,220);
-    drw.TriangleFan (vb_PurpleQuadOffset, vb_PurpleQuadSize);
+    drw.TriangleFan (v_PurpleQuadOffset, v_PurpleQuadSize);
 
     drw.Shader (_gradShader);
     drw.Color (0,128,128);
-    drw.TriangleStrip (vb_FanOverlayOffset, vb_FanOverlaySize);
+    drw.TriangleStrip (v_FanOverlayOffset, v_FanOverlaySize);
     drw.DefaultShader();
 
     drw.Framebuffer (_smallfb);
@@ -279,17 +271,17 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 	drw.Image (100, 120, _cat);
     #endif
     drw.Color (128,90,150,220);
-    drw.TriangleFan (vb_PurpleQuadOffset, vb_PurpleQuadSize);
+    drw.TriangleFan (v_PurpleQuadOffset, v_PurpleQuadSize);
     drw.Color (0,128,128);
-    drw.LineLoop (vb_SmallFbBorderOffset, vb_SmallFbBorderSize);
+    drw.LineLoop (v_SmallFbBorderOffset, v_SmallFbBorderSize);
     drw.Text (32, 64, "Offscreen");
     drw.DefaultFramebuffer();
 
     drw.Offset (990, 120);
     drw.Color (192,0,0);
-    drw.LineLoop (vb_RedBorderOffset, vb_RedBorderSize);
+    drw.LineLoop (v_RedBorderOffset, v_RedBorderSize);
     drw.Color (255,255,255);
-    drw.LineLoop (vb_SmallFbBorderOffset, vb_SmallFbBorderSize);
+    drw.LineLoop (v_SmallFbBorderOffset, v_SmallFbBorderSize);
     drw.Image (0, 0, _smallcol);
     drw.Offset (0, 0);
     if (_screenshot)
@@ -302,19 +294,19 @@ DRAWFBIMPL(CTestWindow,Offscreen)
     drw.VertexPointer (_vbuf);
 
     drw.Color (255,255,255);
-    drw.LineStrip (vb_BrokenLineOffset, vb_BrokenLineSize);
+    drw.LineStrip (v_BrokenLineOffset, v_BrokenLineSize);
 
     #if HAVE_JPEGLIB_H
 	drw.Image (320, 240, _cat);
     #endif
 
     drw.Color (ARGB(0xc0804040));
-    drw.TriangleStrip (vb_TransparentStripOffset, vb_TransparentStripSize);
+    drw.TriangleStrip (v_TransparentStripOffset, v_TransparentStripSize);
 
     drw.Shader (G::default_GradientShader);
-    drw.VertexPointer (_vbuf, G::SHORT, 2, vb_SkewQuadOffset*(2*sizeof(short)));
+    drw.VertexPointer (_vbuf, G::SHORT, 2, v_SkewQuadOffset*(2*sizeof(short)));
     drw.ColorPointer (_cbuf);
-    drw.TriangleStrip (0, vb_SkewQuadSize);
+    drw.TriangleStrip (0, v_SkewQuadSize);
 
     drw.Color (128,128,128);
     drw.Text (130, 400, "Offscreen rendered framebuffer");

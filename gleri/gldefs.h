@@ -519,6 +519,10 @@ inline constexpr G::color_t RGB (uint8_t r, uint8_t g, uint8_t b)
 inline constexpr G::color_t RGB (G::color_t c)
     { return RGBA((c<<8)|UINT8_MAX); }
 
+// Macro for defining enums for ranges in a vertex array
+#define VRENUM(name,size)\
+    v_##name##Offset, v_##name##Size = size, v_##name##Last = v_##name##Offset+v_##name##Size-1
+
 //----------------------------------------------------------------------
 // Tesselator macros for vertex arrays.
 //
