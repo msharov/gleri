@@ -357,14 +357,25 @@ enum class Format : uint8_t {
 } // namespace G::Texture
 
 namespace Font {
-struct Info {
-    inline dim_t	Height (void) const		{ return h; }
-    inline dim_t	Width (void) const		{ return w; }
-    inline dim_t	Width (uint16_t) const		{ return Width(); }
-    inline dim_t	Width (const char* s) const	{ return Width()*strlen(s); }
-    dim_t		w,h;
-    uint16_t		ascent;
-    uint16_t		nvarw;
+class Info {
+public:
+    inline		Info (void)			: _w(0),_h(0),_ascent(0),_varw() {}
+    inline		Info (dim_t w, dim_t h, dim_t a = 0)	: _w(w),_h(h),_ascent(a),_varw() {}
+    inline dim_t	Height (void) const		{ return _h; }
+    inline dim_t	Width (void) const		{ return _w; }
+    inline dim_t	Width (wchar_t c) const	{ return size_t(c) < _varw.size() ? _varw[c] : Width(); }
+    dim_t		Width (const char* s) const;
+    inline void		SetWidth (dim_t w)		{ _w = w; }
+    inline void		SetHeight (dim_t h)		{ _h = h; }
+    inline void		SetAscent (dim_t ascent)	{ _ascent = ascent; }
+    inline void		SetWidth (wchar_t c, dim_t w)	{ _varw.resize (min<size_t>(_varw.size(),c+1)); _varw[c] = w; }
+    void		read (bstri& is);
+    void		write (bstro& os) const;
+    void		write (bstrs& ss) const;
+private:
+    dim_t		_w,_h;
+    dim_t		_ascent;
+    vector<dim_t>	_varw;
 };
 } // namespace G::Font
 
@@ -458,9 +469,8 @@ public:
     inline bool	IsPopupMenu (void)const	{ return wtype >= type_FirstPopupMenu && wtype <= type_LastPopupMenu; }
 };
 
-// These are in rglp.cc
-extern const char* TypeName (Type t) noexcept __attribute__((const));
-extern const char* ShapeName (Shape s) noexcept __attribute__((const));
+const char* TypeName (Type t) noexcept __attribute__((const));
+const char* ShapeName (Shape s) noexcept __attribute__((const));
 
 } // namespace G
 

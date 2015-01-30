@@ -125,7 +125,7 @@ public:
     inline iid_t		IId (void) const		{ return CCmdBuf::IId(); }
     inline bool			Matches (int fd, iid_t iid)const{ return Fd() == fd && IId() == iid; }
     inline bool			Matches (int fd) const		{ return Fd() == fd; }
-    inline pfontinfo_t		Font (void) const		{ static constexpr G::Font::Info s_DefaultFontInfo = {10,18,0,0}; return &s_DefaultFontInfo; }
+    inline pfontinfo_t		Font (void) const		{ static const G::Font::Info s_DefaultFontInfo (10,18); return &s_DefaultFontInfo; }
     inline pfontinfo_t		Font (goid_t) const		{ return nullptr; }
 				// Command writing
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }

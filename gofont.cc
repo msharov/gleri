@@ -49,30 +49,30 @@ CFont::CFont (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz) noexcept
     auto ph2 = (const SPsf2Header*) p;
     auto nChars = 256u;
     if (ph1->magic == PSF1_MAGIC) {
-	_info.w = 8;
-	_info.h = ph1->height;
+	_info.SetWidth (8);
+	_info.SetHeight (ph1->height);
 	p += sizeof(*ph1);
     } else if (ph2->magic == PSF2_MAGIC) {
-	_info.w = ph2->width;
-	_info.h = ph2->height;
+	_info.SetWidth (ph2->width);
+	_info.SetHeight (ph2->height);
 	nChars = ph2->length;
 	p += ph2->headersize;
     }
-    if (!_info.w) return;
-    _rowwidth = 256/_info.w;
+    if (!_info.Width()) return;
+    _rowwidth = 256/_info.Width();
 
     auto ftexbmp = (GLubyte*) malloc (256*256), rowo = ftexbmp, colo = ftexbmp;
-    const GLuint rowskip = _info.h*256, lineskip = 256-_info.w;
-    for (GLuint c = 0, col = 0; c < nChars && p < pend; ++c, ++col, colo += _info.w) {
+    const GLuint rowskip = _info.Height()*256, lineskip = 256-_info.Width();
+    for (GLuint c = 0, col = 0; c < nChars && p < pend; ++c, ++col, colo += _info.Width()) {
 	if (col >= _rowwidth) {
 	    col = 0;
 	    rowo += rowskip;
 	    colo = rowo;
 	}
 	GLubyte* o = colo;
-	for (GLuint y = 0; y < _info.h; ++y, ++p, o += lineskip) {
+	for (GLuint y = 0; y < _info.Height(); ++y, ++p, o += lineskip) {
 	    GLubyte mask = 0x80;
-	    for (GLuint x = 0; x < _info.w; ++x) {
+	    for (GLuint x = 0; x < _info.Width(); ++x) {
 		*o++ = (p[0] & mask) ? 0xff : 0;
 		if (!(mask >>= 1)) {
 		    mask = 0x80;
