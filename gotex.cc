@@ -131,6 +131,8 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 	png_set_tRNS_to_alpha (rs);
     else
 	png_set_filler (rs, 0xff, PNG_FILLER_AFTER);
+    if (png_get_bit_depth (rs, infos) > 8)
+	png_set_scale_16 (rs);
     switch (png_get_color_type(rs, infos)) {
 	case PNG_COLOR_TYPE_PALETTE:	png_set_palette_to_rgb(rs); break;
 	case PNG_COLOR_TYPE_GRAY:	png_set_gray_to_rgb(rs); break;
@@ -138,6 +140,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     }
     CTexBuf tbuf (G::Pixel::RGBA, G::Pixel::UNSIGNED_BYTE,
 		png_get_image_width (rs, infos),
+		png_get_rowbytes (rs, infos),
 		png_get_image_height (rs, infos));
 
     auto idata = tbuf.Data();

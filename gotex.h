@@ -45,9 +45,9 @@ private:
 	inline constexpr	CTexBuf (const texhdr_t& h, const_pointer p)
 				    :_h(h),_sz(0),_p(const_cast<pointer>(p)) {}
 	inline			CTexBuf (CTexBuf&& b)	:_h(b._h),_sz(b._sz),_p(b._p) { b._p = nullptr; }
-	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint16_t w, uint16_t h=1, uint16_t d=0)
+	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint16_t w, uint32_t roww, uint16_t h=1, uint16_t d=0)
 				    :_h { texhdr_t::Magic, G::Texture::TEXTURE_2D, w,h,d,fmt,comp }
-				    ,_sz (w*h*sizeof(value_type))
+				    ,_sz (max<uint32_t>(roww,w*4)*h)
 				    ,_p ((pointer)malloc(_sz)) {}
 	inline			~CTexBuf (void)		{ if (_p && _sz) free(_p); }
 	inline CTexBuf&		operator= (CTexBuf&& b)	{ swap(_h,b._h); swap(_sz,b._sz); swap(_p,b._p); return *this; }
