@@ -71,6 +71,7 @@ of the type.
 </p>
 <table>
 <tr><td>y</td><td>uint8_t</td></tr>
+<tr><td>c</td><td>int8_t</td></tr>
 <tr><td>q</td><td>uint16_t</td></tr>
 <tr><td>n</td><td>int16_t</td></tr>
 <tr><td>u</td><td>uint32_t</td></tr>
@@ -80,21 +81,17 @@ of the type.
 <tr><td>f</td><td>float</td></tr>
 <tr><td>d</td><td>double</td></tr>
 <tr><td>b</td><td>bool. Encoded as uint8_t.</td></tr>
-<tr>
-<td>a</td>
-<td>Array. The next letter denotes array type. Encoded with uint32_t
-    number of elements followed by the serialized array elements, padded
-    to 4-byte alignment. If the elements require alignment greater than
-    4, the first element is aligned to the appropriate grain.
-</td></tr>
-<tr>
-<td>s</td>
-<td>String. Encoding same as array, with size equal to the length of
-    the string including the zero terminator.
-</td></tr>
 <tr><td>h</td><td>File descriptor. Only valid for messages sent over a
     UNIX socket. No dummy data is sent with the SCM_RIGHTS call, use
     the message itself as msg_iov data required for it.</td></tr>
+<tr><td>a</td>
+<td>Array. The next letter denotes array type. Encoded with uint32_t
+    number of elements followed by the serialized array elements, padded
+    to 4-byte alignment. If the elements require alignment greater than
+    4, the first element is aligned to the appropriate grain.</td></tr>
+<tr><td>s</td>
+<td>String. Encoding same as array, with size equal to the length of
+    the string including the zero terminator.</td></tr>
 <tr><td>()</td><td>Delimit compound types. Useful after <tt>a</tt></td></tr>
 </table>
 <p>
@@ -142,8 +139,10 @@ protocol. There are two methods currently defined:
 <dl>
 <dt><tt>Export (const char* el)</tt>, signature "<tt>s</tt>".</dt>
 <dd>Must the first message sent by both sides after establishing a
-    connection. The argument is a comma-delimited list of supported
-    protocols. Reply protocols are included.
+    connection. The argument is a comma-delimited list of interfaces
+    that can be instantiated by the sending side. Reply interfaces
+    are not included in the list because they are never instantiated
+    explicitly.
 </dd>
 <dt><tt>Error (const char* msg)</tt>, signature "<tt>s</tt>".</dt>
 <dd>Sent by the server object when it encounters an error. In the GLERI
