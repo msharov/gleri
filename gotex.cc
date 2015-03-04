@@ -92,7 +92,7 @@ void CTexture::Free (void) noexcept
 
 /*static*/ void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format fmt, uint8_t quality)
 {
-    CTexBuf tbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, h);
+    CTexBuf tbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, w*4, h);
     glReadPixels (x, y, w, h, tbuf.Header().fmt, tbuf.Header().comp, tbuf.Data());
     if (fmt == G::Texture::Format::PNG)
 	SavePNG (fd, tbuf);
@@ -203,7 +203,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     jpeg_start_decompress (&cinfo);
     unsigned w = cinfo.output_width, h = cinfo.output_height, s = cinfo.output_components;
     auto linew = Align(w*3,4);	// OpenGL requires line padding to 4 bytes
-    CTexBuf imgbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, h);
+    CTexBuf imgbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, linew, h);
     auto ppd = (unsigned char*) imgbuf.Data();
     while (cinfo.output_scanline < h) {
 	auto j = cinfo.output_scanline;
