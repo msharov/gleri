@@ -23,6 +23,7 @@ private:
 	static inline void	write (Stm& os, const T& v) 	{ v.write(os); }
     };
 protected:
+    inline size_type	wrstrlen (const char* s) const	{ return s?strlen(s):0; }
     inline constexpr size_type	align_size (size_type sz, size_type g) const	{ return (g-1)-((sz+(g-1))%g); }
     inline constexpr size_type	align_size (const_pointer p, size_type g) const	{ return align_size(p-(pointer)nullptr,g); }
     template <typename Stm, typename T>
@@ -42,8 +43,6 @@ struct bstrb::object_streamer<Stm,T,true> {
 class bstrs : public bstrb {
 public:
     enum { is_sizing = true };
-private:
-    inline size_type	wrstrlen (const char* s) const	{ return s?strlen(s):0; }
 public:
     inline		bstrs (void)		:_sz(0) { }
     inline pointer	ipos (void)		{ return nullptr; }
@@ -129,28 +128,33 @@ private:
 
 inline bstrs& bstrs::operator<< (const char* s)
 {
-    skip (sizeof(size_type)+Align(wrstrlen(s)+1,4));
+    auto n = wrstrlen(s);
+    if (n) ++n;
+    skip (sizeof(size_type)+Align(n,4));
     return *this;
 }
 
 inline bstro& bstro::operator<< (const char* s)
 {
-    size_type sl = strlen(s)+1;
-    iwrite (sl);
-    write (s,sl);
+    size_type n = wrstrlen(s);
+    if (n) ++n;
+    iwrite (n);
+    write (s, n);
     align (4);
     return *this;
 }
 
 inline bstri& bstri::operator>> (const char*& s)
 {
-    size_type sl;
-    iread (sl);
-    sl += align_size (sl,4);
+    size_type n;
+    iread (n);
+    n = Align (n, 4);
     s = iptr<char>();
-    if (sl > remaining())
+    if (n > remaining())
 	s = nullptr;
+    else if (!n)
+	--s;
     else
-	skip (sl);
+	skip (n);
     return *this;
 }
