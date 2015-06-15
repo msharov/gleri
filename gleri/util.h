@@ -14,6 +14,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <errno.h>
+#if !USE_USTL
+    #include "utf8.h"
+#endif
 
 /// Returns the number of elements in a static vector
 template <typename T, size_t N> constexpr static inline size_t ArraySize (T(&)[N]) { return N; }

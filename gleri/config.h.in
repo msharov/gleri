@@ -24,10 +24,18 @@ enum {
 };
 
 // Tweak gcc
-#if __GNUC__
-    #define NORETURN	__attribute((noreturn))
-#else
-    #define NORETURN
+#if !defined(UNUSED)
+    #if __GNUC__
+	#define NORETURN	__attribute((noreturn))
+	#define PURE	__attribute((pure))
+	#define CONST	__attribute((const))
+	#define UNUSED	__attribute((unused))
+    #else
+	#define NORETURN
+	#define PURE
+	#define CONST
+	#define UNUSED
+    #endif
 #endif
 // Other common settings
 #if __i386__ || __x86_64__
