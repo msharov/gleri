@@ -1,6 +1,6 @@
 ################ Source files ##########################################
 
-tut/hello/EXE	:= tut/hello/hello
+tut/hello/EXE	:= $Otut/hello/hello
 tut/hello/SRCS	:= $(wildcard tut/hello/*.cc)
 tut/hello/OBJS	:= $(addprefix $O,$(tut/hello/SRCS:.cc=.o))
 tut/hello/DEPS	:= $(tut/hello/OBJS:.o=.d)
@@ -18,9 +18,9 @@ all:		tut/hello/all
 tut/hello/all:	${tut/hello/EXE}
 
 tut/hello/run:	${tut/hello/EXE} ${EXE}
-	@PATH="." ./${tut/hello/EXE}
+	@PATH="$O" ${tut/hello/EXE}
 
-${tut/hello/EXE}: tut/hello/%: ${tut/hello/OBJS} ${EXE} ${LIBA}
+${tut/hello/EXE}:	${tut/hello/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."
 	@${LD} ${LDFLAGS} -o $@ ${tut/hello/OBJS} ${tut/hello/LIBS}
 
@@ -33,6 +33,6 @@ tut/hello/clean:
 	    rmdir $Otut/hello;\
 	fi
 
-${tut/hello/OBJS}: Makefile tut/hello/Module.mk ${CONFS}
+${tut/hello/OBJS}: ${MKDEPS} tut/hello/Module.mk
 
 -include ${tut/hello/DEPS}

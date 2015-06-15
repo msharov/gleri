@@ -12,6 +12,7 @@ MINOR		:= @PKG_MINOR@
 CXX		:= @CXX@
 LD		:= @CXX@
 INSTALL		:= @INSTALL@
+RMPATH		:= rmdir -p --ignore-fail-on-non-empty
 
 INSTALLEXE	:= ${INSTALL} -D -p -m 755 -s
 INSTALLDATA	:= ${INSTALL} -D -p -m 644
@@ -28,9 +29,8 @@ INCDIR		:= @includedir@
 
 WARNOPTS	:= -Wall -Wextra -Woverloaded-virtual -Wpointer-arith\
 		-Wshadow -Wredundant-decls -Wcast-qual @SYSWARNS@
-CXXFLAGS	:= ${WARNOPTS} -std=c++11 @CUSTOMINCDIR@ \
-		   @INLINE_OPTS@
-LDFLAGS		:= @CUSTOMLIBDIR@
+CXXFLAGS	:= ${WARNOPTS} -std=c++11 -I@customincdir@
+LDFLAGS		:= -L@customlibdir@
 LIBS		:= @libGL@ @libX11@ @libpng@ @libjpeg@ @libz@
 ifdef USE_USTL
     LD		:= @CC@
@@ -43,4 +43,5 @@ else
     CXXFLAGS	+= -Os -g0 -DNDEBUG=1 -ffunction-sections -fdata-sections
     LDFLAGS	+= -s -Wl,-gc-sections
 endif
+BUILDDIR	:= @builddir@/${NAME}
 O		:= .o/

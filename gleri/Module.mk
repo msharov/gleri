@@ -1,19 +1,29 @@
 ################ Source files ##########################################
 
-LIBA	:= .o/gleri/libgleri.a
 LIBSRC	:= $(wildcard gleri/*.cc)
 LIBOBJ	:= $(addprefix .o/,$(LIBSRC:.cc=.o))
 LIBINC	:= gleri.h $(wildcard gleri/*.h)
 LIBDEPS	:= ${LIBOBJ:.o=.d}
+LIBA_R	:= $Olib${NAME}.a
+LIBA_D	:= $Olib${NAME}_d.a
+ifdef DEBUG
+LIBA	:= ${LIBA_D}
+else
+LIBA	:= ${LIBA_R}
+endif
 
 ################ Compilation ###########################################
+
+all:	gleri/all
+
+gleri/all:	${LIBA}
 
 ${LIBA}: ${LIBOBJ}
 	@echo "Linking $@ ..."
 	@rm -f ${LIBA}
 	@${AR} qc $@ ${LIBOBJ}
 
-${LIBOBJ}:	Makefile gleri/Module.mk ${CONFS}
+${LIBOBJ}:	${MKDEPS} gleri/Module.mk
 
 ################ Installation ##########################################
 
@@ -33,7 +43,7 @@ uninstall-headers:
 	@if [ -d ${INCDIR}/gleri -o -f ${INCDIR}/gleri.h ]; then\
 	    echo "Removing gleri headers ...";\
 	    rm -f ${INCSI};\
-	    rmdir ${INCDIR}/gleri;\
+	    ${RMPATH} ${INCDIR}/gleri;\
 	fi
 endif
 

@@ -62,6 +62,7 @@ enum {
     #include <algorithm>
     #include <vector>
     #include <set>
+    #include <endian.h>
     using namespace std;
 
     /// Rounds \p n up to be divisible by \p grain
@@ -73,7 +74,7 @@ enum {
 
     #define inline	inline __attribute__((always_inline))
 
-    #define USTL_LITTLE_ENDIAN	4321
-    #define USTL_BIG_ENDIAN	1234
-    #define USTL_BYTE_ORDER	USTL_@BYTE_ORDER@
+    #define USTL_LITTLE_ENDIAN	LITTLE_ENDIAN
+    #define USTL_BIG_ENDIAN	BIG_ENDIAN
+    #define USTL_BYTE_ORDER	BYTE_ORDER
 #endif

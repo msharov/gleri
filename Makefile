@@ -2,9 +2,10 @@
 
 ######################################################################
 
-EXE	:= gleris
+EXE	:= $Ogleris
 CXXFLAGS+= -I.
 CONFS	:= Config.mk config.h gleri/config.h config.status
+MKDEPS	:= Makefile ${CONFS} $O.d
 
 include data/Module.mk
 include gleri/Module.mk
@@ -13,6 +14,7 @@ INC	:= $(wildcard *.h)
 SRC	:= $(wildcard *.cc)
 OBJ	:= $(addprefix $O,$(SRC:.cc=.o))
 DEP	:= ${OBJ:.o=.d}
+ONAME	:= $(notdir $(abspath $O))
 
 ######################################################################
 
@@ -36,7 +38,7 @@ $O%.o:	%.cc
 ################ Installation ##########################################
 
 ifdef BINDIR
-EXEI	:= $(addprefix ${BINDIR}/,${EXE})
+EXEI	:= ${BINDIR}/${EXE}
 
 install:	${EXEI}
 ${EXEI}:	${EXE}
@@ -59,15 +61,21 @@ include tut/rgliv/Module.mk
 ################ Maintenance ###########################################
 
 clean:
-	@if [ -d $O ]; then\
-	    rm -f ${EXE} ${OBJ} ${DEP};\
-	    rmdir $Otut $O;\
+	@if [ -h ${ONAME} ]; then\
+	    rm -f ${EXE} ${OBJ} ${DEP} $O.d ${ONAME};\
+	    [ ! -d ${BUILDDIR}/tut ] || rmdir ${BUILDDIR}/tut;\
+	    ${RMPATH} ${BUILDDIR};\
 	fi
 
 distclean:	clean
 	@rm -f ${CONFS}
 
 maintainer-clean: distclean
+
+$O.d:	${BUILDDIR}/.d
+	@[ -h ${ONAME} ] || ln -sf ${BUILDDIR} ${ONAME}
+${BUILDDIR}/.d:	Makefile
+	@mkdir -p ${BUILDDIR} && touch ${BUILDDIR}/.d
 
 ${CONFS}:	configure Config.mk.in config.h.in gleri/config.h.in
 	@if [ -x config.status ]; then\
@@ -78,6 +86,6 @@ ${CONFS}:	configure Config.mk.in config.h.in gleri/config.h.in
 	    ./configure;\
 	fi
 
-${OBJ}: Makefile ${CONFS}
+${OBJ}:	${MKDEPS}
 
 -include ${DEP}

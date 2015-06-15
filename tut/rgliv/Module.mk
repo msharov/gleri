@@ -1,6 +1,6 @@
 ################ Source files ##########################################
 
-tut/rgliv/EXE	:= tut/rgliv/rgliv
+tut/rgliv/EXE	:= $Otut/rgliv/rgliv
 tut/rgliv/SRCS	:= $(wildcard tut/rgliv/*.cc)
 tut/rgliv/OBJS	:= $(addprefix $O,$(tut/rgliv/SRCS:.cc=.o))
 tut/rgliv/DEPS	:= $(tut/rgliv/OBJS:.o=.d)
@@ -20,7 +20,7 @@ tut/rgliv/all:	${tut/rgliv/EXE}
 tut/rgliv/run:	${tut/rgliv/EXE} ${EXE}
 	@PATH="." ./${tut/rgliv/EXE}
 
-${tut/rgliv/EXE}: tut/rgliv/%: ${tut/rgliv/OBJS} ${EXE} ${LIBA}
+${tut/rgliv/EXE}:	${tut/rgliv/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."
 	@${LD} ${LDFLAGS} -o $@ ${tut/rgliv/OBJS} ${tut/rgliv/LIBS}
 
@@ -52,6 +52,6 @@ tut/rgliv/clean:
 	    rmdir $Otut/rgliv;\
 	fi
 
-${tut/rgliv/OBJS}: Makefile tut/rgliv/Module.mk ${CONFS}
+${tut/rgliv/OBJS}: ${MKDEPS} tut/rgliv/Module.mk
 
 -include ${tut/rgliv/DEPS}

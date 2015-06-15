@@ -29,7 +29,7 @@ ${DHH}:	${PAK} ${MKDCC}
 
 ${DCC} iconn.cc:	${DHH}
 
-${PAK} ${DCC} ${DHH} ${MKDCC}: Makefile data/Module.mk ${CONFS}
+${PAK} ${DCC} ${DHH} ${MKDCC} ${MKDCC}.o ${DCO}: ${MKDEPS} data/Module.mk
 
 ${DCO}:	${DCC}
 	@echo "    Compiling $< ..."

@@ -1,6 +1,7 @@
 ################ Source files ##########################################
 
-test/EXE	:= test/gltest
+test/NAME	:= gltest
+test/EXE	:= $Otest/${test/NAME}
 test/SRCS	:= $(wildcard test/*.cc)
 test/OBJS	:= $(addprefix $O,$(test/SRCS:.cc=.o))
 test/DEPS	:= $(test/OBJS:.o=.d)
@@ -21,10 +22,10 @@ test/all:	${test/EXE}
 check:		test/check
 test/check:	${test/EXE} ${EXE}
 	@echo "Running $<"; \
-	PATH="." ./${test/EXE} &> ${test/EXE}.out; \
-	diff ${test/EXE}.std ${test/EXE}.out && rm -f ${test/EXE}.out
+	PATH="$O" ./${test/EXE} &> ${test/EXE}.out; \
+	diff test/${test/NAME}.std ${test/EXE}.out && rm -f ${test/EXE}.out
 
-${test/EXE}: test/%: ${test/OBJS} ${EXE} ${LIBA}
+${test/EXE}:	${test/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."
 	@${LD} ${LDFLAGS} -o $@ ${test/OBJS} ${test/LIBS}
 
@@ -33,10 +34,10 @@ ${test/EXE}: test/%: ${test/OBJS} ${EXE} ${LIBA}
 clean:	test/clean
 test/clean:
 	@if [ -d $O/test ]; then\
-	    rm -f ${test/EXE} ${test/OBJS} ${test/DEPS};\
+	    rm -f ${test/EXE} ${test/OBJS} ${test/DEPS} ${test/EXE}.out;\
 	    rmdir $O/test;\
 	fi
 
-${test/OBJS}: Makefile test/Module.mk ${CONFS}
+${test/OBJS}: ${MKDEPS} test/Module.mk
 
 -include ${test/DEPS}
