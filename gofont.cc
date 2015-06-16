@@ -29,8 +29,8 @@ CFont::CFont (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz) noexcept
     };
     struct SPsf1Header {
 	uint16_t	magic;
-	uint8_t	flags;
-	uint8_t	height;
+	uint8_t		flags;
+	uint8_t		height;
     };
     struct SPsf2Header {
 	uint32_t	magic;

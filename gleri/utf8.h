@@ -99,6 +99,7 @@ public:
     inline utf8in_iterator	operator+ (difference_type n)			{ utf8in_iterator v (*this); return v += n; }
     inline bool			operator== (const utf8in_iterator& i) const	{ return _i == i._i; }
     inline bool			operator< (const utf8in_iterator& i) const	{ return _i < i._i; }
+    inline bool			operator< (const Iterator& i) const		{ return _i < i; }
     /// Returns the distance in characters (as opposed to the distance in bytes).
     difference_type		operator- (const utf8in_iterator& i) const {
 				    difference_type d = 0;

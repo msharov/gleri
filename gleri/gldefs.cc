@@ -16,8 +16,8 @@ dim_t Info::Width (const char* s) const
     if (_varw.empty())
 	return Width()*strlen(s);
     dim_t sw = 0;
-    for (; *s; ++s)
-	sw += Width (*s);
+    for (auto i = utf8in(s); i < s+strlen(s); ++i)
+	sw += Width (*i);
     return sw;
 }
 

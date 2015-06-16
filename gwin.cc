@@ -369,14 +369,17 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
     SetFontShader();
 
     DTRACE ("[%x] Text at %d:%d: '%s'\n", IId(), x,y,s);
-    const unsigned nChars = strlen(s);
+    wchar_t ws [strlen(s)];
+    unsigned nChars = 0;
+    for (auto i = utf8in(s); *i; ++i)
+	ws[nChars++] = *i;
     struct SVertex { GLshort x,y,s,t; } v [nChars];
     const unsigned fw = f.LetterW(), fh = f.LetterH();
     for (unsigned i = 0, lx = x; i < nChars; ++i, lx+=fw) {
 	v[i].x = lx;
 	v[i].y = y;
-	v[i].s = f.LetterX(s[i]);
-	v[i].t = f.LetterY(s[i]);
+	v[i].s = f.LetterX(ws[i]);
+	v[i].t = f.LetterY(ws[i]);
     }
     GLuint buf;
     glGenBuffers (1, &buf);
