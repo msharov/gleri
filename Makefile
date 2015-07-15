@@ -38,7 +38,7 @@ $O%.o:	%.cc
 ################ Installation ##########################################
 
 ifdef BINDIR
-EXEI	:= ${BINDIR}/${EXE}
+EXEI	:= ${BINDIR}/$(notdir ${EXE})
 
 install:	${EXEI}
 ${EXEI}:	${EXE}

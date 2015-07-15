@@ -27,7 +27,7 @@ ${tut/rgliv/EXE}:	${tut/rgliv/OBJS} ${EXE} ${LIBA}
 ################ Installation ##########################################
 
 ifdef BINDIR
-tut/rgliv/EXEI	:= $(addprefix ${BINDIR}/,$(notdir ${tut/rgliv/EXE}))
+tut/rgliv/EXEI	:= ${BINDIR}/$(notdir ${tut/rgliv/EXE})
 
 install:		tut/rgliv/install
 tut/rgliv/install:	${tut/rgliv/EXEI}
