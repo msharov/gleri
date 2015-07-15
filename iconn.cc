@@ -151,7 +151,7 @@ inline const CDatapak& CIConn::LoadDatapak (CGLWindow* w, goid_t cid, const GLub
     auto osz = 0u;
     auto po = CDatapak::DecompressBlock (pi, isz, osz);
     if (!po) XError::emit ("failed to decompress datapak");
-    auto pdpk = new CDatapak (w->ContextId(), cid, po, osz);
+    auto pdpk = new CDatapak (w->ContextId(), cid, move(po), osz);
     AddObject (pdpk);
     return *pdpk;
 }

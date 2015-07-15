@@ -487,7 +487,7 @@ public:
     }
     void Init (argc_t argc, argv_t argv);
 private:
-    auto_free<char> _toOpen;
+    unique_c_ptr<char> _toOpen;
 };
 
 void CImageViewerApp::Init (argc_t argc, argv_t argv)
@@ -505,7 +505,7 @@ void CImageViewerApp::Init (argc_t argc, argv_t argv)
     // Chdir to it if a folder, otherwise chdir to its parent folder
     auto filename = "";
     if (!S_ISDIR(st.st_mode)) {
-	auto pslash = strrchr ((char*) _toOpen, '/');
+	auto pslash = strrchr (_toOpen.get(), '/');
 	if (pslash) {
 	    *pslash = 0;	// Split into dir and filename
 	    filename = pslash+1;

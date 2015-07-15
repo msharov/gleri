@@ -12,7 +12,7 @@ public:
 	static CGLTest s_App; return s_App;
     }
     void Init (argc_t argc, argv_t argv) {
-	CGLApp::Init (argc, argv);
+	CGLApp::Init (argc, argv, server_Pipe);
 	CreateWindow<CTestWindow>();
     }
 };

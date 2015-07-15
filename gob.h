@@ -90,18 +90,18 @@ private:
 
 class CDatapak : public CGObject {
 public:
-			CDatapak (GLXContext ctx, goid_t cid, GLubyte* p, GLuint psz) noexcept;
+			CDatapak (GLXContext ctx, goid_t cid, unique_c_ptr<GLubyte>&& p, GLuint psz) noexcept;
     virtual		~CDatapak (void) noexcept;
-    inline explicit	CDatapak (CDatapak&& v)	: CGObject(move(v)), _sz(v._sz), _p(v._p) { v._sz = 0; v._p = nullptr; }
-    inline CDatapak&	operator= (CDatapak&& v){ CGObject::operator= (move(v)); swap(_sz,v._sz); swap(_p,v._p); return *this; }
+    inline explicit	CDatapak (CDatapak&& v)	: CGObject(move(v)), _sz(v._sz), _p(move(v._p)) { v._sz = 0; }
+    inline CDatapak&	operator= (CDatapak&& v){ CGObject::operator= (move(v)); swap(_sz,v._sz); _p.operator= (move(v._p)); return *this; }
     const GLubyte*	File (const char* filename, GLuint& sz) const noexcept;
     inline GLuint	Size (void) const	{ return _sz; }
-    static GLubyte*	DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz);
+    static unique_c_ptr<GLubyte>	DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz);
 private:
     inline GLuint	GenId (void) const	{ GLuint id; glGenBuffers (1, &id); return id; }
 private:
-    GLuint		_sz;
-    GLubyte*		_p;
+    GLuint			_sz;
+    unique_c_ptr<GLubyte>	_p;
 };
 
 //----------------------------------------------------------------------

@@ -9,12 +9,12 @@ CGLApp::~CGLApp (void) noexcept
 {
 }
 
-void CGLApp::Init (argc_t argc, argv_t argv)
+void CGLApp::Init (argc_t argc, argv_t argv, EServerType stype)
 {
     CApp::Init (argc, argv);
     _argc = argc;
     _argv = argv;
-    ConnectToServer();
+    ConnectToServer (stype);
 }
 
 void CGLApp::OpenWindow (CWindow* w)
@@ -39,7 +39,7 @@ CWindow* CGLApp::ClientRecord (int fd, CWindow::iid_t wid)
     return nullptr;
 }
 
-void CGLApp::ConnectToServer (void)
+void CGLApp::ConnectToServer (EServerType stype)
 {
     // Gleris must be either running locally or have its ports ssh forwarded.
     // When forwarded, set DISPLAY or GLERI_DISPLAY to the server hostname
@@ -56,8 +56,8 @@ void CGLApp::ConnectToServer (void)
     _screen = dinfo.screen;
     GetXauthData (dinfo, _xauth);
 
-    bool bConnected, bCanPassFd = (xdispstr[0] == ':');
-    if (bCanPassFd) {		// Try local server, PF_LOCAL socket
+    bool bConnected = false, bCanPassFd = (xdispstr[0] == ':');
+    if (bCanPassFd && (stype == server_Auto || stype == server_Local)) {	// Try local server, PF_LOCAL socket
 	char sockpath [sizeof(sockaddr_un::sun_path)];
 	auto sockfmt = GLERIS_XDG_SOCKET;
 	const char* sockdir = getenv ("XDG_RUNTIME_DIR");
@@ -67,7 +67,7 @@ void CGLApp::ConnectToServer (void)
 	}
 	snprintf (ArrayBlock(sockpath), sockfmt, sockdir, dinfo.display);
 	bConnected = _srvsock.Connect (sockpath);
-    } else			// TCP socket, GLERIS_PORT+idpy port on localhost
+    } else if (stype == server_Auto || stype == server_TCP)			// TCP socket, GLERIS_PORT+idpy port on localhost
 	bConnected = _srvsock.Connect (INADDR_LOOPBACK, GLERIS_PORT+dinfo.display);
     if (!bConnected) {		// Launch gleris in single mode if unable to connect
 	_srvsock.Attach (LaunchServer());
@@ -83,18 +83,18 @@ void CGLApp::ConnectToServer (void)
     const char* pathenv = getenv("PATH");
     if (!pathenv)
 	pathenv = "/bin:/usr/bin";
-    char* srvexe = nullptr;
-    for (char *pcolon, *path=strdup(pathenv), *pathend=path+strlen(path); path < pathend;) {
+    char srvexe [PATH_MAX];
+    unique_c_ptr<char> pathenvm (strdup(pathenv));
+    for (char *pcolon, *path=pathenvm.get(), *pathend=path+strlen(path); path < pathend;) {
 	if ((pcolon = strchr(path,':')))
 	    *pcolon = 0;
-	asprintf (&srvexe, "%s/" GLERIS_NAME, path);
+	snprintf (ArrayBlock(srvexe), "%s/" GLERIS_NAME, path);
 	if (access (srvexe, X_OK) == 0)
 	    break;
-	free (srvexe);
-	srvexe = nullptr;
+	srvexe[0] = 0;
 	path += strlen(path)+1;
     }
-    if (!srvexe)
+    if (!srvexe[0])
 	XError::emit ("could not find " GLERIS_NAME " in PATH");
     // Server is launched with -s flag, in single application mode
     const char* srvcmd[] = { srvexe, "-s", nullptr };

@@ -155,6 +155,7 @@ void CFile::SendFd (CFile& f)
 
     // Allocate a control message to hold one int
     fdpassheader control_un;
+    memset (&control_un, 0, sizeof(control_un));
     msg.msg_control = control_un.control;
     msg.msg_controllen = sizeof(control_un.control);
 
@@ -185,6 +186,7 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
 
     // Set up control message buffer with space for one int
     fdpassheader control_un;
+    memset (&control_un, 0, sizeof(control_un));
     msg.msg_control = control_un.control;
     msg.msg_controllen = sizeof(control_un.control);
     msg.msg_name = nullptr;

@@ -9,8 +9,15 @@
 
 class CGLApp : public CApp {
 public:
+    enum EServerType {
+	server_Auto,
+	server_Local,
+	server_TCP,
+	server_Pipe
+    };
+public:
     virtual			~CGLApp (void) noexcept;
-    void			Init (argc_t argc, argv_t argv);
+    void			Init (argc_t argc, argv_t argv, EServerType stype = server_Auto);
     CWindow*			ClientRecord (int fd, CWindow::iid_t wid);
     inline void			CloseClient (CWindow* w){ w->Destroy(); }
     static inline CGLApp&	Instance (void)		{ return static_cast<CGLApp&>(CApp::Instance()); }
@@ -27,7 +34,7 @@ protected:
     virtual void		OnTimer (uint64_t tms) override;
 private:
     inline CWindow::iid_t	GenWId (void)		{ return ++_nextwid; }
-    void			ConnectToServer (void);
+    void			ConnectToServer (EServerType stype);
     static int			LaunchServer (void);
     void			OpenWindow (CWindow* w);
     void			FinishWindowProcessing (void);

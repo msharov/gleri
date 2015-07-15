@@ -171,20 +171,34 @@ public:
 };
 
 template <typename T>
-struct auto_free {
-    inline explicit constexpr	auto_free (T* p)		: _p(p) {}
-    inline			~auto_free (void) noexcept	{ if (_p) ::free(_p); }
-    inline const T*		base (void) const		{ return _p; }
-    inline void			free (void) noexcept		{ if (_p) { ::free(_p); _p = nullptr; } }
-    inline bool			operator! (void)		{ return !_p; }
-    inline auto_free&		operator= (T* p)		{ _p = p; return *this; }
-    inline			operator T* (void)		{ return _p; }
-    inline			operator const T* (void) const	{ return _p; }
-    template <typename S>
-    inline			operator S* (void)		{ return reinterpret_cast<S*>(_p); }
-    template <typename S>
-    inline			operator const S* (void) const	{ return reinterpret_cast<const S*>(_p); }
-    inline const T*		operator+ (unsigned o) const	{ return _p+o; }
+class unique_c_ptr {
+public:
+    using element_type		= T;
+    using pointer		= element_type*;
+    using reference		= element_type&;
+public:
+    inline constexpr		unique_c_ptr (void)		: _p (nullptr) {}
+    inline constexpr explicit	unique_c_ptr (pointer p)	: _p (p) {}
+    inline			unique_c_ptr (unique_c_ptr&& p)	: _p (p.release()) {}
+				unique_c_ptr (const unique_c_ptr&) = delete;
+    inline			~unique_c_ptr (void)		{ reset(); }
+    inline constexpr pointer	get (void) const		{ return _p; }
+    inline pointer		release (void)			{ auto rv (_p); _p = nullptr; return rv; }
+    inline void			reset (pointer p = nullptr)	{ assert (p != _p || !p); auto ov (_p); _p = p; if (ov) free (ov); }
+    inline void			realloc (size_t nsz)		{ _p = (pointer) ::realloc (_p, nsz); }
+    inline void			swap (unique_c_ptr& v)		{ swap (_p, v._p); }
+    inline			operator const element_type* (void) const	{ return get(); }
+    inline constexpr explicit	operator bool (void) const	{ return _p != nullptr; }
+    inline unique_c_ptr&	operator= (pointer p)		{ reset (p); return *this; }
+    inline unique_c_ptr&	operator= (unique_c_ptr&& p)	{ reset (p.release()); return *this; }
+    unique_c_ptr&		operator=(const unique_c_ptr&) = delete;
+    inline constexpr reference	operator* (void) const		{ return *_p; }
+    inline constexpr pointer	operator-> (void) const		{ return _p; }
+    inline constexpr pointer	operator+ (size_t o) const	{ return _p+o; }
+    inline constexpr reference	operator[] (size_t i) const	{ return _p[i]; }
+    inline constexpr bool	operator== (const pointer p) const	{ return _p == p; }
+    inline constexpr bool	operator== (const unique_c_ptr& p)const	{ return _p == p._p; }
+    inline constexpr bool	operator< (const unique_c_ptr& p) const	{ return _p < p._p; }
 private:
-    T* _p;
+    pointer			_p;
 };

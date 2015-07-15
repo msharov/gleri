@@ -73,8 +73,12 @@ inline CCmdBuf::size_type CCmdBuf::nextcapacity (size_type v) const noexcept
 inline CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
 {
     need += size();
-    if (_sz < need)
-	_buf = (pointer) realloc (_buf,_sz = nextcapacity(need));
+    if (_sz < need) {
+	auto nsz = nextcapacity (need);
+	_buf = (pointer) realloc (_buf, nsz);
+	memset (_buf+_sz, 0, nsz-_sz);
+	_sz = nsz;
+    }
     return end();
 }
 

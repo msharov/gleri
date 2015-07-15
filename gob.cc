@@ -80,10 +80,10 @@ protected:
 } // namespace
 //}}}-------------------------------------------------------------------
 
-CDatapak::CDatapak (GLXContext ctx, goid_t cid, GLubyte* p, GLuint psz) noexcept
+CDatapak::CDatapak (GLXContext ctx, goid_t cid, unique_c_ptr<GLubyte>&& p, GLuint psz) noexcept
 : CGObject(ctx, cid, GenId())
 ,_sz (psz)
-,_p (p)
+,_p (move(p))
 {
 }
 
@@ -92,8 +92,6 @@ CDatapak::~CDatapak (void) noexcept
     auto id = Id();
     if (id != NoObject)
 	glDeleteBuffers (1, &id);
-    if (_p)
-	free(_p);
 }
 
 const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
@@ -101,7 +99,7 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
     if (!_p)
 	return nullptr;
     using pch_t	= const CpioHeader*;
-    for (auto pi = (pch_t)_p, pe = (pch_t)(_p+_sz); pi < pe; pi = pi->Next()) {
+    for (auto pi = (pch_t)_p.get(), pe = (pch_t)(_p.get()+_sz); pi < pe; pi = pi->Next()) {
 	if (!strcmp (pi->Filename(), filename)) {
 	    sz = pi->Filesize();
 	    return pi->Filedata();
@@ -112,7 +110,7 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
 
 //----------------------------------------------------------------------
 
-/*static*/ GLubyte* CDatapak::DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz)
+/*static*/ unique_c_ptr<GLubyte> CDatapak::DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz)
 {
     z_stream zs;
     memset (&zs, 0, sizeof(zs));
@@ -120,9 +118,9 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
     zs.avail_in = isz;
     zs.next_in = const_cast<Bytef*>(p);
     auto bufsz = 4096u, bread = 0u, chunksz = bufsz;
-    auto out = (GLubyte*) malloc (bufsz);
+    unique_c_ptr<GLubyte> out ((GLubyte*) malloc (bufsz));
     zs.avail_out = bufsz;
-    zs.next_out = out;
+    zs.next_out = out.get();
 
     enum { USE_GZIP_FORMAT = 16 };	// zlib fairy dust
     if (Z_OK != inflateInit2 (&zs, USE_GZIP_FORMAT+MAX_WBITS))
@@ -134,7 +132,7 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
 	    break;
 	else if (r == Z_OK) {
 	    bread += chunksz-zs.avail_out;
-	    out = (GLubyte*) realloc (out, bufsz*2);
+	    out.realloc (bufsz*2);
 	    bufsz *= 2;
 	    zs.next_out = out+bread;
 	    zs.avail_out = chunksz = bufsz-bread;

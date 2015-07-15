@@ -47,7 +47,7 @@ private:
 	    os.write_strz (_te);
 	    os.write_strz (_g);
 	    os.write_strz (_f);
-	    os.skipalign(4);
+	    os.align (4);
 	}
     private:
 	const char *_v, *_tc, *_te, *_g, *_f;
@@ -63,7 +63,7 @@ private:
 		os.write_strz (_argv[i]);
 	    if (Stm::is_writing)
 		*pstrsz = os.ipos()-(typename Stm::pointer)pstrsz-4;
-	    os.skipalign (4);
+	    os.align (4);
 	}
     private:
 	char* const* _argv;
@@ -74,7 +74,8 @@ private:
 public:
     enum class EResource : uint16_t {
 	DATAPAK,
-	BUFFER_VERTEX,
+	_BUFFER_FIRST,
+	BUFFER_VERTEX = _BUFFER_FIRST,
 	BUFFER_INDEX,
 	BUFFER_PIXEL_PACK,
 	BUFFER_PIXEL_UNPACK,
@@ -87,7 +88,9 @@ public:
 	BUFFER_TEXTURE,
 	BUFFER_TRANSFORM_FEEDBACK,
 	BUFFER_UNIFORM,
-	TEXTURE_1D,
+	_BUFFER_LAST = BUFFER_UNIFORM,
+	_TEXTURE_FIRST,
+	TEXTURE_1D = _TEXTURE_FIRST,
 	TEXTURE_2D,
 	TEXTURE_2D_MULTISAMPLE,
 	TEXTURE_RECTANGLE,
@@ -104,15 +107,12 @@ public:
 	TEXTURE_2D_ARRAY,
 	TEXTURE_2D_MULTISAMPLE_ARRAY,
 	TEXTURE_SAMPLER,
+	_TEXTURE_LAST = TEXTURE_SAMPLER,
 	FRAMEBUFFER,
 	SHADER,
 	FONT,
 	_N_RESOURCE_TYPES,
-	_BUFFER_FIRST = BUFFER_VERTEX,
-	_BUFFER_LAST = BUFFER_UNIFORM,
 	_N_BUFFER_TYPES = _BUFFER_LAST-_BUFFER_FIRST+1,
-	_TEXTURE_FIRST = TEXTURE_2D,
-	_TEXTURE_LAST = TEXTURE_SAMPLER,
 	_N_TEXTURE_TYPES = _TEXTURE_LAST-_TEXTURE_FIRST+1
     };
     inline static EResource	ResourceFromBufferType (G::BufferType btype)	{ return EResource(uint16_t(EResource::_BUFFER_FIRST)+btype); }
