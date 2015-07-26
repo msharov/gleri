@@ -20,6 +20,7 @@ public:
     using color_t	= G::color_t;
     using pfontinfo_t	= const G::Font::Info*;
     enum : uint32_t { c_ObjectName = vpack4('R','G','L',0) };
+    enum { default_FontSize = 20 };
 private:
     enum class ECmd : cmd_t {
 	Auth,
@@ -159,9 +160,9 @@ public:
     inline goid_t		CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc);
     inline goid_t		CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer);
     inline void			FreeFramebuffer (goid_t id);
-    inline goid_t		LoadFont (const void* d, uint32_t dsz);
-    inline goid_t		LoadFont (const char* f);
-    inline goid_t		LoadFont (goid_t pak, const char* f);
+    inline goid_t		LoadFont (const void* d, uint32_t dsz, uint8_t fontSize = default_FontSize);
+    inline goid_t		LoadFont (const char* f, uint8_t fontSize = default_FontSize);
+    inline goid_t		LoadFont (goid_t pak, const char* f, uint8_t fontSize = default_FontSize);
     inline void			FreeFont (goid_t id);
     inline goid_t		LoadShader (const char* v, const char* tc, const char* te, const char* g, const char* f);
     inline goid_t		LoadShader (const char* v, const char* tc, const char* te, const char* f);
@@ -265,12 +266,12 @@ inline PRGL::goid_t PRGL::CreateFramebuffer (goid_t depthbuffer, goid_t colorbuf
 inline void PRGL::FreeFramebuffer (goid_t id)
     { FreeResource (id, EResource::FRAMEBUFFER); }
 
-inline PRGL::goid_t PRGL::LoadFont (const void* d, uint32_t dsz)
-    { return LoadData (EResource::FONT, d, dsz, 0); }
-inline PRGL::goid_t PRGL::LoadFont (const char* f)
-    { return LoadFile (EResource::FONT, f, 0); }
-inline PRGL::goid_t PRGL::LoadFont (goid_t pak, const char* f)
-    { return LoadPakFile (EResource::FONT, pak, f, 0); }
+inline PRGL::goid_t PRGL::LoadFont (const void* d, uint32_t dsz, uint8_t fontSize)
+    { return LoadData (EResource::FONT, d, dsz, fontSize); }
+inline PRGL::goid_t PRGL::LoadFont (const char* f, uint8_t fontSize)
+    { return LoadFile (EResource::FONT, f, fontSize); }
+inline PRGL::goid_t PRGL::LoadFont (goid_t pak, const char* f, uint8_t fontSize)
+    { return LoadPakFile (EResource::FONT, pak, f, fontSize); }
 inline void PRGL::FreeFont (goid_t id)
     { FreeResource (id, EResource::FONT); }
 

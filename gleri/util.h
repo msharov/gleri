@@ -128,11 +128,21 @@ inline const char* strnext (const char* s, unsigned& n)
     return s;
 }
 
-#if USE_USTL
-template <typename T> struct remove_const { using type = T; };
-template <typename T> struct remove_const<const T> { using type = T; };
-template <typename T> struct remove_pointer { using type = T; };
-template <typename T> struct remove_pointer<T*> { using type = typename remove_const<T>::type; };
+#if !USE_USTL
+/// Returns the index of the first set bit in \p v or \p nbv if none.
+inline unsigned FirstBit (uint32_t v, unsigned nbv = 0)
+{
+    unsigned n = nbv;
+#if __i386__ || __x86_64__
+    if (!__builtin_constant_p(v)) asm ("bsr\t%1, %k0":"+r,r"(n):"r,m"(v)); else
+#endif
+#if __GNUC__
+    if (v) n = 31 - __builtin_clz(v);
+#else
+    if (v) for (uint32_t m = uint32_t(1)<<(n=31); !(v & m); m >>= 1) --n;
+#endif
+    return n;
+}
 #endif
 
 /// Dereferencing iterator for containers of pointers
@@ -202,3 +212,8 @@ public:
 private:
     pointer			_p;
 };
+
+#if USE_USTL
+template <typename T>
+using unique_ptr = auto_ptr<T>;
+#endif

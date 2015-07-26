@@ -30,6 +30,7 @@ private:
     goid_t		_ofscrdepth;
     goid_t		_ofscrcol;
     goid_t		_ofscrfb;
+    goid_t		_vwfont;
     coord_t		_wx;
     coord_t		_wy;
     coord_t		_wsx;

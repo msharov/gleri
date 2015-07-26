@@ -22,7 +22,7 @@ public:
     inline constexpr	CFile (void) noexcept	: _fd(-1) {}
     constexpr explicit	CFile (int fd) noexcept	: _fd(fd) {}
     inline		CFile (const char* filename, int flags, mode_t mode = 0);
-    inline		~CFile (void) noexcept	{ close (_fd); }
+    inline		~CFile (void) noexcept	{ ForceClose(); }
     inline int		Fd (void) const		{ return _fd; }
     inline bool		IsOpen (void) const	{ return _fd >= 0; }
     inline void		Attach (int fd)		{ _fd = fd; }
@@ -34,7 +34,7 @@ public:
     inline bool		Connect (const char* sockpath);
     inline bool		Connect (uint32_t addr, uint16_t port);
     void		Close (void);
-    inline void		ForceClose (void) noexcept	{ close (Detach()); }
+    inline void		ForceClose (void) noexcept	{ auto fd = Detach(); if (fd >= 0) close(fd); }
     size_t		Size (void) const;
     size_t		Read (void* d, size_t dsz);
     void		Write (const void* d, size_t dsz);

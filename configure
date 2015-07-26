@@ -199,7 +199,7 @@ s/@customlibdir@/${ac_var_customlibdir:=$ac_var_prefix\/lib}/g" >>config.sed
 #### Find headers, libs, programs, and subs ##########################
 
 SubHeadLibsProgs() {
-local INCPATH LIBPATH LIBSUFFIX found pname pcall esciv
+local INCPATH LIBPATH LIBSUFFIX found pname pcall esciv ftconf ftinc ftlib
 INCPATH="$ac_var_includedir $ac_var_gccincludedir $ac_var_customincdir /usr/include"
 INCPATH=`echo $INCPATH | sed 's/\\\\//g'`
 for i in $HEADERS; do
@@ -239,6 +239,15 @@ for i in $PROGS; do
     pcall=`expr "$i" : '[^=]*=\([^=]*\)'`
     echo "s/@$pname@/$pcall/g" >>config.sed
 done
+# Find freetype-config and get freetype compilation flags
+ftconf=`which freetype-config 2>/dev/null`
+if [ -x $ftconf ]; then
+    ftinc=`$ftconf --cflags|sed 's/\\//\\\\\\//g'`
+    ftlib=`$ftconf --libs|sed 's/\\//\\\\\\//g'`
+    echo "s/@freetypeflags@/$ftinc/;s/@freetypelibs@/$ftlib/;s/#undef HAVE_FREETYPE/#define HAVE_FREETYPE 1/" >>config.sed
+else
+    echo "s/ \?@freetypeflags@//;s/ \?@freetypelibs@//" >>config.sed
+fi
 # And, finally, the environment variables
 for i in $ENVIRONS; do
     esciv="`eval echo '"'\$\{$i\}'"'|sed 's/\//\\\&/g'`"

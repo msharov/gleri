@@ -17,12 +17,13 @@ public:
 	int		_p [G::Texture::NPARAMS];
 	static const int c_Defaults [G::Texture::NPARAMS];
     };
+    using rcti_t	= const G::Texture::Header&;
 public:
 			CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param) noexcept;
     inline		~CTexture (void) noexcept { Free(); }
     inline explicit	CTexture (CTexture&& v)	: CGObject(move(v)),_h(v._h) {}
     inline CTexture&	operator= (CTexture&& v){ CGObject::operator= (move(v)); _h = v._h; return *this; }
-    inline const G::Texture::Header&	Info (void) const	{ return _h; }
+    inline rcti_t	Info (void) const	{ return _h; }
     inline GLenum	Type (void) const	{ return _h.type; }
     inline GLushort	Width (void) const	{ return _h.w; }
     inline GLushort	Height (void) const	{ return _h.h; }
@@ -47,7 +48,7 @@ private:
 	inline			CTexBuf (CTexBuf&& b)	:_h(b._h),_sz(b._sz),_p(b._p) { b._p = nullptr; }
 	inline			CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint16_t w, uint32_t roww, uint16_t h=1, uint16_t d=0)
 				    :_h { texhdr_t::Magic, G::Texture::TEXTURE_2D, w,h,d,fmt,comp }
-				    ,_sz (max<uint32_t>(roww,w*4)*h)
+				    ,_sz (max(roww,w*4u)*h)
 				    ,_p ((pointer)malloc(_sz)) {}
 	inline			~CTexBuf (void)		{ if (_p && _sz) free(_p); }
 	inline CTexBuf&		operator= (CTexBuf&& b)	{ swap(_h,b._h); swap(_sz,b._sz); swap(_p,b._p); return *this; }
@@ -66,6 +67,6 @@ private:
     static inline CTexBuf	LoadJPG (const GLubyte* p, GLuint psz) noexcept;
     static void			SavePNG (int fd, const CTexBuf& tbuf);
     static inline void		SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality);
-private:
+protected:
     G::Texture::Header		_h;
 };

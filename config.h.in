@@ -21,6 +21,9 @@
     #error "OpenGL is required to compile this project"
 #endif
 
+// Define to 1 if you have freetype
+#undef HAVE_FREETYPE
+
 // Define to 1 if you have libpng
 #undef HAVE_PNG_H
 

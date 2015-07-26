@@ -60,9 +60,9 @@ private:
     inline void			LoadShader (CGLWindow* w, goid_t cid, const CDatapak& pak, const char* v, const char* f);
     inline void			LoadTexture (CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz, G::Pixel::Fmt storeas, G::TextureType ttype);
     inline void			LoadFramebuffer (CGLWindow* w, goid_t cid, const GLubyte* d, GLuint dsz);
-    inline void			LoadFont (CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz);
+    inline void			LoadFont (CGLWindow* w, goid_t cid, const GLubyte* p, GLuint psz, uint8_t fontSize);
 				// Misc
-    void			AddObject (CGObject* o);
+    void			AddObject (unique_ptr<CGObject>&& o);
     const CGObject*		FindObject (goid_t cid) const noexcept;
     static void			ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept;
     template <typename O>

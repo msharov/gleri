@@ -55,14 +55,16 @@ enum {
 #if HAVE_USTL_H && USE_USTL
     #include <ustl.h>
     using namespace ustl;
-    #if USTL_VERSION < 0x200
-	#error "uSTL version 2.0 is required for this project"
+    #if USTL_VERSION < 0x220
+	#error "uSTL version 2.2 is required for this project"
     #endif
 #else
+    #include <type_traits>
     #include <algorithm>
+    #include <endian.h>
+    #include <memory>
     #include <vector>
     #include <set>
-    #include <endian.h>
     using namespace std;
 
     /// Rounds \p n up to be divisible by \p grain

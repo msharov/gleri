@@ -6,7 +6,7 @@
 #include "gwin.h"
 #include <sys/time.h>
 
-//----------------------------------------------------------------------
+//{{{ GLWindow window-level functionality ------------------------------
 
 CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn)
 : PRGLR(iid)
@@ -172,8 +172,8 @@ uint64_t CGLWindow::DrawPendingFrame (Display* dpy)
     return DrawFrame (bstri (&*_pendingFrame.begin(), _pendingFrame.size()), dpy);
 }
 
-//----------------------------------------------------------------------
-// Buffer
+//}}}-------------------------------------------------------------------
+//{{{ Buffer
 
 void CGLWindow::BindBuffer (const CBuffer& buf) noexcept
 {
@@ -184,8 +184,8 @@ void CGLWindow::BindBuffer (const CBuffer& buf) noexcept
     glBindBuffer (buf.Type(), buf.Id());
 }
 
-//----------------------------------------------------------------------
-// Shader interface
+//}}}-------------------------------------------------------------------
+//{{{ Shader
 
 void CGLWindow::Shader (const CShader& sh) noexcept
 {
@@ -290,8 +290,8 @@ void CGLWindow::Enable (G::Feature f, uint16_t o) noexcept
 	glDisable (c_Features[f]);
 }
 
-//----------------------------------------------------------------------
-// Texture
+//}}}-------------------------------------------------------------------
+//{{{ Texture
 
 void CGLWindow::Sprite (const CTexture& t, coord_t x, coord_t y)
 {
@@ -319,8 +319,8 @@ void CGLWindow::Sprite (const CTexture& t, coord_t x, coord_t y, coord_t sx, coo
     glDrawArrays (GL_POINTS, 0, 1);
 }
 
-//----------------------------------------------------------------------
-// Framebuffer
+//}}}-------------------------------------------------------------------
+//{{{ Framebuffer
 
 void CGLWindow::BindFramebuffer (const CFramebuffer& fb, G::FramebufferType bindas)
 {
@@ -360,8 +360,8 @@ void CGLWindow::SaveFramebuffer (coord_t x, coord_t y, coord_t w, coord_t h, con
 	unlink (tmpfilename);
 }
 
-//----------------------------------------------------------------------
-// Font
+//}}}-------------------------------------------------------------------
+//{{{ Font
 
 void CGLWindow::Text (coord_t x, coord_t y, const char* s)
 {
@@ -369,33 +369,44 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
     SetFontShader();
 
     DTRACE ("[%x] Text at %d:%d: '%s'\n", IId(), x,y,s);
-    wchar_t ws [strlen(s)];
+    uint16_t ws [strlen(s)];
     unsigned nChars = 0;
     for (auto i = utf8in(s); *i; ++i)
 	ws[nChars++] = *i;
-    struct SVertex { GLshort x,y,s,t; } v [nChars];
-    const unsigned fw = f.LetterW(), fh = f.LetterH();
-    for (unsigned i = 0, lx = x; i < nChars; ++i, lx+=fw) {
-	v[i].x = lx;
-	v[i].y = y;
-	v[i].s = f.LetterX(ws[i]);
-	v[i].t = f.LetterY(ws[i]);
+    struct { GLshort x,y,w,h,s,t; } v [nChars];
+    const auto& fi = f.Info();
+    uint16_t prevc = 0;
+    for (unsigned i = 0, lx = x; i < nChars; ++i) {
+	auto c = ws[i];
+	auto& gi = fi.Glyph (c);
+	v[i].y = y + gi.by;
+	v[i].w = gi.w-1;
+	v[i].h = gi.h-1;
+	v[i].s = gi.x;
+	v[i].t = gi.y;
+	lx -= fi.Kerning (prevc, c);
+	prevc = c;
+	v[i].x = lx + gi.bx;
+	lx += fi.Width (c);
     }
     GLuint buf;
     glGenBuffers (1, &buf);
     glBindBuffer (GL_ARRAY_BUFFER, buf);
     glBufferData (GL_ARRAY_BUFFER, sizeof(v), v, GL_STREAM_DRAW);
     glEnableVertexAttribArray (G::param_Vertex);
-    glVertexAttribPointer (G::param_Vertex, 4, GL_SHORT, GL_FALSE, 0, nullptr);
+    glEnableVertexAttribArray (G::param_TexCoord);
+    glVertexAttribPointer (G::param_Vertex, 4, GL_SHORT, GL_FALSE, sizeof(v[0]), 0);
+    glVertexAttribPointer (G::param_TexCoord, 2, GL_SHORT, GL_FALSE, sizeof(v[0]), (GLvoid*)(4*sizeof(GLshort)));
     UniformTexture ("Texture", f);
-    Uniform4f ("FontSize", fw-1,fh-1, 256,256);
+    Uniform4f ("FontTextureSize", f.TextureInfo().w, f.TextureInfo().h, f.TextureInfo().w, f.TextureInfo().h);
     glDrawArrays (GL_POINTS, 0, nChars);
     glDisableVertexAttribArray (G::param_Vertex);
+    glDisableVertexAttribArray (G::param_TexCoord);
     glDeleteBuffers (1, &buf);
 }
 
-//----------------------------------------------------------------------
-// Queries
+//}}}-------------------------------------------------------------------
+//{{{ Queries
 
 inline void CGLWindow::PostQuery (GLuint q)
 {
@@ -410,8 +421,8 @@ inline bool CGLWindow::QueryResultAvailable (GLuint q) const
     return haveQuery;
 }
 
-//----------------------------------------------------------------------
-// Errors
+//}}}-------------------------------------------------------------------
+//{{{ Errors
 
 void CGLWindow::CheckForErrors (void)
 {
@@ -434,3 +445,5 @@ void CGLWindow::CheckForErrors (void)
     DTRACE ("GLError: %s\n", etxt);
     XError::emit (etxt);
 }
+
+//}}}-------------------------------------------------------------------

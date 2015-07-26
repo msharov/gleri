@@ -6,8 +6,7 @@
 #pragma once
 #include "bstr.h"
 
-//----------------------------------------------------------------------
-// OpenGL constants
+//{{{ OpenGL constants ----------------------------------------------------
 
 namespace G {
 
@@ -150,6 +149,9 @@ enum DefaultResource : goid_t {
     default_Font,
     default_ResourceMaxId = 0x10000
 };
+
+//}}}-------------------------------------------------------------------
+//{{{ Pixel
 
 namespace Pixel {
 enum Fmt : uint16_t {
@@ -309,6 +311,9 @@ enum Comp : uint16_t {
 };
 } // namespace G::Pixel
 
+//}}}-------------------------------------------------------------------
+//{{{ Texture
+
 namespace Texture {
 enum Type : uint16_t {
     TEXTURE_1D			= 0x0de0,
@@ -354,30 +359,101 @@ enum class Format : uint8_t {
     JPEG,
     PNG
 };
+
 } // namespace G::Texture
 
+//}}}-------------------------------------------------------------------
+//{{{ Font
+
 namespace Font {
+
+class CPMap {
+protected:
+    struct CodePageRange {
+	uint8_t		first;
+	uint8_t		n;
+	uint16_t	offset;
+    };
+    using cpra_t	= CodePageRange [256];
+public:
+    class iterator {
+    public:
+			iterator (const cpra_t& c, uint16_t v)	:_cpra(c),_v(v) {}
+	iterator&	operator++ (void) noexcept;
+	uint16_t	operator* (void) const			{ return _v; }
+	bool		operator== (const iterator& i) const	{ return _v == i._v; }
+	bool		operator!= (const iterator& i) const	{ return _v != i._v; }
+	bool		operator< (const iterator& i) const	{ return _v < i._v; }
+    private:
+	const cpra_t&	_cpra;
+	uint16_t	_v;
+    };
+    using charmap_t	= vector<uint16_t>;
+public:
+    inline		CPMap (void)		{ memset (_cpra, 0, sizeof(_cpra)); }
+    void		Create (const charmap_t& cm) noexcept;
+    iterator		begin (void) const noexcept PURE;
+    iterator		end (void) const noexcept PURE;
+    size_t		size (void) const noexcept PURE;
+    uint16_t		operator[] (uint16_t i) const noexcept PURE;
+    inline void		read (bstri& is)	{ is.read (_cpra, sizeof(_cpra)); }
+    inline void		write (bstro& os) const	{ os.write (_cpra, sizeof(_cpra)); }
+    inline void		write (bstrs& ss) const	{ ss.write (_cpra, sizeof(_cpra)); }
+private:
+    cpra_t		_cpra;
+};
+
+union KerningPair {
+    struct {
+	int16_t		d;
+	uint16_t	r;
+	uint16_t	c2;
+	uint16_t	c1;
+    };
+    uint64_t		v;
+    inline bool		operator< (const KerningPair& k) const	{ return v < k.v; }
+};
+
 class Info {
 public:
-    inline		Info (void)			: _w(0),_h(0),_ascent(0),_varw() {}
-    inline		Info (dim_t w, dim_t h, dim_t a = 0)	: _w(w),_h(h),_ascent(a),_varw() {}
+    enum class Style : uint8_t {
+	Regular,
+	Bold,
+	Italic,
+	BoldItalic
+    };
+public:
+			Info (void);
+			Info (dim_t w, dim_t h);
+    const string&	Name (void) const		{ return _name; }
+    inline Style	FontStyle (void) const		{ return _style; }
     inline dim_t	Height (void) const		{ return _h; }
     inline dim_t	Width (void) const		{ return _w; }
-    inline dim_t	Width (wchar_t c) const	{ return size_t(c) < _varw.size() ? _varw[c] : Width(); }
-    dim_t		Width (const char* s) const;
-    inline void		SetWidth (dim_t w)		{ _w = w; }
-    inline void		SetHeight (dim_t h)		{ _h = h; }
-    inline void		SetAscent (dim_t ascent)	{ _ascent = ascent; }
-    inline void		SetWidth (wchar_t c, dim_t w)	{ _varw.resize (min<size_t>(_varw.size(),c+1)); _varw[c] = w; }
+    inline uint8_t	Baseline (void) const		{ return _b; }
+    inline uint8_t	MHeight (void) const		{ return _mh; }
+    inline uint8_t	MWidth (void) const		{ return _mw; }
+    dim_t		Width (uint16_t c) const noexcept PURE;
+    dim_t		Width (const char* s) const noexcept;
+    int16_t		Kerning (uint16_t c1, uint16_t c2) const noexcept PURE;
+    inline bool		IsFixed (void) const		{ return _varw.empty(); }
+    inline bool		HasKerning (void) const		{ return !_kp.empty(); }
     void		read (bstri& is);
     void		write (bstro& os) const;
     void		write (bstrs& ss) const;
-private:
+protected:
     dim_t		_w,_h;
-    dim_t		_ascent;
-    vector<dim_t>	_varw;
+    uint8_t		_b;
+    uint8_t		_mw,_mh;
+    Style		_style;
+    CPMap		_cpmap;
+    string		_name;
+    vector<uint8_t>	_varw;
+    vector<KerningPair>	_kp;
 };
+
 } // namespace G::Font
+//}}}-------------------------------------------------------------------
+//{{{ Framebuffer
 
 class alignas(4) FramebufferComponent {
 public:
@@ -395,6 +471,9 @@ public:
     inline void			write (bstro& os) const	{ os.iwrite (*this); }
     inline void			write (bstrs& ss) const	{ ss.iwrite (*this); }
 };
+
+//}}}-------------------------------------------------------------------
+//{{{ WinInfo
 
 class alignas(4) WinInfo {
 public:
@@ -474,8 +553,8 @@ const char* ShapeName (Shape s) noexcept __attribute__((const));
 
 } // namespace G
 
-//----------------------------------------------------------------------
-// Exceptions
+//}}}-------------------------------------------------------------------
+//{{{ Exceptions
 
 class XError {
 public:
@@ -494,8 +573,8 @@ template <typename... T>
 inline XError::XError (const char* fmt, T... args) noexcept
     { asprintf (&_msg, fmt, args...); }
 
-//----------------------------------------------------------------------
-// Utility functions
+//}}}-------------------------------------------------------------------
+//{{{ Utility functions
 
 void hexdump (const void* pv, size_t n) noexcept;
 
@@ -533,8 +612,8 @@ inline constexpr G::color_t RGB (G::color_t c)
 #define VRENUM(name,size)\
     v_##name##Offset, v_##name##Size = size, v_##name##Last = v_##name##Offset+v_##name##Size-1
 
-//----------------------------------------------------------------------
-// Tesselator macros for vertex arrays.
+//}}}-------------------------------------------------------------------
+//{{{ Tesselator macros for vertex arrays
 //
 // These handle the unpleasantries of offsetting, and different sizes of
 // solid and line primitives due to OpenGL ending rasterization in
@@ -558,7 +637,7 @@ inline constexpr G::color_t RGB (G::color_t c)
 #define VGEN_SIN11(r)	((r)*0.195090+0.5)
 #define VGEN_COS11(r)	((r)*0.980785+0.5)
 
-///{{{ VGEN_LLELLIPSE_N - generates ellipse line loop with 8, 16, or 32 points
+///{{{2 VGEN_LLELLIPSE_N - generates ellipse line loop with 8, 16, or 32 points
 #define VGEN_LLELLIPSE_8(x,y,rx,ry)				\
 	    VGEN_POINT (x,y-ry),				\
 	    VGEN_POINT (x-VGEN_SIN45(rx),y-VGEN_SIN45(ry)),	\
@@ -620,7 +699,7 @@ inline constexpr G::color_t RGB (G::color_t c)
 	    VGEN_POINT (x+VGEN_SIN34(rx),y-VGEN_COS34(ry)),	\
 	    VGEN_POINT (x+VGEN_SIN22(rx),y-VGEN_COS22(ry)),	\
 	    VGEN_POINT (x+VGEN_SIN11(rx),y-VGEN_COS11(ry))
-//}}}
+//}}}2
 
 // Curiously, no offsetting is required for these...
 #define VGEN_TFELLIPSE_10(x,y,rx,ry)		\
@@ -645,3 +724,5 @@ inline constexpr G::color_t RGB (G::color_t c)
 #define VGEN_TFCIRCLE_10(x,y,r)	VGEN_TFELLIPSE_10(x,y,r,r)
 #define VGEN_TFCIRCLE_18(x,y,r)	VGEN_TFELLIPSE_18(x,y,r,r)
 #define VGEN_TFCIRCLE_34(x,y,r)	VGEN_TFELLIPSE_34(x,y,r,r)
+
+//}}}-------------------------------------------------------------------

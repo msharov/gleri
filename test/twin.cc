@@ -84,6 +84,7 @@ CTestWindow::CTestWindow (iid_t wid)
 ,_ofscrdepth(0)
 ,_ofscrcol(0)
 ,_ofscrfb(0)
+,_vwfont(0)
 ,_wx(0)
 ,_wy(0)
 ,_wsx(0)
@@ -117,6 +118,12 @@ void CTestWindow::OnInit (void)
     _ofscrdepth = CreateDepthTexture (640, 480);
     _ofscrcol = CreateTexture (G::TEXTURE_2D, 640, 480);
     _ofscrfb = CreateFramebuffer (_ofscrdepth, _ofscrcol);
+
+#if HAVE_FREETYPE
+    #define VWFONT_NAME	"/usr/share/fonts/TTF/times.ttf"
+    if (access (VWFONT_NAME, R_OK) == 0)
+	_vwfont = LoadFont (VWFONT_NAME, 21);
+#endif
 }
 
 void CTestWindow::OnResize (dim_t w, dim_t h)
@@ -256,6 +263,13 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Text (300, 420, "A quick brown fox jumps over the lazy dog");
     auto lrt = LastRenderTimeNS(), lft = RefreshTimeNS();
     drw.Textf (10,10, "FPS %6u, VSync %3u", 1000000000/(lrt?lrt:1), 1000000000/(lft?lft:1));
+
+    #if HAVE_FREETYPE
+	if (_vwfont) {
+	    drw.Font (_vwfont);
+	    drw.Text (300, 520, "A quick brown fox jumps over the lazy dog");
+	}
+    #endif
 
     drw.Color (128,90,150,220);
     drw.TriangleFan (v_PurpleQuadOffset, v_PurpleQuadSize);

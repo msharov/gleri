@@ -70,8 +70,7 @@ bool CFile::BindSystemdFd (int fd, sa_family_t family)
 
 void CFile::Close (void)
 {
-    auto r = close (_fd);
-    if (r < 0)
+    if (_fd >= 0 && 0 != close (_fd))
 	Error ("close");
     Detach();
 }
