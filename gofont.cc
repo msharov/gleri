@@ -218,17 +218,17 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
 	glyph.bitmap.buffer = const_cast<uint8_t*>(&p[(g-1)*glyphsize]);
 
 	// Position the glyph in the texture
-	gi.w = glyph.bitmap.width+1;
+	gi.w = glyph.bitmap.width+1;	// +1 to account for OpenGL filled primitive non-inclusive top and right edge
 	gi.h = glyph.bitmap.rows+1;
-	if (x + gi.w > texw) {	// Overflow right, next row
+	if (x + gi.w > texw) {		// Overflow right, next row
 	    x = 0;
 	    y += rh;
 	    rh = 0;
 	}
 	gi.x = x;
-	gi.y = y-1;
+	gi.y = y-1;			// -1 to adjust for filled primitive non-inclusive top edge
 	rh = max<uint16_t> (rh, gi.h);
-	if (y + rh > texh)	// Overflow bottom, expand texture
+	while (y + rh > texh)		// Overflow bottom, expand texture
 	    ftexbmp.resize (texw * (texh *= 2));
 
 	auto o = &ftexbmp[(y << texwe) + x];
@@ -390,27 +390,27 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 
 	// Position the glyph in the texture
 	auto& gi = _info.Glyph(c);
-	gi.w = glyph.bitmap.width+1;
+	gi.w = glyph.bitmap.width+1;	// +1 to account for OpenGL filled primitive non-inclusive top and right edge
 	gi.h = glyph.bitmap.rows+1;
-	if (x + gi.w > texw) {	// Overflow right, next row
+	if (x + gi.w + 1u > texw) {	// Overflow right, next row (+1 to add empty margin for MSAA)
 	    x = 0;
 	    y += rh;
 	    rh = 0;
 	}
 	gi.x = x;
-	gi.y = y-1;
+	gi.y = y-1;			// -1 to adjust for filled primitive non-inclusive top edge
 	gi.bx = glyph.bitmap_left;
 	gi.by = _info.Baseline() - glyph.bitmap_top;
 	if (!FT_IS_FIXED_WIDTH(face))
 	    _info.SetWidth (c, glyph.advance.x / 64);
 
-	rh = max<uint16_t> (rh, gi.h);
-	while (y + rh > texh)	// Overflow bottom, expand texture
+	rh = max<uint16_t> (rh, gi.h+1);
+	while (y + rh > texh)		// Overflow bottom, expand texture
 	    ftexbmp.resize (texw * (texh *= 2));
 
 	auto o = &ftexbmp[(y << texwe) + x];
 	RenderGlyphOnTexture (glyph.bitmap, o, texw);
-	x += gi.w;
+	x += gi.w+1;
     }
     texh = y + rh;
 
