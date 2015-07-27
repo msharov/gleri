@@ -380,8 +380,8 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
 	auto c = ws[i];
 	auto& gi = fi.Glyph (c);
 	v[i].y = y + gi.by;
-	v[i].w = gi.w-1;
-	v[i].h = gi.h-1;
+	v[i].w = gi.w;
+	v[i].h = gi.h;
 	v[i].s = gi.x;
 	v[i].t = gi.y;
 	lx -= fi.Kerning (prevc, c);

@@ -175,7 +175,7 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
     //}}}2-----------------------------------------------------------------
     _info.SetBaseline (_info.Height());
     _info.SetMSize (_info.Width(), _info.Height());
-    if (!_info.Width() || psz < nGlyphs * glyphsize)
+    if (!_info.Width() || !_info.Height() || psz < nGlyphs * glyphsize)
 	XError::emit ("invalid font file");
 
     _info.CreateCharmap (charmap);
@@ -218,15 +218,15 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
 	glyph.bitmap.buffer = const_cast<uint8_t*>(&p[(g-1)*glyphsize]);
 
 	// Position the glyph in the texture
-	gi.w = glyph.bitmap.width;
-	gi.h = glyph.bitmap.rows;
+	gi.w = glyph.bitmap.width+1;
+	gi.h = glyph.bitmap.rows+1;
 	if (x + gi.w > texw) {	// Overflow right, next row
 	    x = 0;
 	    y += rh;
 	    rh = 0;
 	}
 	gi.x = x;
-	gi.y = y;
+	gi.y = y-1;
 	rh = max<uint16_t> (rh, gi.h);
 	if (y + rh > texh)	// Overflow bottom, expand texture
 	    ftexbmp.resize (texw * (texh *= 2));
@@ -367,7 +367,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	XError::emit ("font too large");
     auto texh = face->num_glyphs * _info.Width() * _info.Height() / texw;
     if (texh < mh)
-	texh = mh;
+	texh = mh+1;
 
     vector<uint16_t> usedglyphs (face->num_glyphs+1);
     vector<GLubyte> ftexbmp (texw*texh);
@@ -405,7 +405,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	    _info.SetWidth (c, glyph.advance.x / 64);
 
 	rh = max<uint16_t> (rh, gi.h);
-	if (y + rh > texh)	// Overflow bottom, expand texture
+	while (y + rh > texh)	// Overflow bottom, expand texture
 	    ftexbmp.resize (texw * (texh *= 2));
 
 	auto o = &ftexbmp[(y << texwe) + x];
