@@ -237,8 +237,8 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
     }
     texh = y + rh;
 
-    _h.w = texw;
-    _h.h = texh;
+    CTexture::_info.w = texw;
+    CTexture::_info.h = texh;
     glBindTexture (GL_TEXTURE_2D, Id());
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -414,8 +414,8 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
     }
     texh = y + rh;
 
-    _h.w = texw;
-    _h.h = texh;
+    CTexture::_info.w = texw;
+    CTexture::_info.h = texh;
     glBindTexture (GL_TEXTURE_2D, Id());
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);

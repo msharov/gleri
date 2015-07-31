@@ -41,7 +41,7 @@ public:
     virtual void	OnInit (void) override;
     ONDRAWDECL		OnDraw (Drw& drw) const;
     virtual void	OnKey (key_t key) override;
-    virtual void	OnTextureInfo (goid_t, const G::Texture::Header&) override;
+    virtual void	OnTextureInfo (goid_t, const G::Texture::Info&) override;
     virtual void	OnResize (dim_t w, dim_t h) override;
 private:
     // There are two possible views, shown in the same window
@@ -355,7 +355,7 @@ void CImageViewer::OnResize (dim_t w, dim_t h)
 // OnTextureInfo is generated when a texture finishes loading. Loading is
 // initiated by LoadTexture call in LoadEntry. Other resource types may
 // generate a similar event - LoadFont will generate OnFontInfo.
-void CImageViewer::OnTextureInfo (goid_t tid, const G::Texture::Header& ih)
+void CImageViewer::OnTextureInfo (goid_t tid, const G::Texture::Info& ih)
 {
     CWindow::OnTextureInfo (tid, ih);
     if (tid == _loadingImg) {		// Image loaded for display in ImageView

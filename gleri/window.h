@@ -34,8 +34,8 @@ public:
     inline virtual void	OnSaveFramebuffer (goid_t, CFile&)	{ }
     inline virtual void	Draw (void)				{ }
     inline void		OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d);
-    inline virtual void	OnTextureInfo (goid_t, const G::Texture::Header&)	{ }
-    inline virtual void	OnFontInfo (goid_t, G::Font::Info&)			{ }
+    inline virtual void	OnTextureInfo (goid_t, const G::Texture::Info&)	{ }
+    inline virtual void	OnFontInfo (goid_t, G::Font::Info&)		{ }
     inline void		WriteCmds (void)		{ if (!_closePending) PRGL::WriteCmds(); }
     inline iid_t	IId (void) const		{ return PRGL::IId(); }
     inline void		SetFd (int fd, bool pfd=false)	{ PRGL::SetFd(fd, pfd); }
@@ -116,9 +116,9 @@ inline void CWindow::OnResourceInfo (goid_t id, uint16_t type, const SDataBlock&
 	is >> fi;
 	OnFontInfo (id, fi);
     } else if (rtype >= EResource::_TEXTURE_FIRST && rtype <= EResource::_TEXTURE_LAST) {
-	G::Texture::Header h;
-	is >> h;
-	OnTextureInfo (id, h);
+	G::Texture::Info ti;
+	is >> ti;
+	OnTextureInfo (id, ti);
     }
 }
 

@@ -4,64 +4,142 @@
 // This file is free software, distributed under the MIT License.
 
 #include "gotex.h"
+#include "gleri/mmfile.h"
 
-//----------------------------------------------------------------------
+//{{{ Param ------------------------------------------------------------
 
 /*static*/ const int CTexture::CParam::c_Defaults [G::Texture::NPARAMS] = {
     GL_NEAREST,		// MAG_FILTER
     GL_NEAREST		// MIN_FILTER
 };
 
-//----------------------------------------------------------------------
+//}}}-------------------------------------------------------------------
+//{{{ TexBuf
 
-CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param) noexcept
-: CGObject (ctx, cid, GenId())
-,_h()
+CTexture::CTexBuf::CTexBuf (G::Pixel::Fmt fmt, G::Pixel::Comp comp, uint16_t w, uint32_t roww, uint16_t h, uint16_t d)
+:_info()
+,_imgd()
+,_imgsz()
 {
-    if (psz < sizeof(G::Texture::Header)) {
-	Free();
-	return;
-    }
-    auto tbuf = Load (p, psz);
-    if (psz > sizeof(G::Texture::Header) && !tbuf.Data()) {
-	Free();
-	return;
-    }
-    _h = tbuf.Header();
-    _h.type = GLenumFromTextureType (ttype);
-    glBindTexture (_h.type, Id());
-    glTexParameteri (_h.type, GL_TEXTURE_MAG_FILTER, param.Get (ttype, G::Texture::MAG_FILTER));
-    glTexParameteri (_h.type, GL_TEXTURE_MIN_FILTER, param.Get (ttype, G::Texture::MIN_FILTER));
-    if (ttype >= G::TEXTURE_3D)
-	glTexImage3D (_h.type, 0, storeas, _h.w, _h.h, _h.d, 0, _h.fmt, _h.comp, tbuf.Data());
-    else if (ttype >= G::TEXTURE_2D)
-	glTexImage2D (_h.type, _h.d, storeas, _h.w, _h.h, 0, _h.fmt, _h.comp, tbuf.Data());
-    else
-	glTexImage1D (_h.type, _h.d, storeas, _h.w, 0, _h.fmt, _h.comp, tbuf.Data());
+    _info.w = w;
+    _info.h = h;
+    _info.d = d;
+    _info.fmt = fmt;
+    _info.comp = comp;
+    _info.nImages = 1;
+    Resize (w, roww, h);
 }
 
-/*static*/ G::Texture::Type CTexture::GLenumFromTextureType (G::TextureType ttype) noexcept
+void CTexture::CTexBuf::Resize (uint16_t w, uint32_t roww, uint16_t h)
 {
-    static const G::Texture::Type c_TextureTypeEnum[] = {
-	G::Texture::TEXTURE_1D,
-	G::Texture::TEXTURE_2D,
-	G::Texture::TEXTURE_2D_MULTISAMPLE,
-	G::Texture::TEXTURE_RECTANGLE,
-	G::Texture::TEXTURE_1D_ARRAY,
-	G::Texture::TEXTURE_CUBE_MAP,
-	G::Texture::TEXTURE_CUBE_MAP_POSITIVE_X,
-	G::Texture::TEXTURE_CUBE_MAP_NEGATIVE_X,
-	G::Texture::TEXTURE_CUBE_MAP_POSITIVE_Y,
-	G::Texture::TEXTURE_CUBE_MAP_NEGATIVE_Y,
-	G::Texture::TEXTURE_CUBE_MAP_POSITIVE_Z,
-	G::Texture::TEXTURE_CUBE_MAP_NEGATIVE_Z,
-	G::Texture::TEXTURE_CUBE_MAP_ARRAY,
-	G::Texture::TEXTURE_3D,
-	G::Texture::TEXTURE_2D_ARRAY,
-	G::Texture::TEXTURE_2D_MULTISAMPLE_ARRAY,
-	G::Texture::TEXTURE_SAMPLER
-    };
-    return c_TextureTypeEnum[min<uint16_t>(ttype,ArraySize(c_TextureTypeEnum)-1)];
+    _imgd.resize (max(roww,w*4u)*h);
+    _info.size = _imgd.size();
+}
+
+auto CTexture::CTexBuf::Data (unsigned i) const -> const_pointer
+{
+    auto offset = 0u;
+    for (auto j = 0u; j < i; ++i)
+	offset += Size (j);
+    if (offset >= _imgd.size())
+	return nullptr;
+    return reinterpret_cast<const_pointer>(&_imgd[offset]);
+}
+
+uint32_t CTexture::CTexBuf::Size (unsigned i) const
+{
+    if (!i)
+	return Size();
+    else if (--i >= _imgsz.size())
+	XError::emit ("not all image sizes are specified");
+    return _imgsz[i];
+}
+
+void CTexture::CTexBuf::Load (const GLubyte* p, GLuint psz)
+{
+    using namespace G::Texture;
+    if (psz < sizeof(GLTXHeader))
+	XError::emit ("invalid gltx file");
+    auto h = reinterpret_cast<const GLTXHeader*>(p);
+    _info = h->info;
+    if (h->magic != GLTXHeader::Magic
+	    || h->version != GLTXHeader::Version
+	    || (Info().nImages && h->dataOffset != sizeof(GLTXHeader) + (Info().nImages - 1) * sizeof(uint32_t)))
+	XError::emit ("invalid gltx file");
+    if (Info().nImages) {
+	_imgsz.resize (Info().nImages - 1);
+	auto pimgsz = reinterpret_cast<const uint32_t*>(p + sizeof(GLTXHeader));
+	copy_n (pimgsz, _imgsz.size(), _imgsz.begin());
+    }
+    auto wsize = Info().size;
+    for (auto sz : _imgsz)
+	wsize += sz;
+    if (wsize) {
+	if (wsize + h->dataOffset > psz)
+	    XError::emit ("invalid gltx file");
+	_imgd.resize (wsize);
+	copy_n (p + h->dataOffset, wsize, _imgd.begin());
+    }
+}
+
+void CTexture::CTexBuf::Save (int fd) const
+{
+    CFile f (fd);
+    G::Texture::GLTXHeader h;
+    h.info = Info();
+    h.dataOffset = sizeof(G::Texture::GLTXHeader) + _imgsz.size() * sizeof(_imgsz[0]);
+    f.Write (&h, sizeof(h));
+    f.Write (&_imgsz[0], _imgsz.size() * sizeof(_imgsz[0]));
+    f.Write (&_imgd[0], _imgd.size() * sizeof(_imgd[0]));
+    f.Detach();
+}
+
+//}}}-------------------------------------------------------------------
+//{{{ CTexture
+
+CTexture::CTexture (GLXContext ctx, goid_t cid)
+: CGObject(ctx,cid,GenId())
+,_info()
+{
+}
+
+CTexture::CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param)
+: CGObject (ctx, cid, GenId())
+,_info()
+{
+    if (psz < sizeof(G::Texture::GLTXHeader))
+	XError::emit ("invalid texture data");
+    auto tbuf = Load (p, psz);
+    if (psz > sizeof(G::Texture::GLTXHeader) && !tbuf.Data())
+	XError::emit ("invalid texture data");
+    Create (tbuf, storeas, ttype, param);
+}
+
+void CTexture::Create (const CTexBuf& tbuf, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param)
+{
+    _info = tbuf.Info();
+    _info.type = G::Texture::TypeFromTextureType (ttype);
+    glBindTexture (_info.type, Id());
+    glTexParameteri (_info.type, GL_TEXTURE_MAG_FILTER, param.Get (ttype, G::Texture::MAG_FILTER));
+    glTexParameteri (_info.type, GL_TEXTURE_MIN_FILTER, param.Get (ttype, G::Texture::MIN_FILTER));
+    auto pixels = tbuf.Data();
+    if (pixels && tbuf.Size() < G::Pixel::TextureSize (_info.fmt, _info.comp, _info.w, _info.h + !_info.h) * (_info.d + !_info.d))
+	XError::emit ("incomplete texture data");
+    if (ttype >= G::TEXTURE_3D)
+	glTexImage3D (_info.type, 0, storeas, _info.w, _info.h, _info.d, 0, _info.fmt, _info.comp, pixels);
+    else if (ttype >= G::TEXTURE_2D)
+	glTexImage2D (_info.type, _info.d, storeas, _info.w, _info.h, 0, _info.fmt, _info.comp, pixels);
+    else
+	glTexImage1D (_info.type, _info.d, storeas, _info.w, 0, _info.fmt, _info.comp, pixels);
+    // Query actual texture parameters
+    GLint tlp;
+    glGetTexLevelParameteriv (_info.type, 0, GL_TEXTURE_INTERNAL_FORMAT, &tlp);
+    _info.fmt = G::Pixel::Fmt(tlp);	// the actual compressed format, for example
+    glGetTexLevelParameteriv (_info.type, 0, GL_TEXTURE_COMPRESSED, &tlp);
+    if (tlp) {		// if compressed, then the compressed size can be retrieved
+	glGetTexLevelParameteriv (_info.type, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &tlp);
+	_info.size = tlp;
+    }
 }
 
 void CTexture::Free (void) noexcept
@@ -73,34 +151,53 @@ void CTexture::Free (void) noexcept
     }
 }
 
-/*static*/ inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) noexcept
+/*static*/ inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz)
 {
-    auto& inh = *reinterpret_cast<const G::Texture::Header*>(p);
-    if (inh.magic == G::Texture::Header::Magic)
-	return CTexBuf (inh, psz > sizeof(inh) ? CTexBuf::const_pointer(p+sizeof(inh)) : nullptr);
+    auto& magic = *reinterpret_cast<const uint32_t*>(p);
+    if (magic == G::Texture::GLTXHeader::Magic)
+	return LoadGLTX (p, psz);
     #if HAVE_PNG_H
-    else if (inh.magic == vpack4(0x89,'P','N','G'))
+    else if (magic == vpack4(0x89,'P','N','G'))
 	return LoadPNG (p, psz);
     #endif
     #if HAVE_JPEGLIB_H
-    else if (uint16_t(inh.magic) == vpack2(0xff,0xd8))
+    else if (uint16_t(magic) == vpack2(0xff,0xd8))
 	return LoadJPG (p, psz);
     #endif
     else
-	return CTexBuf();
+	XError::emit ("unrecognized image file format");
 }
 
 /*static*/ void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format fmt, uint8_t quality)
 {
     CTexBuf tbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, w*4, h);
-    glReadPixels (x, y, w, h, tbuf.Header().fmt, tbuf.Header().comp, tbuf.Data());
-    if (fmt == G::Texture::Format::PNG)
+    glReadPixels (x, y, w, h, tbuf.Info().fmt, tbuf.Info().comp, tbuf.Data());
+    if (fmt == G::Texture::Format::GLTX)
+	tbuf.Save (fd);
+    #if HAVE_PNG_H
+    else if (fmt == G::Texture::Format::PNG)
 	SavePNG (fd, tbuf);
-    else
+    #endif
+    #if HAVE_JPEGLIB_H
+    else if (fmt == G::Texture::Format::JPEG)
 	SaveJPG (fd, tbuf, quality);
+    #endif
+    else
+	XError::emit ("unrecognized image file format");
 }
 
-//{{{ PNG format -------------------------------------------------------
+//}}}-------------------------------------------------------------------
+//{{{ GLTX format
+
+/*static*/ CTexture::CTexBuf CTexture::LoadGLTX (const GLubyte* p, GLuint psz)
+{
+    CTexBuf tbuf;
+    tbuf.Load (p, psz);
+    return tbuf;
+}
+
+//}}}-------------------------------------------------------------------
+//{{{ PNG format
 
 #if HAVE_PNG_H
 #include <png.h>
@@ -114,7 +211,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 }
 } // namespace
 
-/*static*/ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint) noexcept
+/*static*/ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint)
 {
     auto rs = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     png_infop infos = nullptr;
@@ -122,7 +219,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 	infos = png_create_info_struct (rs);
     if (setjmp (png_jmpbuf (rs)) || !infos) {
 	png_destroy_read_struct (&rs, &infos, nullptr);
-	return CTexBuf();
+	XError::emit ("invalid png file");
     }
     png_set_read_fn (rs, &p, png_data_source);
     png_read_info (rs, infos);
@@ -145,9 +242,9 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 
     auto idata = tbuf.Data();
     if (!idata) return tbuf;
-    png_byte* rows [tbuf.Header().h];
-    for (auto i = 0u; i < tbuf.Header().h; ++i)
-	rows[i] = (png_byte*)(idata+((tbuf.Header().h-1)-i)*tbuf.Header().w);
+    png_byte* rows [tbuf.Info().h];
+    for (auto i = 0u; i < tbuf.Info().h; ++i)
+	rows[i] = (png_byte*)(idata+((tbuf.Info().h-1)-i)*tbuf.Info().w);
     png_read_image (rs, rows);
 
     png_destroy_read_struct (&rs, &infos, nullptr);
@@ -168,14 +265,14 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     }
     png_init_io (png_ptr, outfile);
 
-    png_set_IHDR (png_ptr, info_ptr, tbuf.Header().w, tbuf.Header().h,
+    png_set_IHDR (png_ptr, info_ptr, tbuf.Info().w, tbuf.Info().h,
 		8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
 		PNG_COMPRESSION_TYPE_DEFAULT, PNG_FILTER_TYPE_DEFAULT);
 
     auto ppix = const_cast<png_byte*>(reinterpret_cast<const GLubyte*>(tbuf.Data()));
-    png_byte* pline [tbuf.Header().h];
-    for (auto i = 0u; i < tbuf.Header().h; ++i)
-	pline[i] = &ppix[((tbuf.Header().h-1)-i)*tbuf.Header().w*3];
+    png_byte* pline [tbuf.Info().h];
+    for (auto i = 0u; i < tbuf.Info().h; ++i)
+	pline[i] = &ppix[((tbuf.Info().h-1)-i)*tbuf.Info().w*3];
 
     png_set_rows (png_ptr, info_ptr, pline);
     png_write_png (png_ptr, info_ptr, PNG_TRANSFORM_IDENTITY, nullptr);
@@ -236,8 +333,8 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     jpeg_create_compress (&cinfo);
     jpeg_stdio_dest (&cinfo, outfile);
 
-    cinfo.image_width = tbuf.Header().w;
-    cinfo.image_height = tbuf.Header().h;
+    cinfo.image_width = tbuf.Info().w;
+    cinfo.image_height = tbuf.Info().h;
     cinfo.input_components = 3;
     cinfo.in_color_space = JCS_RGB;
     jpeg_set_defaults (&cinfo);

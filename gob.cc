@@ -186,7 +186,7 @@ void CFramebuffer::Attach (const G::FramebufferComponent& c, const CTexture& tex
     DTRACE ("\tAttaching texture %x to target %u, attachment %u, level %u\n", tex.CId(), c.target, c.attachment, c.level);
     auto targ = c_Target [min<uint8_t>(c.target, ArraySize(c_Target)-1)];
     auto attach = c_Attachment [min<uint8_t>(c.attachment, ArraySize(c_Attachment)-1)];
-    GLenum tt = CTexture::GLenumFromTextureType ((G::TextureType) c.textype);
+    GLenum tt = G::Texture::TypeFromTextureType ((G::TextureType) c.textype);
     if (c.textype >= G::TEXTURE_3D)
 	glFramebufferTexture3D (targ, attach, tt, tex.Id(), 0, c.level);
     else if (c.textype >= G::TEXTURE_2D)

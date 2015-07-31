@@ -75,7 +75,10 @@ private:
 public:
     enum class EResource : uint16_t {
 	DATAPAK,
-	_BUFFER_FIRST,
+	FRAMEBUFFER,
+	SHADER,
+	FONT,
+	_BUFFER_FIRST = 0x20,
 	BUFFER_VERTEX = _BUFFER_FIRST,
 	BUFFER_INDEX,
 	BUFFER_PIXEL_PACK,
@@ -90,28 +93,19 @@ public:
 	BUFFER_TRANSFORM_FEEDBACK,
 	BUFFER_UNIFORM,
 	_BUFFER_LAST = BUFFER_UNIFORM,
-	_TEXTURE_FIRST,
+	_TEXTURE_FIRST = _BUFFER_FIRST + 0x20,
 	TEXTURE_1D = _TEXTURE_FIRST,
 	TEXTURE_2D,
 	TEXTURE_2D_MULTISAMPLE,
 	TEXTURE_RECTANGLE,
 	TEXTURE_1D_ARRAY,
 	TEXTURE_CUBE_MAP,
-	TEXTURE_CUBE_MAP_POSITIVE_X,
-	TEXTURE_CUBE_MAP_NEGATIVE_X,
-	TEXTURE_CUBE_MAP_POSITIVE_Y,
-	TEXTURE_CUBE_MAP_NEGATIVE_Y,
-	TEXTURE_CUBE_MAP_POSITIVE_Z,
-	TEXTURE_CUBE_MAP_NEGATIVE_Z,
 	TEXTURE_CUBE_MAP_ARRAY,
 	TEXTURE_3D,
 	TEXTURE_2D_ARRAY,
 	TEXTURE_2D_MULTISAMPLE_ARRAY,
 	TEXTURE_SAMPLER,
 	_TEXTURE_LAST = TEXTURE_SAMPLER,
-	FRAMEBUFFER,
-	SHADER,
-	FONT,
 	_N_RESOURCE_TYPES,
 	_N_BUFFER_TYPES = _BUFFER_LAST-_BUFFER_FIRST+1,
 	_N_TEXTURE_TYPES = _TEXTURE_LAST-_TEXTURE_FIRST+1
@@ -151,7 +145,7 @@ public:
     inline goid_t		LoadTexture (G::TextureType ttype, const void* d, uint32_t dsz, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		LoadTexture (G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
     inline goid_t		LoadTexture (goid_t pak, G::TextureType ttype, const char* f, G::Pixel::Fmt storeas = G::Pixel::RGBA);
-    inline goid_t		CreateTexture (G::TextureType tt, dim_t w, dim_t h, dim_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGB, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE);
+    goid_t			CreateTexture (G::TextureType tt, dim_t w, dim_t h, dim_t d = 0, G::Pixel::Fmt fmt = G::Pixel::RGB, G::Pixel::Comp comp = G::Pixel::UNSIGNED_BYTE);
     inline goid_t		CreateDepthTexture (dim_t w, dim_t h)	{ return CreateTexture (G::TEXTURE_2D, w, h, 0, G::Pixel::DEPTH_COMPONENT, G::Pixel::FLOAT); }
     inline void			FreeTexture (goid_t id);
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
@@ -250,8 +244,6 @@ inline PRGL::goid_t PRGL::LoadTexture (G::TextureType tt, const char* filename, 
     { return LoadFile (ResourceFromTextureType(tt), filename, storeas); }
 inline PRGL::goid_t PRGL::LoadTexture (goid_t pak, G::TextureType tt, const char* f, G::Pixel::Fmt storeas)
     { return LoadPakFile (ResourceFromTextureType(tt), pak, f, storeas); }
-inline PRGL::goid_t PRGL::CreateTexture (G::TextureType tt, uint16_t w, uint16_t h, uint16_t d, G::Pixel::Fmt fmt, G::Pixel::Comp comp)
-    { const G::Texture::Header hdr = { G::Texture::Header::Magic, G::Texture::TEXTURE_2D, w, h, d, fmt, comp }; return LoadTexture (tt, &hdr, sizeof(hdr), fmt); }
 inline void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, EResource::TEXTURE_2D); }
 

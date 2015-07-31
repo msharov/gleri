@@ -5,9 +5,148 @@
 
 #include "gldefs.h"
 
-namespace G {
+//{{{ Pixel ------------------------------------------------------------
 
-//----------------------------------------------------------------------
+namespace G {
+namespace Pixel {
+
+uint16_t ComponentsPerPixel (Fmt fmt) noexcept
+{
+    //{{{2 sizemap (number of components per pixel)
+    struct { Fmt f; uint16_t n; } sizemap[] = {
+	{ RGBA,			4 },
+	{ RGB,			3 },
+	{ DEPTH_COMPONENT,	1 },
+	{ STENCIL_INDEX,	1 },
+	{ DEPTH_STENCIL,	1 },
+	{ RED,			1 },
+	{ RG,			2 },
+	{ BGR,			3 },
+	{ BGRA,			4 },
+	{ RED_INTEGER,		1 },
+	{ RG_INTEGER,		2 },
+	{ RGB_INTEGER,		3 },
+	{ BGR_INTEGER,		3 },
+	{ RGBA_INTEGER,		4 },
+	{ BGRA_INTEGER,		4 },
+	{ DEPTH_COMPONENT16,	1 },
+	{ DEPTH_COMPONENT24,	1 },
+	{ DEPTH_COMPONENT32,	1 },
+	{ DEPTH_COMPONENT32F,	1 },
+	{ R8,			1 },
+	{ R8I,			1 },
+	{ R8UI,			1 },
+	{ R8_SNORM,		1 },
+	{ R3_G3_B2,		1 },
+	{ R11F_G11F_B10F,	1 },
+	{ R16,			1 },
+	{ R16F,			1 },
+	{ R16I,			1 },
+	{ R16UI,		1 },
+	{ R16_SNORM,		1 },
+	{ R32F,			1 },
+	{ R32I,			1 },
+	{ R32UI,		1 },
+	{ RG8,			2 },
+	{ RG8I,			2 },
+	{ RG8UI,		2 },
+	{ RG8_SNORM,		2 },
+	{ RG16,			2 },
+	{ RG16F,		2 },
+	{ RG16I,		2 },
+	{ RG16UI,		2 },
+	{ RG16_SNORM,		2 },
+	{ RG32F,		2 },
+	{ RG32I,		2 },
+	{ RG32UI,		2 },
+	{ RGB4,			3 },
+	{ RGB5,			3 },
+	{ RGB8,			3 },
+	{ RGB10,		3 },
+	{ RGB12,		3 },
+	{ RGB16,		3 },
+	{ RGB8I,		3 },
+	{ RGB8UI,		3 },
+	{ RGB8_SNORM,		3 },
+	{ RGB9_E5,		3 },
+	{ RGB10_A2UI,		3 },
+	{ RGB16F,		3 },
+	{ RGB16I,		3 },
+	{ RGB16UI,		3 },
+	{ RGB16_SNORM,		3 },
+	{ RGB565,		1 },
+	{ RGB32F,		3 },
+	{ RGB32I,		3 },
+	{ RGB32UI,		3 },
+	{ RGBA2,		1 },
+	{ RGBA4,		2 },
+	{ RGBA8,		4 },
+	{ RGBA12,		4 },
+	{ RGBA16,		4 },
+	{ RGBA8I,		4 },
+	{ RGBA8UI,		4 },
+	{ RGBA8_SNORM,		4 },
+	{ RGB10_A2,		4 },
+	{ RGB5_A1,		4 },
+	{ RGBA16F,		4 },
+	{ RGBA16I,		4 },
+	{ RGBA16UI,		4 },
+	{ RGBA16_SNORM,		4 },
+	{ RGBA32F,		4 },
+	{ RGBA32I,		4 },
+	{ RGBA32UI,		4 },
+	{ SRGB,			4 },
+	{ SRGB8,		4 },
+	{ SRGB8_ALPHA8,		4 },
+	{ SRGB_ALPHA,		4 }
+    };
+    //}}}2
+    for (auto i = 0u; i < ArraySize(sizemap); ++i)
+	if (fmt == sizemap[i].f)
+	    return sizemap[i].n;
+    return 0;
+};
+
+uint16_t ComponentSize (Comp comp) noexcept
+{
+    //{{{2 sizemap (number of components per pixel)
+    struct { Comp c; uint16_t sz; } sizemap[] = {
+	{ BYTE,				1 },
+	{ UNSIGNED_BYTE,		1 },
+	{ SHORT,			2 },
+	{ UNSIGNED_SHORT,		2 },
+	{ INT,				4 },
+	{ UNSIGNED_INT,			4 },
+	{ FLOAT,			4 },
+	{ UNSIGNED_BYTE_3_3_2,		1 },
+	{ UNSIGNED_SHORT_4_4_4_4,	2 },
+	{ UNSIGNED_SHORT_5_5_5_1,	2 },
+	{ UNSIGNED_INT_8_8_8_8,		4 },
+	{ UNSIGNED_INT_10_10_10_2,	4 },
+	{ UNSIGNED_BYTE_2_3_3_REV,	1 },
+	{ UNSIGNED_SHORT_5_6_5,		2 },
+	{ UNSIGNED_SHORT_5_6_5_REV,	2 },
+	{ UNSIGNED_SHORT_4_4_4_4_REV,	2 },
+	{ UNSIGNED_SHORT_1_5_5_5_REV,	2 },
+	{ UNSIGNED_INT_8_8_8_8_REV,	4 },
+	{ UNSIGNED_INT_2_10_10_10_REV,	4 }
+    };
+    //}}}2
+    for (auto i = 0u; i < ArraySize(sizemap); ++i)
+	if (comp == sizemap[i].c)
+	    return sizemap[i].sz;
+    return 0;
+}
+
+size_t TextureSize (Fmt fmt, Comp comp, dim_t w, dim_t h) noexcept
+{
+    return Align (ComponentsPerPixel(fmt) * ComponentSize(comp) * w, 4) * h;
+}
+
+} // namespace Pixel
+
+//}}}-------------------------------------------------------------------
+//{{{ Font
 
 namespace Font {
 
@@ -180,7 +319,34 @@ void Info::write (bstrs& ss) const
 
 } // namespace Font
 
-//----------------------------------------------------------------------
+//}}}-------------------------------------------------------------------
+//{{{ Texture
+
+namespace Texture {
+
+Type TypeFromTextureType (TextureType ttype) noexcept
+{
+    static const Type c_TextureTypeEnum[] = {
+	TEXTURE_1D,
+	TEXTURE_2D,
+	TEXTURE_2D_MULTISAMPLE,
+	TEXTURE_RECTANGLE,
+	TEXTURE_1D_ARRAY,
+	TEXTURE_CUBE_MAP,
+	TEXTURE_CUBE_MAP_ARRAY,
+	TEXTURE_3D,
+	TEXTURE_2D_ARRAY,
+	TEXTURE_2D_MULTISAMPLE_ARRAY,
+	G::Texture::TEXTURE_SAMPLER
+    };
+    static_assert (ArraySize(c_TextureTypeEnum)-1 == G::TEXTURE_SAMPLER, "unaccounted texture types");
+    return c_TextureTypeEnum[min<uint16_t>(ttype,ArraySize(c_TextureTypeEnum)-1)];
+}
+
+} // namespace Texture
+
+//}}}-------------------------------------------------------------------
+//{{{ Type names
 
 const char* TypeName (Type t) noexcept
 {
@@ -220,3 +386,5 @@ const char* ShapeName (Shape s) noexcept
 }
 
 } // namespace G
+
+//}}}-------------------------------------------------------------------

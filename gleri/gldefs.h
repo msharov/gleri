@@ -53,12 +53,6 @@ enum TextureType : uint16_t {
     TEXTURE_RECTANGLE,
     TEXTURE_1D_ARRAY,
     TEXTURE_CUBE_MAP,
-    TEXTURE_CUBE_MAP_POSITIVE_X,
-    TEXTURE_CUBE_MAP_NEGATIVE_X,
-    TEXTURE_CUBE_MAP_POSITIVE_Y,
-    TEXTURE_CUBE_MAP_NEGATIVE_Y,
-    TEXTURE_CUBE_MAP_POSITIVE_Z,
-    TEXTURE_CUBE_MAP_NEGATIVE_Z,
     TEXTURE_CUBE_MAP_ARRAY,
     TEXTURE_3D,
     TEXTURE_2D_ARRAY,
@@ -136,8 +130,6 @@ enum Feature : uint16_t {
     CAP_N
 };
 
-//enum : goid_t { GoidNull = numeric_limits<goid_t>::max() };
-
 enum DefaultResource : goid_t {
     GoidNull,
     default_Framebuffer,
@@ -171,7 +163,7 @@ enum Fmt : uint16_t {
     BGR_INTEGER		= 0x8d9a,
     RGBA_INTEGER	= 0x8d99,
     BGRA_INTEGER	= 0x8d9b,
-    //{{{ Sized formats
+    //{{{2 Sized formats
     // Depth
     DEPTH_COMPONENT16	= 0x81a5,
     DEPTH_COMPONENT24	= 0x81a6,
@@ -247,8 +239,8 @@ enum Fmt : uint16_t {
     SRGB8		= 0x8C41,
     SRGB8_ALPHA8	= 0x8C43,
     SRGB_ALPHA		= 0x8C42,
-    //}}}
-    //{{{ Compressed formats
+    //}}}2
+    //{{{2 Compressed formats
     // Generic compressed formats
     COMPRESSED_RED			= 0x8225,
     COMPRESSED_RG			= 0x8226,
@@ -285,7 +277,7 @@ enum Fmt : uint16_t {
     COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT	= 0x8C4E,
     COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT	= 0x8C4F,
     COMPRESSED_SRGB_S3TC_DXT1_EXT	= 0x8C4C,
-    //}}}
+    //}}}2
 };
 
 enum Comp : uint16_t {
@@ -309,12 +301,18 @@ enum Comp : uint16_t {
     UNSIGNED_INT_8_8_8_8_REV,
     UNSIGNED_INT_2_10_10_10_REV
 };
+
+uint16_t ComponentsPerPixel (Fmt fmt) noexcept CONST;
+uint16_t ComponentSize (Comp comp) noexcept CONST;
+size_t TextureSize (Fmt fmt, Comp comp, dim_t w, dim_t h) noexcept CONST;
+
 } // namespace G::Pixel
 
 //}}}-------------------------------------------------------------------
 //{{{ Texture
 
 namespace Texture {
+
 enum Type : uint16_t {
     TEXTURE_1D			= 0x0de0,
     TEXTURE_2D			= 0x0de1,
@@ -334,6 +332,9 @@ enum Type : uint16_t {
     TEXTURE_2D_MULTISAMPLE_ARRAY= 0x9102,
     TEXTURE_SAMPLER		= 0x8c2a
 };
+
+Type TypeFromTextureType (TextureType ttype) noexcept CONST;
+
 enum Parameter : uint16_t {
     MAG_FILTER,
     MIN_FILTER,
@@ -347,15 +348,40 @@ enum Filter : uint16_t {
     NEAREST_MIPMAP_LINEAR,
     LINEAR_MIPMAP_LINEAR
 };
-struct alignas(8) Header {
-    enum { Magic = vpack4('G','L','T','X') };
-    uint32_t	magic;
+struct alignas(8) Info {
     Type	type;
-    uint16_t	w,h,d;
+    dim_t	w,h,d;
     Pixel::Fmt	fmt;
     Pixel::Comp	comp;
+    uint16_t	mipmaps;	// Mipmaps per image
+    uint16_t	nImages;	// Number of images in the file
+    dim_t	frameHeight;	// For animations, height of one frame
+    uint16_t	delay;		//  and delay in ms between frames
+    uint32_t	reserved1;
+    uint32_t	reserved2;
+    uint32_t	size;		// In info, total memory use. In file, size of first image, with other sizes following.
+public:
+    inline constexpr	Info (Type nt = TEXTURE_2D, dim_t nw = 0, dim_t nh = 0, dim_t nd = 0, Pixel::Fmt nfmt = Pixel::RGBA, Pixel::Comp ncomp = Pixel::UNSIGNED_BYTE)
+	: type(nt),w(nw),h(nh),d(nd),fmt(nfmt),comp(ncomp),mipmaps(0),nImages(0),frameHeight(0),delay(0),reserved1(0),reserved2(0),size(0) {}
+    inline void		read (bstri& is)	{ is.iread (*this); }
+    inline void		write (bstro& os) const	{ os.iwrite (*this); }
+    inline void		write (bstrs& ss) const	{ ss.iwrite (*this); }
+};
+struct alignas(8) GLTXHeader {
+    enum {
+	Version,
+	Magic = vpack4('G','L','T','X')
+    };
+    uint32_t	magic;
+    uint16_t	version;
+    uint16_t	dataOffset;
+    Info	info;
+    // List of sizes for images after the first follow
+public:
+    inline constexpr	GLTXHeader (void) : magic(Magic),version(Version),dataOffset(sizeof(GLTXHeader)),info() {}
 };
 enum class Format : uint8_t {
+    GLTX,
     JPEG,
     PNG
 };
