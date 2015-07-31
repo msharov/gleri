@@ -112,7 +112,6 @@ public:
     inline void		iread (T& v)		{ v = *iptr<T>(); skip(sizeof(v)); }
     inline void		read (void* v, size_type sz)	{ assert(remaining()>=sz && "read overflow"); memcpy (v,ipos(),sz); skip(sz); }
     inline const char*	read_strz (void)	{ auto v = iptr<char>(); skip(strlen(v)+1); return ipos() <= end() ? v : nullptr; }
-public:
     template <typename T>
     inline bstri&	operator>> (T& v)	{ return read_object (*this, v); }
     inline bstri&	operator>> (const char*& s);

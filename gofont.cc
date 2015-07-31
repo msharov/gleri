@@ -125,7 +125,7 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
 
     //{{{2 Read PSF1 header -----------------------------------------------
     if (ph1->magic == PSF1_MAGIC && psz > sizeof(*ph1)) {
-	_info.SetSize (8, ph1->height);
+	_info.SetSize (8, ph1->height, ph1->height);
 	glyphsize = ph1->height;
 	p += sizeof(*ph1);
 	psz -= sizeof(*ph1);
@@ -146,7 +146,7 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
     //}}}2
     //{{{2 Read PSF2 header -----------------------------------------------
     } else if (ph2->magic == PSF2_MAGIC && psz > sizeof(*ph2)) {
-	_info.SetSize (ph2->width, ph2->height);
+	_info.SetSize (ph2->width, ph2->height, ph2->height);
 	nGlyphs = ph2->nglyphs;
 	glyphsize = ph2->glyphsize;
 	p += ph2->headersize;
@@ -173,8 +173,6 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
 		charmap[i] = i;
     }
     //}}}2-----------------------------------------------------------------
-    _info.SetBaseline (_info.Height());
-    _info.SetMSize (_info.Width(), _info.Height());
     if (!_info.Width() || !_info.Height() || psz < nGlyphs * glyphsize)
 	XError::emit ("invalid font file");
 
@@ -354,9 +352,8 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	mw = face->glyph->bitmap.width;
 	mh = face->glyph->bitmap.rows;
     }
-    _info.SetSize (mw, fontSize);
-    _info.SetMSize (mw, mh);
-    _info.SetBaseline (mh);
+    _info.SetSize (mw, fontSize, mh);
+    _info.SetName (face->family_name);
 
     // Try to make the texture close to a square with a power of 2 width
     auto texwe = (FirstBit (min<unsigned>(_info.Charmap().size(), face->num_glyphs) * _info.Width() * _info.Height(), 0) + 1) / 2;

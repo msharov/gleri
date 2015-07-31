@@ -442,7 +442,7 @@ union KerningPair {
 
 class Info {
 public:
-    enum class Style : uint8_t {
+    enum class Style : uint16_t {
 	Regular,
 	Bold,
 	Italic,
@@ -456,8 +456,6 @@ public:
     inline dim_t	Height (void) const		{ return _h; }
     inline dim_t	Width (void) const		{ return _w; }
     inline uint8_t	Baseline (void) const		{ return _b; }
-    inline uint8_t	MHeight (void) const		{ return _mh; }
-    inline uint8_t	MWidth (void) const		{ return _mw; }
     dim_t		Width (uint16_t c) const noexcept PURE;
     dim_t		Width (const char* s) const noexcept;
     int16_t		Kerning (uint16_t c1, uint16_t c2) const noexcept PURE;
@@ -468,8 +466,7 @@ public:
     void		write (bstrs& ss) const;
 protected:
     dim_t		_w,_h;
-    uint8_t		_b;
-    uint8_t		_mw,_mh;
+    dim_t		_b;
     Style		_style;
     CPMap		_cpmap;
     string		_name;

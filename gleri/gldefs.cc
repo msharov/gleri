@@ -227,8 +227,6 @@ Info::Info (void)
 :_w (0)
 ,_h (0)
 ,_b (0)
-,_mw (0)
-,_mh (0)
 ,_style (Style::Regular)
 ,_cpmap()
 ,_name()
@@ -241,8 +239,6 @@ Info::Info (dim_t w, dim_t h)
 :_w (w)
 ,_h (h)
 ,_b (0)
-,_mw (w)
-,_mh (h)
 ,_style (Style::Regular)
 ,_cpmap()
 ,_name()
@@ -280,9 +276,13 @@ int16_t Info::Kerning (uint16_t c1, uint16_t c2) const noexcept
 void Info::read (bstri& is)
 {
     uint16_t nvarw, nkp;
-    is >> _w >> _h >> _b >> _mw >> _mh >> _style >> nvarw >> nkp;
+    const char* name = nullptr;
+    is >> _w >> _h >> _b >> _style >> nvarw >> nkp >> name;
     _varw.resize (nvarw);
     _kp.resize (nkp);
+    _name.clear();
+    if (name)
+	_name = name;
     if (nvarw) {
 	is >> _cpmap;
 	if (nvarw != _cpmap.size())
@@ -296,7 +296,7 @@ void Info::read (bstri& is)
 void Info::write (bstro& os) const
 {
     const uint16_t nvarw = _varw.size(), nkp = _kp.size();
-    os << _w << _h << _b << _mw << _mh << _style << nvarw << nkp;
+    os << _w << _h << _b << _style << nvarw << nkp << _name.c_str();
     if (nvarw) {
 	os << _cpmap;
 	os.write (&_varw[0], _varw.size() * sizeof(decltype(_varw)::value_type));
@@ -308,7 +308,7 @@ void Info::write (bstro& os) const
 void Info::write (bstrs& ss) const
 {
     const uint16_t nvarw = _varw.size(), nkp = _kp.size();
-    ss << _w << _h << _b << _mw << _mh << _style << nvarw << nkp;
+    ss << _w << _h << _b << _style << nvarw << nkp << _name.c_str();
     if (nvarw) {
 	ss << _cpmap;
 	ss.write (&_varw[0], _varw.size() * sizeof(decltype(_varw)::value_type));

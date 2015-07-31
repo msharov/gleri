@@ -23,9 +23,7 @@ public:
 	};
     public:
 	inline			FontInfo (void)		: G::Font::Info(),_glyphs(1) {}
-	inline void		SetSize (G::dim_t w, G::dim_t h)	{ _w = w; _h = h; }
-	inline void		SetMSize (G::dim_t w, G::dim_t h)	{ _mw = w; _mh = h; }
-	inline void		SetBaseline (G::dim_t b)		{ _b = b; }
+	inline void		SetSize (G::dim_t w, G::dim_t h, G::dim_t b)	{ _w = w; _h = h; _b = b; }
 	void			CreateCharmap (const charmap_t& cm);
 	void			InitVarWidthMap (void)			{ _varw.resize (_cpmap.size()); }
 	const CPMap&		Charmap (void) const	{ return _cpmap; }
@@ -33,6 +31,7 @@ public:
 	GlyphInfo&		Glyph (uint16_t i)	{ return _glyphs[_cpmap[i]]; }
 	kernvec_t&		KerningPairs (void)	{ return _kp; }
 	void			SetWidth (uint16_t c, uint8_t w)	{ _varw[_cpmap[c]] = w; }
+	void			SetName (const char* name)		{ _name = name; }
     private:
 	vector<GlyphInfo>	_glyphs;
     };
