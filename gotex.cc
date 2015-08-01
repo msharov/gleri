@@ -164,6 +164,10 @@ void CTexture::Free (void) noexcept
     else if (uint16_t(magic) == vpack2(0xff,0xd8))
 	return LoadJPG (p, psz);
     #endif
+    #if HAVE_GIF_LIB_H
+    else if (magic == vpack4('G','I','F','8'))
+	return LoadGIF (p, psz);
+    #endif
     else
 	XError::emit ("unrecognized image file format");
 }
@@ -350,6 +354,87 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     fflush (outfile);
     jpeg_finish_compress (&cinfo);
     jpeg_destroy_compress (&cinfo);
+}
+
+#endif
+//}}}-------------------------------------------------------------------
+//{{{ GIF format
+
+#if HAVE_GIF_LIB_H
+#include <gif_lib.h>
+
+namespace {
+
+struct GIFBuffer {
+    const GifByteType*	p;
+    int			size;
+    int			pos;
+};
+
+static int GIFReader (GifFileType* giff, GifByteType* buf, int bufsz)
+{
+    auto pgr = reinterpret_cast<GIFBuffer*>(giff->UserData);
+    auto btc = min (bufsz, pgr->size - pgr->pos);
+    copy_n (&pgr->p[pgr->pos], btc, buf);
+    pgr->pos += btc;
+    return btc;
+}
+
+struct GIFFile {
+    GifFileType*	p;
+    GIFFile (void)	: p(nullptr) {}
+    ~GIFFile (void) {
+	if (p) {
+	    auto err = 0;
+	    DGifCloseFile (p, &err);
+	    p = nullptr;
+	}
+    }
+};
+
+} // namespace
+
+/*static*/ CTexture::CTexBuf CTexture::LoadGIF (const GLubyte* p, GLuint psz)
+{
+    GIFBuffer gb = { p, int(psz), 0 };
+    GIFFile gf;
+    auto err = 0;
+    gf.p = DGifOpen (&gb, &GIFReader, &err);
+    if (err)
+	XError::emit ("invalid gif file");
+    if (!DGifSlurp (gf.p))
+	XError::emit ("invalid gif file");
+    auto psimg = gf.p->SavedImages;
+    if (gf.p->ImageCount < 1
+	    || !psimg
+	    || !gf.p->SColorMap
+	    || gf.p->SColorMap->ColorCount > 256
+	    || !psimg->ImageDesc.Width
+	    || !psimg->ImageDesc.Height)
+	XError::emit ("invalid gif file");
+
+    // Convert colormap from RGB to RGBA
+    G::color_t cmap [256];
+    const auto& gifcmap = gf.p->SColorMap->Colors;
+    for (auto i = 0; i < gf.p->SColorMap->ColorCount; ++i)
+	cmap[i] = RGB(gifcmap[i].Red, gifcmap[i].Green, gifcmap[i].Blue);
+
+    // Check if transparent color is set
+    GraphicsControlBlock gcb;
+    if (DGifSavedExtensionToGCB (gf.p, 0, &gcb))
+	cmap[uint8_t(gcb.TransparentColor)] = RGBA(0,0,0,0);
+
+    // Create the TexBuf
+    auto w = psimg->ImageDesc.Width, h = psimg->ImageDesc.Height;
+    CTexBuf imgbuf (G::Pixel::RGBA, G::Pixel::UNSIGNED_BYTE, w, 0, h);
+    auto itex = imgbuf.Data();
+
+    // Copy pixels, converting from palette index to RGBA
+    for (auto y = 0; y < h; ++y)
+	for (auto x = 0; x < w; ++x)
+	    itex[y*w+x] = cmap[psimg->RasterBits[(h-1-y)*w+x]];	// GIF lines are upside down
+
+    return imgbuf;
 }
 
 #endif

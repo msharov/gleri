@@ -27,10 +27,10 @@ seds=[s/^#\(USE_USTL\)/\1/;s/#undef \(USE_USTL\)/#define \1 1/]
 }';
 
 # Header files
-HEADERS="ustl.h zlib.h png.h jpeglib.h GL/gl.h sys/sendfile.h"
+HEADERS="ustl.h zlib.h png.h jpeglib.h gif_lib.h GL/gl.h sys/sendfile.h"
 
 # Libraries
-LIBS="GL X11 png jpeg z ustl supc++"
+LIBS="GL X11 png jpeg gif z ustl supc++"
 
 # First pair is used if nothing matches
 PROGS="CXX=g++ CXX=c++ CXX=clang++ CC=gcc CC=cc CC=clang INSTALL=install"

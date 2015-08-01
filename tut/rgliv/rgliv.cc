@@ -231,8 +231,9 @@ void CImageViewer::LoadFolder (void)
 	    && (!S_ISREG(st.st_mode)				// Including regular files
 		|| nlen <= 4					// With a recognizable extension
 		|| (strcasecmp(de->d_name+nlen-4,".png")	// with extensions png,
-		    && strcasecmp(de->d_name+nlen-4,".jpg")	// jpg, or jpeg
-		    && strcasecmp(de->d_name+nlen-4,"jpeg"))))
+		    && strcasecmp(de->d_name+nlen-4,".jpg")	// jpg, jpeg, or gif
+		    && strcasecmp(de->d_name+nlen-4,"jpeg")
+		    && strcasecmp(de->d_name+nlen-4,".gif"))))
 	    continue;
 	// Insert sorted by name.
 	_files.emplace (lower_bound (_files.begin(), _files.end(), de->d_name),

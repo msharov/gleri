@@ -31,7 +31,7 @@ WARNOPTS	:= -Wall -Wextra -Woverloaded-virtual -Wpointer-arith\
 		-Wshadow -Wredundant-decls -Wcast-qual @SYSWARNS@
 CXXFLAGS	:= ${WARNOPTS} -std=c++11 -I@customincdir@ @freetypeflags@
 LDFLAGS		:= -L@customlibdir@
-LIBS		:= @libGL@ @libX11@ @freetypelibs@ @libpng@ @libjpeg@ @libz@
+LIBS		:= @libGL@ @libX11@ @freetypelibs@ @libpng@ @libjpeg@ @libgif@ @libz@
 ifdef USE_USTL
     LD		:= @CC@
     LIBS	+= @libustl@ @libsupc++@

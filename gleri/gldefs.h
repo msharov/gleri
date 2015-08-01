@@ -383,7 +383,8 @@ public:
 enum class Format : uint8_t {
     GLTX,
     JPEG,
-    PNG
+    PNG,
+    GIF
 };
 
 } // namespace G::Texture
