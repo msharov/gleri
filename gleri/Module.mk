@@ -69,7 +69,7 @@ endif
 clean:	gleri/clean
 gleri/clean:
 	@if [ -d $O/gleri ]; then\
-	    rm -f ${LIBA} ${LIBOBJ} ${LIBDEPS};\
+	    rm -f ${LIBA_D} ${LIBA_R} ${LIBOBJ} ${LIBDEPS};\
 	    rmdir $O/gleri;\
 	fi
 
