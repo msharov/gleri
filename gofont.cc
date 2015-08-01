@@ -281,8 +281,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
     OFT_Library library;
     OFT_Face face (library, p, psz);
 
-    if (!FT_IS_FIXED_WIDTH(face) && FT_Set_Pixel_Sizes (face, 0, fontSize))
-	XError::emit ("failed to set font size");
+    FT_Set_Pixel_Sizes (face, 0, fontSize);
 
     charmap_t cm (1<<16);
     for (auto i = 0u; i < cm.size(); ++i)
@@ -349,7 +348,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
     if (cm['M']) {
 	if (FT_Load_Char (face, 'M', FT_LOAD_RENDER))
 	    XError::emit ("Freetype error FT_Load_Char");
-	mw = face->glyph->bitmap.width;
+	mw = face->glyph->advance.x / 64;
 	mh = face->glyph->bitmap.rows;
     }
     _info.SetSize (mw, fontSize, mh);
