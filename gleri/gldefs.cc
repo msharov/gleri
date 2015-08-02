@@ -160,7 +160,7 @@ CPMap::iterator& CPMap::iterator::operator++ (void) noexcept
 	auto& r = _cpra[cpi];
 	if (cpo < r.first)
 	    cpo = r.first;
-	if (cpo >= r.first + r.n) {
+	if (cpo >= r.last) {
 	    if (cpi == UINT8_MAX)
 		cpo = UINT8_MAX;
 	    else {
@@ -177,7 +177,7 @@ CPMap::iterator& CPMap::iterator::operator++ (void) noexcept
 CPMap::iterator CPMap::begin (void) const noexcept
 {
     auto i = 0u;
-    while (i < ArraySize(_cpra) && !_cpra[i].n)
+    while (i < ArraySize(_cpra) && _cpra[i].first == _cpra[i].last)
 	++i;
     return i == ArraySize(_cpra) ? end() : iterator (_cpra, (i << 8) + _cpra[i].first);
 }
@@ -190,8 +190,8 @@ CPMap::iterator CPMap::end (void) const noexcept
 size_t CPMap::size (void) const noexcept
 {
     auto i = ArraySize(_cpra);
-    while (--i && !_cpra[i].n) {}
-    return _cpra[i].offset + _cpra[i].n;
+    while (--i && _cpra[i].first == _cpra[i].last) {}
+    return _cpra[i].offset + _cpra[i].last - _cpra[i].first + 1;
 }
 
 void CPMap::Create (const charmap_t& cm) noexcept
@@ -207,9 +207,9 @@ void CPMap::Create (const charmap_t& cm) noexcept
 	r.first = i;
 	auto j = 256u;
 	while (--j && !cmf[j]) {}
-	r.n = j - i + 1;
+	r.last = j;
 	r.offset = offset;
-	offset += r.n;
+	offset += r.last - r.first + 1;
     }
 }
 
@@ -218,7 +218,7 @@ uint16_t CPMap::operator[] (uint16_t i) const noexcept
     uint8_t cpi = i >> 8, cpo = i;
     auto& r = _cpra[cpi];
     cpo -= r.first;
-    return cpo < r.n ? r.offset + cpo : 0;
+    return cpo < r.last - r.first + 1 ? r.offset + cpo : 0;
 }
 
 //----------------------------------------------------------------------

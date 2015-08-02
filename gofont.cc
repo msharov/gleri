@@ -96,19 +96,18 @@ static void RenderGlyphOnTexture (const FT_Bitmap& gbmp, uint8_t* o, unsigned te
     for (auto gy = 0u; gy < gbmp.rows; ++gy, o += texw - gbmp.width) {
 	if (gbmp.pixel_mode == FT_PIXEL_MODE_GRAY) {
 	    copy_n (cbp, gbmp.width, o);
-	    cbp += gbmp.pitch;
 	    o += gbmp.width;
 	} else if (gbmp.pixel_mode == FT_PIXEL_MODE_MONO) {
 	    uint8_t mask = 0x80;
-	    for (auto gx = 0u; gx < gbmp.width; ++gx) {
-		*o++ = (cbp[0] & mask) ? 0xff : 0;
+	    for (auto gx = 0u, bi = 0u; gx < gbmp.width; ++gx) {
+		*o++ = (cbp[bi] & mask) ? 0xff : 0;
 		if (!(mask >>= 1)) {
 		    mask = 0x80;
-		    ++cbp;
+		    ++bi;
 		}
 	    }
-	    ++cbp;
 	}
+	cbp += gbmp.pitch;
     }
 }
 

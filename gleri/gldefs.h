@@ -398,7 +398,7 @@ class CPMap {
 protected:
     struct CodePageRange {
 	uint8_t		first;
-	uint8_t		n;
+	uint8_t		last;
 	uint16_t	offset;
     };
     using cpra_t	= CodePageRange [256];
