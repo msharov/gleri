@@ -137,10 +137,10 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 		glGetQueryObjectui64v (_query[i], GL_QUERY_RESULT, &times[i]);
 	    _syncEvent.time = times[query_RenderEnd] - times[query_RenderBegin];
 	    _syncEvent.key = times[query_FrameEnd] - times[query_RenderBegin];
-	    Event (_syncEvent);
 	    DTRACE ("Got it. Draw time %u ns, refresh %u ns\n", _syncEvent.time, _syncEvent.key);
 	} else	// technically should never happen, but timing out avoids a hang in case of driver problems
 	    DTRACE ("query lost\n");
+	Event (_syncEvent);
 	_nextVSync = NotWaitingForVSync;
     }
     if (cmdis.remaining()) {

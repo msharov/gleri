@@ -49,7 +49,7 @@ public:
     inline void			LoadPakResource (goid_t id, PRGL::EResource dtype, uint16_t hint, const CDatapak& pak, const char* filename, GLuint flnsz)
 				    { _pconn->LoadPakResource (this, id, dtype, hint, pak, filename, flnsz); }
     inline void			FreeResource (goid_t id, PRGL::EResource dtype)
-				    { _pconn->FreeResource (id, dtype); _pendingFrame.clear(); _nextVSync = NotWaitingForVSync; }
+				    { _pconn->FreeResource (id, dtype); _pendingFrame.clear(); }
     inline void			FreeResources (void)
 				    { _pconn->FreeResources (this); }
 				// Datapak
