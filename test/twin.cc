@@ -258,6 +258,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 
     drw.Color (0,240,255,128);
     drw.Text (300, 250, _hellomsg);
+    drw.Textf (300, 350, "Display %hu.%hu: %hux%hu (%hux%hu mm), depth %hu, wid %x", Info().dpyn, Info().scrn, Info().scrw, Info().scrh, Info().scrmw, Info().scrmh, Info().scrd, Info().wmwid);
 
     drw.Color (255,255,255);
     drw.Text (300, 420, "A quick brown fox jumps over the lazy dog");

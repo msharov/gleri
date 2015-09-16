@@ -26,7 +26,12 @@ CGleris::CGleris (void) noexcept
 ,_tcpSocket()
 ,_glversion (0)
 ,_options (0)
+,_atoms()
+,_dinfo()
 ,_fbconfig()
+,_visinfo()
+,_colormap()
+,_xauth()
 {
     DTRACE ("gleris " GLERI_VERSTRING " started\n");
     syslog (LOG_INFO, "gleris " GLERI_VERSTRING " started");
@@ -197,12 +202,11 @@ void CGleris::Init (argc_t argc, argv_t argv)
     const char* xdispstr = getenv("GLERI_DISPLAY");
     if (!xdispstr) xdispstr = getenv("DISPLAY");
     if (!xdispstr) xdispstr = ":0";
-    SXDisplay dinfo;
-    ParseXDisplay (xdispstr, dinfo);
-    if (XAUTH_DATA_LEN != GetXauthData (dinfo, _xauth))
-	DTRACE ("Error: failed to load xauth key for %s:%hu.%hu; defaulting to zero\n", dinfo.host, dinfo.display, dinfo.screen);
+    ParseXDisplay (xdispstr, _dinfo);
+    if (XAUTH_DATA_LEN != GetXauthData (_dinfo, _xauth))
+	DTRACE ("Error: failed to load xauth key for %s:%hu.%hu; defaulting to zero\n", _dinfo.host, _dinfo.display, _dinfo.screen);
     else {
-	DTRACE ("Successfully loaded xauth key for %s:%hu.%hu\n", dinfo.host, dinfo.display, dinfo.screen);
+	DTRACE ("Successfully loaded xauth key for %s:%hu.%hu\n", _dinfo.host, _dinfo.display, _dinfo.screen);
 	DHEXDUMP (ArrayBlock(_xauth));
     }
     //
@@ -232,7 +236,7 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	0
     };
     auto fbcount = 0;
-    auto fbcs = glXChooseFBConfig (_dpy, DefaultScreen(_dpy), fbconfattr, &fbcount);
+    auto fbcs = glXChooseFBConfig (_dpy, _dinfo.screen, fbconfattr, &fbcount);
     if (!fbcs || !fbcount)
 	XError::emit ("no suitable visuals available");
     DTRACE("%d fbconfigs available\n", fbcount);
@@ -263,7 +267,9 @@ void CGleris::Init (argc_t argc, argv_t argv)
 
     // Create the root gl context (share root)
     static const WinInfo rootinfo (0, 0, 1, 1, 0, 0x33, 0x43, WinInfo::MSAA_OFF, WinInfo::type_Normal, WinInfo::state_Hidden, WinInfo::flag_None);
-    auto rctxw = CreateWindow (rootinfo, _rootWindow);	// Temporary window to create the root gl context
+
+    // Temporary window to create the root gl context
+    auto rctxw = CreateWindow (rootinfo, _rootWindow);
     auto ctx = glXCreateNewContext (_dpy, _fbconfig[0], GLX_RGBA_TYPE, nullptr, True);
     if (!ctx)
 	XError::emit ("failed to create an OpenGL context");
@@ -320,15 +326,15 @@ void CGleris::Init (argc_t argc, argv_t argv)
 	    sockfmt = GLERIS_SOCKET;
 	    sockdir = getenv("HOME");
 	}
-	snprintf (ArrayBlock(s_SocketPath), sockfmt, sockdir, dinfo.display);
+	snprintf (ArrayBlock(s_SocketPath), sockfmt, sockdir, _dinfo.display);
 	if (0 == access (s_SocketPath, F_OK))
 	    throw XError ("gleris is already running on socket %s", s_SocketPath);
 	DTRACE ("Listening on local socket %s\n", s_SocketPath);
 	_localSocket.Bind (s_SocketPath, GLERIS_LISTEN_QUEUE_SIZE);
 	WatchFd (_localSocket.Fd());
 	if (Option (opt_TCPSocket)) {
-	    DTRACE ("Listening on TCP socket localhost:%hu\n", GLERIS_PORT+dinfo.display);
-	    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT+dinfo.display, GLERIS_LISTEN_QUEUE_SIZE);
+	    DTRACE ("Listening on TCP socket localhost:%hu\n", GLERIS_PORT+_dinfo.display);
+	    _tcpSocket.Bind (INADDR_LOOPBACK, GLERIS_PORT+_dinfo.display, GLERIS_LISTEN_QUEUE_SIZE);
 	    WatchFd (_tcpSocket.Fd());
 	}
     }
@@ -702,8 +708,18 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
 	if (w->Matches (piconn->Fd(), winfo.parent))
 	    parentWid = w->Drawable();
 
+    // Get display information
+    winfo.scrw = DisplayWidth (_dpy, _dinfo.screen);
+    winfo.scrh = DisplayHeight (_dpy, _dinfo.screen);
+    winfo.scrmw = DisplayWidthMM (_dpy, _dinfo.screen);
+    winfo.scrmh = DisplayHeightMM (_dpy, _dinfo.screen);
+    winfo.dpyn = _dinfo.display;
+    winfo.scrn = _dinfo.screen;
+    winfo.scrd = DefaultDepth (_dpy, _dinfo.screen);
+
     // Create the window
     Window wid = CreateWindow (winfo, parentWid);
+    winfo.wmwid = wid;
 
     // Create the OpenGL context
     int context_attribs[] = {

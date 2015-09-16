@@ -557,13 +557,23 @@ public:
 	flag_Below		= (1<<7)
     };
     uint8_t	flags;
+    uint32_t	wmwid;
+    dim_t	scrw;
+    dim_t	scrh;
+    dim_t	scrmw;
+    dim_t	scrmh;
+    uint8_t	dpyn;
+    uint8_t	scrn;
+    uint8_t	scrd;
+    uint8_t	reserved;
 public:
     inline constexpr explicit WinInfo (coord_t _x = 0, coord_t _y = 0, dim_t _w = 1, dim_t _h = 1,
 				uint16_t _parent = 0, uint8_t _mingl = 0x33, uint8_t _maxgl = 0,
 				MSAA _aa = MSAA_OFF, WinType _wtype = type_Normal, WinState _wstate = state_Normal, uint8_t _flags = flag_None)
 				:x(_x),y(_y),w(_w),h(_h)
 				,parent(_parent),mingl(_mingl),maxgl(_maxgl)
-				,aa(_aa),wtype(_wtype),wstate(_wstate),flags(_flags) {}
+				,aa(_aa),wtype(_wtype),wstate(_wstate),flags(_flags)
+				,wmwid(0),scrw(0),scrh(0),scrmw(0),scrmh(0),dpyn(0),scrn(0),scrd(0),reserved(0) {}
     inline void read (bstri& is)	{ is.iread (*this); }
     inline void write (bstro& os) const	{ os.iwrite (*this); }
     inline void write (bstrs& ss) const	{ ss.iwrite (*this); }
@@ -574,6 +584,8 @@ public:
 
 const char* TypeName (Type t) noexcept __attribute__((const));
 const char* ShapeName (Shape s) noexcept __attribute__((const));
+
+#define GLERI_WININFO_SIGNATURE	"(nnqqqyyyyyyuqqqqyyyy)"
 
 } // namespace G
 

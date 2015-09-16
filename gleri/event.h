@@ -58,6 +58,8 @@ private:
     inline uint64_t	MakeLongnum (void) const	{ return (uint64_t(time)<<32)|key; }
 };
 
+#define GLERI_EVENT_SIGNATURE	"(unnuu)"
+
 namespace Key {
     using key_t	= CEvent::key_t;
     enum : key_t {

@@ -11,19 +11,19 @@
 
 static_assert (unsigned(PRGL::EResource::TEXTURE_SAMPLER)-unsigned(PRGL::EResource::_TEXTURE_FIRST) == G::TEXTURE_SAMPLER, "need to sync TextureType and ResourceType");
 
-#define N(n,s)	#n "\0" #s "\0"
+#define N(n,s)	#n "\0" s "\0"
 /*static*/ const char PRGL::_cmdNames[] =
-     N(Auth,aysuuay)
-     N(Open,(nnqqqyyyyyy)s)
-     N(Close,)
-     N(Draw,uay)
-     N(Event,(unnuu))
-     N(LoadData,uqquuay)
-     N(LoadFile,uqqh)
-     N(LoadPakFile,uqqus)
-     N(FreeResource,uq)
-     N(BufferSubData,uuay)
-     N(TexParameter,qqi)
+     N(Auth,"aysuuay")
+     N(Open,GLERI_WININFO_SIGNATURE"s")
+     N(Close,"")
+     N(Draw,"uay")
+     N(Event,GLERI_EVENT_SIGNATURE)
+     N(LoadData,"uqquuay")
+     N(LoadFile,"uqqh")
+     N(LoadPakFile,"uqqus")
+     N(FreeResource,"uq")
+     N(BufferSubData,"uuay")
+     N(TexParameter,"qqi")
 ;
 #undef N
 

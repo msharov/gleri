@@ -133,6 +133,7 @@ private:
     uint8_t		_glversion;
     uint8_t		_options;
     Atom		_atoms [a_Last];
+    SXDisplay		_dinfo;
     GLXFBConfig		_fbconfig [G::WinInfo::MSAA_MAX+1];
     XVisualInfo*	_visinfo [G::WinInfo::MSAA_MAX+1];
     Colormap		_colormap [G::WinInfo::MSAA_MAX+1];
