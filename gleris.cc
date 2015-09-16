@@ -347,10 +347,12 @@ void CGleris::GetAtoms (void) noexcept
 	"\0ATOM"
 	"\0STRING"
 	"\0CARDINAL"
+	"\0UTF8_STRING"
 	"\0WM_CLIENT_MACHINE"
 	"\0WM_COMMAND"
 	"\0WM_PROTOCOLS"
 	"\0WM_DELETE_WINDOW"
+	"\0_NET_WM_NAME"
 	"\0_NET_WM_PING"
 	"\0_NET_WM_SYNC_REQUEST"
 	"\0_NET_WM_PID"
@@ -768,8 +770,11 @@ CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, C
 	szhints.max_height = winfo.h;
     }
     XSetWMNormalHints (_dpy, wid, &szhints);
-    if (title)
+    if (title) {
 	XStoreName (_dpy, wid, title);
+	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_NAME], _atoms[a_UTF8_STRING], 8, PropModeReplace,
+			 (const unsigned char*) title, strlen(title));
+    }
     if (pconn) {
 	if (!pconn->Argv().empty())
 	    XChangeProperty (_dpy, wid, _atoms[a_WM_COMMAND], _atoms[a_STRING], 8, PropModeReplace,
