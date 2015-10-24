@@ -23,7 +23,7 @@ class CImageViewer : public CWindow {
     enum : color_t {					// Color scheme
 	color_ImageViewBackground	= RGB(0,0,0),
 	color_FolderViewBackground	= RGB(0,0,0),
-	color_FolderViewSelection	= RGB(32,32,32),
+	color_FolderViewSelection	= RGB(48,48,48),
 	color_FolderViewText		= RGB(128,128,128),
 	color_ThumbBackground		= RGBA(0,0,0,0)
     };
