@@ -213,7 +213,7 @@ private:
     pointer			_p;
 };
 
-#if USE_USTL
+#if USE_USTL && USTL_VERSION < 0x230
 template <typename T>
 using unique_ptr = auto_ptr<T>;
 #endif

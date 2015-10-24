@@ -45,9 +45,9 @@ const CGObject* CIConn::FindObject (goid_t cid) const noexcept
     return (io != _obj.end() && (*io)->CId() == cid) ? *io : nullptr;
 }
 
-void CIConn::AddObject (unique_ptr<CGObject>&& o)
+void CIConn::AddObject (unique_ptr<CGObject> o)
 {
-    if (o == nullptr || o->CId() == G::GoidNull || o->Id() == CGObject::NoObject)
+    if (!o || o->CId() == G::GoidNull || o->Id() == CGObject::NoObject)
 	throw XError ("failed create resource object %x", o->CId());
     auto io = lower_bound (_obj.begin(), _obj.end(), o.get(), [](const CGObject* o1, const CGObject* o2) { return *o1 < *o2; });
     DTRACE ("Inserting object cid %x, sid %x\n", o->CId(), o->Id());
@@ -79,7 +79,7 @@ void CIConn::LoadDefaultResources (CGLWindow* w)
 /*static*/ void CIConn::ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept
 {
     bstri shis (s, ssz);
-    for (auto i = 0; i < 5; ++i) {
+    for (auto i = 0u; i < 5; ++i) {
 	shs[i] = shis.read_strz();
 	if (!*shs[i])
 	    shs[i] = nullptr;
