@@ -29,6 +29,7 @@ public:
     inline Window		Drawable (void) const		{ return _ctx.Drawable(); }
     inline void			SetDrawable (Window w)		{ _ctx.SetDrawable (w); }
     inline const WinInfo&	Info (void) const		{ return _winfo; }
+    inline WinInfo&		Info (void)			{ return _winfo; }
     inline const CTexture::CParam& TexParams (void) const	{ return _texparam; }
     void			Resize (coord_t x, coord_t y, dim_t w, dim_t h) noexcept;
     void			ParseDrawlist (goid_t fbid, bstri cmdis);

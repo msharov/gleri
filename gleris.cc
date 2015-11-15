@@ -850,6 +850,41 @@ inline void CGleris::ActivateClient (CGLWindow& rcli) noexcept
     rcli.Activate();
 }
 
+void CGleris::ResizeClient (CGLWindow& rcli, WinInfo winfo, const char* title)
+{
+    auto wid = rcli.Drawable();
+    if (title) {
+	XStoreName (_dpy, wid, title);
+	XChangeProperty (_dpy, wid, _atoms[a_NET_WM_NAME], _atoms[a_UTF8_STRING], 8, PropModeReplace,
+			 (const unsigned char*) title, strlen(title));
+    }
+    auto& oldwinfo = rcli.Info();
+    if (winfo.wstate != oldwinfo.wstate) {
+	uint32_t wsa [16];
+	auto nwsa = WinStateAtoms (winfo, wsa);
+	if (nwsa)
+	    XChangeProperty (_dpy, wid, _atoms[a_NET_WM_STATE], _atoms[a_ATOM], 32, PropModeReplace, (const unsigned char*) wsa, nwsa);
+    }
+    unsigned confmask = 0;
+    XWindowChanges confchg;
+    memset (&confchg, 0, sizeof(confchg));
+    if (winfo.x != oldwinfo.x) {
+	confmask |= CWX;
+	confchg.x = winfo.x;
+    } else if (winfo.y != oldwinfo.y) {
+	confmask |= CWY;
+	confchg.y = winfo.y;
+    } else if (winfo.w != oldwinfo.w) {
+	confmask |= CWWidth;
+	confchg.width = winfo.w;
+    } else if (winfo.h != oldwinfo.h) {
+	confmask |= CWHeight;
+	confchg.height = winfo.h;
+    }
+    if (confmask)
+	XConfigureWindow (_dpy, wid, confmask, &confchg);
+}
+
 void CGleris::CloseClient (CGLWindow* pcli) noexcept
 {
     if (pcli->Drawable() != None) {

@@ -295,7 +295,7 @@ template <typename F>
     auto cmdis (h.Msgstrm());
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);
     auto cmd = LookupCmd (h.Cmdname(), h.hsz);
-    if (!clir ^ (cmd == ECmd::Open || cmd == ECmd::Auth))
+    if ((clir && cmd == ECmd::Auth) || (!clir && cmd != ECmd::Open && cmd != ECmd::Auth))
 	return f.OnNoClient (h);
 
     switch (cmd) {
@@ -310,7 +310,10 @@ template <typename F>
 	    WinInfo winfo;
 	    const char* title = nullptr;
 	    Args (cmdis, winfo, title);
-	    clir = f.CreateClient (h.iid, winfo, title, &cmdbuf);
+	    if (clir)
+		f.ResizeClient (*clir, winfo, title);
+	    else
+		clir = f.CreateClient (h.iid, winfo, title, &cmdbuf);
 	    } break;
 	case ECmd::Close:
 	    f.CloseClient (clir);
