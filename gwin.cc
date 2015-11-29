@@ -14,8 +14,9 @@ CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ct
 ,_pendingFrame()
 ,_pconn (pconn)
 ,_color (0xffffffff)
-,_syncEvent (CEvent::VSync, 1000000000/60)
+,_syncEvent (CEvent::VSync, c_DefaultFrameTimeNS)
 ,_nextVSync (NotWaitingForVSync)
+,_lastVSync (0)
 ,_curShaderId (CGObject::NoObject)
 ,_curShader (G::GoidNull)
 ,_curBuffer (G::GoidNull)
@@ -136,7 +137,10 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 	    for (auto i = 0u; i < ArraySize(_query); ++i)
 		glGetQueryObjectui64v (_query[i], GL_QUERY_RESULT, &times[i]);
 	    _syncEvent.time = times[query_RenderEnd] - times[query_RenderBegin];
-	    _syncEvent.key = times[query_FrameEnd] - times[query_RenderBegin];
+	    // Update refresh rate after two consecutive frames.
+	    if (uint64_t(times[query_RenderBegin] - _lastVSync) < LastFrameTime()/2)
+		_syncEvent.key = times[query_FrameEnd] - _lastVSync;
+	    _lastVSync = times[query_FrameEnd];
 	    DTRACE ("Got it. Draw time %u ns, refresh %u ns\n", _syncEvent.time, _syncEvent.key);
 	} else	// technically should never happen, but timing out avoids a hang in case of driver problems
 	    DTRACE ("query lost\n");

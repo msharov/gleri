@@ -14,7 +14,11 @@ private:
 	query_FrameEnd,
 	NStdQueries
     };
-    enum { NotWaitingForVSync = CApp::NoTimer };
+    enum {
+	NotWaitingForVSync = CApp::NoTimer,
+	c_DefaultFrameTimeNS = 1000000000/60,
+	c_MaxFrameTimeNS = 1000000000/1
+    };
     enum { MAX_VAO_SLOTS = 16 };
     using matrix4f_t		= float[4][4];
     using WinInfo		= PRGL::WinInfo;
@@ -171,6 +175,7 @@ private:
     GLuint			_vao[2];
     CEvent			_syncEvent;
     uint64_t			_nextVSync;
+    uint64_t			_lastVSync;
     GLuint			_curShaderId;
     goid_t			_curShader;
     goid_t			_curBuffer;
