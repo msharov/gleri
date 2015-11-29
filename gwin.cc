@@ -148,7 +148,7 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 	_nextVSync = NotWaitingForVSync;
     }
     if (cmdis.remaining()) {
-	_nextVSync = CApp::NowMS() + LastFrameTime()/1000000 + 1;	// Round up to try to avoid busywait above
+	_nextVSync = CApp::NowMS() + LastFrameTime()/((5/4)*1000000);	// subtract 1/5 of vsync interval to shift frame submit time back toward actual vsync
 	DTRACE ("[%x] Parsing drawlist\n", IId());
 	PostQuery (_query[query_RenderBegin]);
 
