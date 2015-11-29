@@ -107,8 +107,8 @@ namespace Key {
 namespace Button {
     using button_t = CEvent::key_t;
     enum : button_t {
-	NoButton, Left, Middle, Right, Wheel,
-	WheelUp, WheelDown, Back, Forward, Search
+	NoButton, Left, Middle, Right,
+	WheelUp, WheelDown, WheelLeft, WheelRight
     };
 } // namespace Button
 
