@@ -140,8 +140,9 @@ inline bool CApp::CheckForQuitSignal (void) const
 inline void CApp::WaitForFdsAndTimers (void)
 {
     auto timeToWait = _timer.back();
+    auto now = NowMS();
     if (timeToWait != NoTimer)
-	timeToWait -= NowMS();
+	timeToWait = (timeToWait > now ? timeToWait - now : 0);
     auto prv = poll (&_watch[0], _watch.size(), uint32_t(timeToWait));
     if (prv < 0 && errno != EINTR)
 	CFile::Error ("poll");
@@ -154,7 +155,8 @@ inline void CApp::WaitForFdsAndTimers (void)
 	} else if (rev & POLLIN)
 	    OnFd (efd);
     }
-    for (uint64_t now = NowMS(), t; now >= (t = _timer.back());) {
+    now = NowMS();
+    for (uint64_t t; now >= (t = _timer.back());) {
 	_timer.pop_back();
 	OnTimer (t);
     }
