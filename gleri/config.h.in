@@ -27,9 +27,9 @@ enum {
 #if !defined(UNUSED)
     #if __GNUC__
 	#define NORETURN	__attribute((noreturn))
-	#define PURE	__attribute((pure))
-	#define CONST	__attribute((const))
-	#define UNUSED	__attribute((unused))
+	#define PURE		__attribute((pure))
+	#define CONST		__attribute((const))
+	#define UNUSED		__attribute((unused))
     #else
 	#define NORETURN
 	#define PURE
