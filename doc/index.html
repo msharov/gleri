@@ -7,7 +7,7 @@
     <meta name="Description" content="A service and API for using OpenGL over a socket connection" />
     <meta name="Keywords" content="OpenGL, remote, API" />
     <meta name="author" content="Mike Sharov" />
-    <meta name="date" content="2013-11-22" />
+    <meta name="date" content="2015-12-10" />
 </head>
 <body>
 <div id="pagectr">
@@ -41,8 +41,9 @@ huge and contains a lot of low-level tie-ins to the kernel driver guts,
 resulting in bloat and instability. Crashing your application may cause
 a kernel panic, just like in good old Windows 3.1, which likewise made
 the mistake of putting driver guts into user application process space.
-The driver initialization sequence can also be slow (~.3s), and must be
-done every time you start your application.
+If you do not have OpenGL continuously loaded due to, for example, a
+compositing window manager, then the driver must be initialized every
+time you launch your OpenGL application, slowing down startup by 300ms.
 </p><p>
 Finally, one must mention the problem of debugging an OpenGL application.
 If you happen to hit a breakpoint at some location unexpected by the
@@ -58,10 +59,7 @@ entire graphics driver? Well, GLERI is it.
 <ul>
 <li>Acquire dependencies:
     <ul>
-    <li>OpenGL drivers supporting 3.3 core profile
-	<ul>
-	<li>Use proprietary binary drivers or Mesa 10.2+</li>
-	</ul>
+    <li>OpenGL drivers supporting core profile 3.3. (Mesa 10.2+ or binary)</li>
     <li>gcc 4.6 or clang 3.2</li>
     <li>zlib, libpng, and libjpeg</li>
     </ul></li>
@@ -74,6 +72,7 @@ entire graphics driver? Well, GLERI is it.
     </ul></li>
 <li>If interested in interoperability, read the <a href="protocol.html">protocol specification</a>.</li>
 <li>If interested in contributing, read the <a href="internal.html">internals guide</a>.</li>
+<li>Report problems on the <a href="https://github.com/msharov/gleri/issues">project issue tracker</a>.</li>
 </ul>
 </div>
 </div>
