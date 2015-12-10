@@ -5,7 +5,6 @@
 
 #pragma once
 #include "util.h"
-#include <type_traits>
 
 //----------------------------------------------------------------------
 
@@ -27,9 +26,9 @@ protected:
     inline constexpr size_type	align_size (size_type sz, size_type g) const	{ return (g-1)-((sz+(g-1))%g); }
     inline constexpr size_type	align_size (const_pointer p, size_type g) const	{ return align_size(p-(pointer)nullptr,g); }
     template <typename Stm, typename T>
-    inline Stm&	read_object (Stm& is, T& v) { object_streamer<Stm,T,std::is_pod<T>::value>::read(is,v); return is; }
+    inline Stm&	read_object (Stm& is, T& v) { object_streamer<Stm,T,is_pod<T>::value>::read(is,v); return is; }
     template <typename Stm, typename T>
-    inline Stm&	write_object (Stm& os, const T& v) { object_streamer<Stm,T,std::is_pod<T>::value>::write(os,v); return os; }
+    inline Stm&	write_object (Stm& os, const T& v) { object_streamer<Stm,T,is_pod<T>::value>::write(os,v); return os; }
 };
 
 template <typename Stm, typename T>
