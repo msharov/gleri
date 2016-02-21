@@ -26,9 +26,9 @@ INCDIR		:= @includedir@
 
 ################ Compiler options ####################################
 
-WARNOPTS	:= -Wall -Wextra -Woverloaded-virtual -Wpointer-arith\
-		-Wshadow -Wredundant-decls -Wcast-qual @SYSWARNS@
-CXXFLAGS	:= ${WARNOPTS} -std=c++11 @CUSTOMINCDIR@ @freetypeflags@
+CXXFLAGS	:= -Wall -Wextra -Woverloaded-virtual -Wpointer-arith\
+		    -Wshadow -Wredundant-decls -Wcast-qual\
+		    -std=c++14 -march=native @CUSTOMINCDIR@ @freetypeflags@
 LDFLAGS		:= @CUSTOMLIBDIR@
 LIBS		:= @libGL@ @libX11@ @freetypelibs@ @libpng@ @libjpeg@ @libgif@ @libz@
 ifdef USE_USTL

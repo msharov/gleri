@@ -48,10 +48,13 @@ endif
 clean:	tut/rgliv/clean
 tut/rgliv/clean:
 	@if [ -d $Otut/rgliv ]; then\
-	    rm -f ${tut/rgliv/EXE} ${tut/rgliv/OBJS} ${tut/rgliv/DEPS};\
+	    rm -f ${tut/rgliv/EXE} ${tut/rgliv/OBJS} ${tut/rgliv/DEPS} $Otut/rgliv/.d;\
 	    rmdir $Otut/rgliv;\
 	fi
 
-${tut/rgliv/OBJS}: ${MKDEPS} tut/rgliv/Module.mk
+$Otut/rgliv/.d:	$Otut/.d
+	@mkdir $Otut/rgliv && touch $Otut/rgliv/.d
+
+${tut/rgliv/OBJS}: ${MKDEPS} tut/rgliv/Module.mk $Otut/rgliv/.d
 
 -include ${tut/rgliv/DEPS}

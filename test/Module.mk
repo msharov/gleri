@@ -22,7 +22,7 @@ test/all:	${test/EXE}
 check:		test/check
 test/check:	${test/EXE} ${EXE}
 	@echo "Running $<"; \
-	PATH="$O" ./${test/EXE} &> ${test/EXE}.out; \
+	PATH="$O" ./${test/EXE} > ${test/EXE}.out 2>&1; \
 	diff test/${test/NAME}.std ${test/EXE}.out && rm -f ${test/EXE}.out
 
 ${test/EXE}:	${test/OBJS} ${EXE} ${LIBA}
@@ -34,10 +34,13 @@ ${test/EXE}:	${test/OBJS} ${EXE} ${LIBA}
 clean:	test/clean
 test/clean:
 	@if [ -d $O/test ]; then\
-	    rm -f ${test/EXE} ${test/OBJS} ${test/DEPS} ${test/EXE}.out;\
+	    rm -f ${test/EXE} ${test/OBJS} ${test/DEPS} ${test/EXE}.out $Otest/.d;\
 	    rmdir $O/test;\
 	fi
 
-${test/OBJS}: ${MKDEPS} test/Module.mk
+$Otest/.d:	$O.d
+	@mkdir $Otest && touch $Otest/.d
+
+${test/OBJS}: ${MKDEPS} test/Module.mk $Otest/.d
 
 -include ${test/DEPS}

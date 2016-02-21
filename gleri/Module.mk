@@ -23,8 +23,6 @@ ${LIBA}: ${LIBOBJ}
 	@rm -f ${LIBA}
 	@${AR} qc $@ ${LIBOBJ}
 
-${LIBOBJ}:	${MKDEPS} gleri/Module.mk
-
 ################ Installation ##########################################
 
 .PHONY:	uninstall-headers uninstall-lib
@@ -69,8 +67,13 @@ endif
 clean:	gleri/clean
 gleri/clean:
 	@if [ -d $O/gleri ]; then\
-	    rm -f ${LIBA_D} ${LIBA_R} ${LIBOBJ} ${LIBDEPS};\
+	    rm -f ${LIBA_D} ${LIBA_R} ${LIBOBJ} ${LIBDEPS} $Ogleri/.d;\
 	    rmdir $O/gleri;\
 	fi
+
+$Ogleri/.d:	$O.d
+	@mkdir $Ogleri && touch $Ogleri/.d
+
+${LIBOBJ}:	${MKDEPS} gleri/Module.mk $Ogleri/.d
 
 -include ${LIBDEPS}

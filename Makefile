@@ -28,7 +28,6 @@ ${EXE}:	${OBJ} ${DCO} ${LIBA}
 
 $O%.o:	%.cc
 	@echo "    Compiling $< ..."
-	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@${CXX} ${CXXFLAGS} -MMD -MT "$(<:.cc=.s) $@" -o $@ -c $<
 
 %.s:	%.cc
@@ -62,7 +61,7 @@ include tut/rgliv/Module.mk
 
 clean:
 	@if [ -h ${ONAME} ]; then\
-	    rm -f ${EXE} ${OBJ} ${DEP} $O.d ${ONAME};\
+	    rm -f ${EXE} ${OBJ} ${DEP} $Otut/.d $O.d ${ONAME};\
 	    [ ! -d ${BUILDDIR}/tut ] || rmdir ${BUILDDIR}/tut;\
 	    ${RMPATH} ${BUILDDIR};\
 	fi
@@ -76,6 +75,8 @@ $O.d:	${BUILDDIR}/.d
 	@[ -h ${ONAME} ] || ln -sf ${BUILDDIR} ${ONAME}
 ${BUILDDIR}/.d:	Makefile
 	@mkdir -p ${BUILDDIR} && touch ${BUILDDIR}/.d
+$Otut/.d:	$O.d
+	@mkdir $Otut && touch $Otut/.d
 
 ${CONFS}:	configure Config.mk.in config.h.in gleri/config.h.in
 	@if [ -x config.status ]; then\

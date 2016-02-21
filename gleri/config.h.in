@@ -8,6 +8,10 @@
 
 // Define to the one symbol short name of this package.
 #define GLERI_NAME		"@PKG_NAME@"
+// Define to the numeric version of the package
+#define GLERI_VERSION		@PKG_VERSION@
+// Define to the protocol version
+#define GLERI_PROTOCOL_VERSION	0
 // Define to the version string of this package.
 #define GLERI_VERSTRING		"@PKG_VERSTR@"
 // Define to the address where bug reports for this package should be sent.
@@ -18,10 +22,6 @@
 #define GLERIS_SOCKET		"%s/.config/" GLERIS_NAME "-%u.socket"
 #define GLERIS_XDG_SOCKET	"%s/" GLERIS_NAME "-%u.socket"
 #define GLERIS_PORT		6540
-enum {
-    GLERI_VERSION = @PKG_VERSION@,
-    GLERI_PROTOCOL_VERSION = 0
-};
 
 // Tweak gcc
 #if !defined(UNUSED)
@@ -55,8 +55,8 @@ enum {
 #if HAVE_USTL_H && USE_USTL
     #include <ustl.h>
     using namespace ustl;
-    #if USTL_VERSION < 0x220
-	#error "uSTL version 2.2 is required for this project"
+    #if USTL_VERSION < 0x230
+	#error "uSTL version 2.3 is required for this project"
     #endif
 #else
     #include <type_traits>

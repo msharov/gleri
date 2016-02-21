@@ -29,10 +29,13 @@ ${tut/hello/EXE}:	${tut/hello/OBJS} ${EXE} ${LIBA}
 clean:	tut/hello/clean
 tut/hello/clean:
 	@if [ -d $Otut/hello ]; then\
-	    rm -f ${tut/hello/EXE} ${tut/hello/OBJS} ${tut/hello/DEPS};\
+	    rm -f ${tut/hello/EXE} ${tut/hello/OBJS} ${tut/hello/DEPS} $Otut/hello/.d;\
 	    rmdir $Otut/hello;\
 	fi
 
-${tut/hello/OBJS}: ${MKDEPS} tut/hello/Module.mk
+$Otut/hello/.d:	$Otut/.d
+	@mkdir $Otut/hello && touch $Otut/hello/.d
+
+${tut/hello/OBJS}: ${MKDEPS} tut/hello/Module.mk $Otut/hello/.d
 
 -include ${tut/hello/DEPS}

@@ -29,8 +29,6 @@ ${DHH}:	${PAK} ${MKDCC}
 
 ${DCC} iconn.cc:	${DHH}
 
-${PAK} ${DCC} ${DHH} ${MKDCC} ${MKDCC}.o ${DCO}: ${MKDEPS} data/Module.mk
-
 ${DCO}:	${DCC}
 	@echo "    Compiling $< ..."
 	@${CXX} ${CXXFLAGS} -MMD -MT "$(<:.cc=.s) $@" -o $@ -c $<
@@ -40,8 +38,13 @@ ${DCO}:	${DCC}
 clean:	data/clean
 data/clean:
 	@if [ -d $Odata ]; then\
-	    rm -f ${MKDCC} ${MKDCC}.o ${PAK} ${DCC} ${DHH} ${DCO} ${DCCDEPS};\
+	    rm -f ${MKDCC} ${MKDCC}.o ${PAK} ${DCC} ${DHH} ${DCO} ${DCCDEPS} $Odata/.d;\
 	    rmdir $Odata;\
 	fi
+
+$Odata/.d:	$O.d
+	@mkdir $Odata && touch $Odata/.d
+
+${PAK} ${DCC} ${DHH} ${MKDCC} ${MKDCC}.o ${DCO}: ${MKDEPS} data/Module.mk $Odata/.d
 
 -include ${DCCDEPS}

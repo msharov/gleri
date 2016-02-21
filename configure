@@ -33,7 +33,7 @@ HEADERS="ustl.h zlib.h png.h jpeglib.h gif_lib.h GL/gl.h sys/sendfile.h"
 LIBS="GL X11 png jpeg gif z ustl supc++"
 
 # First pair is used if nothing matches
-PROGS="CXX=g++ CXX=c++ CXX=clang++ CC=gcc CC=cc CC=clang INSTALL=install"
+PROGS="CXX=g++ CXX=clang++ CXX=c++ CC=gcc CC=clang CC=cc INSTALL=install"
 
 # Automatic vars
 [ -d .git ] && PKG_VERSTR=`git describe --always`
@@ -45,7 +45,7 @@ PKG_BUGREPORT="$MNT_NAME <$MNT_MAIL>"
 
 # Miscellaneous substitutions
 CUSTSUBS="s/@PKG_NAME@/$PKG_NAME/g
-s/@PKG_VERSION@/"0x$PKG_MAJOR${PKG_MINOR}"/g
+s/@PKG_VERSION@/"0x$PKG_MAJOR$PKG_MINOR"/g
 s/@PKG_VERSTR@/$PKG_VERSTR/g
 s/@PKG_STRING@/$PKG_STRING/g
 s/@PKG_UNAME@/`echo $PKG_NAME|tr a-z A-Z`/g
@@ -54,13 +54,14 @@ s/@PKG_MAJOR@/$PKG_MAJOR/g
 s/@PKG_MINOR@/$PKG_MINOR/g"
 
 ######################################################################
-# The rest of the file is configuration code. Leave it alone.	     #
+#### The rest of the file is configuration code. Leave it alone. #####
 ######################################################################
 
 die() { rm -f config.sed; exit; }
+sub() { printf "%s\n" "$1">>config.sed; }
+escpath() { echo $1 | sed 's/\//\\\//g'; }
 
-#### Determine compiler private include dir ##########################
-
+# Find the C compiler
 if [ -z "$CC" ]; then
     for i in gcc clang cc g++ clang++ c++; do
 	CC=`which $i 2>/dev/null` && break
@@ -68,6 +69,7 @@ if [ -z "$CC" ]; then
 fi
 [ -z "$CC" ] && "No C compiler found" && die
 
+# Determine gcc private directory
 PSTDDEF=`echo "#include <stddef.h>"|$CC -E -|grep stddef.h|head -n1|cut -d' ' -f3|cut -d'"' -f2`
 PINCDIR=`dirname $PSTDDEF`
 PLIBDIR=`dirname $PINCDIR`
@@ -82,34 +84,47 @@ case "$SYSNAME" in
     *bsd*)		SYSNAME="bsd";;
     *)			SYSNAME="linux";;
 esac
-
 if [ "$SYSNAME" = "sun" ]; then
-    echo "s/-Wredundant-decls/-Wno-redundant-decls/g
-	s/@SHBLDFL@/-G/g" >config.sed
-fi
-if [ "$SYSNAME" = "bsd" ]; then
-    echo 's/-Wredundant-decls/-Wno-redundant-decls/g
-	s/-Winline/-Wno-inline/g' >>config.sed
-fi
-[ "$SYSNAME" = "linux" ] || echo 's/-p --ignore-fail-on-non-empty//g' >>config.sed
-if [ "$SYSNAME" = "linux" -o "$SYSNAME" = "bsd" ]; then
-    echo 's/@SHBLDFL@/-shared -Wl,-soname=$1/g' >>config.sed
-fi
-if [ "$SYSNAME" = "mac" ]; then
-    echo 's/@SYSWARNS@/-Wno-long-double/g
-	s/lib$1.so/lib$1.dylib/g
-	s/lib$1.so.${MAJOR}.${MINOR}.${BUILD}/lib$1.${MAJOR}.${MINOR}.${BUILD}.dylib/g
-	s/lib$1.so.${MAJOR}.${MINOR}/lib$1.${MAJOR}.${MINOR}.dylib/g
-	s/lib$1.so.${MAJOR}/lib$1.${MAJOR}.dylib/g
-	s/@SHBLDFL@/-Wl,-single_module -compatibility_version 1 -current_version 1 -install_name $1 -Wl,-Y,1455 -dynamiclib -mmacosx-version-min=10.4/g' >>config.sed
+    sub "s/-Wredundant-decls/-Wno-redundant-decls/"
 else
-    echo 's/ \?@SYSWARNS@//g' >>config.sed
+    sub "s/#undef \(HAVE_THREE_CHAR_TYPES\)/#define \1 1/"
+    if [ "$SYSNAME" = "bsd" ]; then
+	sub 's/-Wredundant-decls/-Wno-redundant-decls/
+		s/#define HAVE_VA_COPY 1/#undef HAVE_VA_COPY/'
+    elif [ "$SYSNAME" = "mac" ]; then
+	sub 's/ -s -Wl,-gc-sections/ -mmacosx-version-min=10.9/'
+	if [ "$CC" = "clang" ]; then
+	    sub "s/ @libsupc++@/ @libc++abi@/"
+	fi
+    fi
+    if [ "$SYSNAME" != "linux" ]; then
+	sub "s/#define \(HAVE_STRSIGNAL\) 1/#undef \1/
+		s/-p --ignore-fail-on-non-empty//"
+    fi
 fi
 
 #### Printing helper functions #######################################
 
-PrintComponents() {
+PrintHelp() {
     local cc name desc
+    echo "This program configures $PKG_STRING
+
+Usage: configure [OPTION...]
+
+Configuration:
+  -h, --help		display this help and exit
+  -V, --version		display version information and exit
+
+Installation directories:
+  --prefix=PREFIX	architecture-independent files [/usr/local]
+  --bindir=DIR		binaries location [PREFIX/lib]
+  --libdir=DIR		libraries location [PREFIX/lib]
+  --includedir=DIR	C header files [PREFIX/include]
+  --gccincludedir=DIR	GCC internal header files [PREFIX/include]
+  --customincdir=DIR	additional include directory
+  --customlibdir=DIR	additional library directory
+  --builddir=DIR	location for compiled objects [/tmp/$USER/make]
+"
     cc=$COMPONENTS
     echo "Options:"
     while [ ! -z "$cc" ]; do
@@ -119,40 +134,14 @@ PrintComponents() {
 	cc=`expr "$cc" : '[^}]*}\(.*\)'`
     done
     echo
-}
-
-PrintHelp() {
-    echo "This program configures $PKG_STRING
-
-Usage: configure [OPTION]...
-
-Configuration:
-  -h, --help		display this help
-  -V, --version		display version
-
-Installation directories:
-  --prefix=PREFIX	installation root [/usr/local]
-  --bindir=DIR		programs [PREFIX/bin]
-  --datadir=DIR		data [PREFIX/share]
-  --includedir=DIR	header files [PREFIX/include]
-  --libdir=DIR		libraries [PREFIX/lib]
-  --infodir=DIR		info docs [PREFIX/info]
-  --mandir=DIR		man pages [PREFIX/man]
-  --builddir=DIR	location for compiled objects [/tmp/$USER/make]
-"
-    PrintComponents
     echo "Report bugs to $PKG_BUGREPORT."
-}
-
-PrintVersion() {
-    echo "$PKG_NAME configure $PKG_VERSTR"
 }
 
 SubVar() {
     local esc2
-    esc2=`echo $2 | sed 's/\//\\\&/g'`
+    esc2=`escpath $2`
     eval ac_var_$1='$esc2';
-    echo "s/@$1@/$esc2/g" >>config.sed
+    sub "s/@$1@/$esc2/g"
 }
 
 SubComp() {
@@ -161,7 +150,7 @@ SubComp() {
     while [ ! -z "$cc" ]; do
 	name=`expr "$cc" : '[^}]*name=\[\([^]]*\)\]'`
 	seds=`expr "$cc" : '[^}]*seds=\[\([^]]*\)\]'`
-	[ "$name" = "$1" ] && echo $seds >>config.sed
+	[ "$name" = "$1" ] && sub "$seds"
 	cc=`expr "$cc" : '[^}]*}\(.*\)'`
     done
 }
@@ -169,7 +158,7 @@ SubComp() {
 for i in $*; do
     case $i in
 	--)		break;;
-	--version |-V)	PrintVersion && die;;
+	--version |-V)	echo "$PKG_NAME configure $PKG_VERSTR" && die;;
 	--help |-h |-?)	PrintHelp && die;;
 	--*=*)		SubVar `expr "$i" : '--\([^=]*\)='` `expr "$i" : '[^=]*=\(.*\)'`;;
 	--*)		SubComp `expr "$i" : '--\(.*\)'`;;
@@ -179,36 +168,35 @@ done
 
 #### Set directory prefixes ##########################################
 
-echo "s/@prefix@/${ac_var_prefix:=\/usr\/local}/g
-s/@bindir@/$ac_var_prefix\/bin/g
-s/@datarootdir@/${ac_var_datarootdir:=$ac_var_prefix\/share}/g
-s/@datadir@/$ac_var_datarootdir/g
-s/@includedir@/${ac_var_includedir:=$ac_var_prefix\/include}/g
-s/@docdir@/${ac_var_docdir:=$ac_var_datarootdir\/doc\/$PKG_NAME}/g
-s/@infodir@/$ac_var_datarootdir\/info/g
-s/@libdir@/${ac_var_libdir:=$ac_var_prefix\/lib}/g
-s/@mandir@/$ac_var_datarootdir\/man/g
-s/@builddir@/\/tmp\/$USER\/make/g
-s/@gcclibdir@/${ac_var_gcclibdir:=`echo $PLIBDIR | sed 's/\//\\\&/g'`}/g
-s/@customincdir@/${ac_var_customincdir:=$ac_var_prefix\/include}/g
-s/@customlibdir@/${ac_var_customlibdir:=$ac_var_prefix\/lib}/g" >>config.sed
+sub "s/@prefix@/${ac_var_prefix:=\/usr\/local}/
+s/@bindir@/$ac_var_prefix\/bin/
+s/@datadir@/${ac_var_datadir:=$ac_var_prefix\/share}/
+s/@sysconfdir@/$ac_var_prefix\/etc/
+s/@includedir@/${ac_var_includedir:=$ac_var_prefix\/include}/
+s/@oldincludedir@/${ac_var_oldincludedir:=\/usr\/include}/
+s/@docdir@/${ac_var_docdir:=$ac_var_datadir\/doc\/$PKG_NAME}/
+s/@libdir@/${ac_var_libdir:=$ac_var_prefix\/lib}/
+s/@mandir@/$ac_var_datarootdir\/man/
+s/@builddir@/\/tmp\/$USER\/make/
+s/@gccincludedir@/${ac_var_gccincludedir:=`escpath $PINCDIR`}/
+s/@gcclibdir@/${ac_var_gcclibdir:=`escpath $PLIBDIR`}/"
 
-if [ "$ac_var_prefix" != "\/usr\/local" -a "$ac_var_prefix" != "\/usr" ]; then
-    echo "s/ \?@CUSTOMINCDIR@/ -I$ac_var_customincdir/g;s/ \?@CUSTOMLIBDIR@/ -L$ac_var_customlibdir/g" >>config.sed
-else
-    echo "s/ \?@CUSTOMINCDIR@//g;s/ \?@CUSTOMLIBDIR@//g" >>config.sed
+[ -z "$ac_var_customincdir" ] || CINCSUB=" -I$ac_var_customincdir"
+[ -z "$ac_var_customlibdir" ] || CLIBSUB=" -L$ac_var_customlibdir"
+if [ "$ac_var_prefix" != "/usr" -a "$ac_var_prefix" != "/usr/local" ]; then
+    CINCSUB="$CINCSUB -I$ac_var_prefix\/include"
+    CLIBSUB="$CLIBSUB -L$ac_var_prefix\/lib"
 fi
+sub "s/ @CUSTOMINCDIR@/$CINCSUB/;s/ @CUSTOMLIBDIR@/$CLIBSUB/"
 
 #### Find headers, libs, programs, and subs ##########################
 
-SubHeadLibsProgs() {
-local INCPATH LIBPATH LIBSUFFIX found pname pcall esciv ftconf ftinc ftlib
-INCPATH="$ac_var_includedir $ac_var_customincdir /usr/include"
+INCPATH="$ac_var_includedir $ac_var_gccincludedir $ac_var_customincdir $ac_var_oldincludedir /usr/include/x86_64-linux-gnu"
 INCPATH=`echo $INCPATH | sed 's/\\\\//g'`
 for i in $HEADERS; do
     for p in $INCPATH; do
 	if [ -r "$p/$i" ]; then
-	    echo 's/#undef \(HAVE_'`echo $i|tr a-z/.- A-Z___`'\)/#define \1 1/' >>config.sed
+	    sub "s/#undef \(HAVE_`echo $i|tr a-z/.- A-Z___`\)/#define \1 1/"
 	    break
 	fi
     done
@@ -228,38 +216,43 @@ for i in $LIBS; do
 	done
 	[ -z "$found" ] || break
     done
-    echo "s/ \?@lib$i@/$found/g" >>config.sed
+    sub "s/ @lib$i@/$found/g"
 done
 
 for i in $PROGS; do
     pname=`expr "$i" : '\([^=]*\)=[^=]*'`
     pcall=`expr "$i" : '[^=]*=\([^=]*\)'`
-    [ -x `which $pcall 2>/dev/null` ] && echo "s/@$pname@/$pcall/g" >>config.sed
+    ppath=`eval echo \$\{$pname\}`
+    ppath=`escpath "$ppath"`
+    # First check if an environment variable is set
+    [ ! -z "$ppath" ] && sub "s/@$pname@/$ppath/g"
+    # Check if the program exists
+    [ -x `which $pcall 2>/dev/null` ] && sub "s/@$pname@/$pcall/g"
 done
 # If nothing found in first loop, set the first pair anyway.
 for i in $PROGS; do
     pname=`expr "$i" : '\([^=]*\)=[^=]*'`
     pcall=`expr "$i" : '[^=]*=\([^=]*\)'`
-    echo "s/@$pname@/$pcall/g" >>config.sed
+    sub "s/@$pname@/$pcall/g"
 done
 # Find freetype-config and get freetype compilation flags
 ftconf=`which freetype-config 2>/dev/null`
 if [ -x $ftconf ]; then
-    ftinc=`$ftconf --cflags|sed 's/\\//\\\\\\//g'`
-    ftlib=`$ftconf --libs|sed 's/\\//\\\\\\//g'`
-    echo "s/@freetypeflags@/$ftinc/;s/@freetypelibs@/$ftlib/;s/#undef HAVE_FREETYPE/#define HAVE_FREETYPE 1/" >>config.sed
+    ftinc=`$ftconf --cflags`
+    ftlib=`$ftconf --libs`
+    sub "s/@freetypeflags@/`escpath $ftinc`/;s/@freetypelibs@/`escpath $ftlib`/;s/#undef HAVE_FREETYPE/#define HAVE_FREETYPE 1/"
 else
-    echo "s/ \?@freetypeflags@//;s/ \?@freetypelibs@//" >>config.sed
+    sub "s/ @freetypeflags@//;s/ @freetypelibs@//"
 fi
 # And, finally, the environment variables
 for i in $ENVIRONS; do
     esciv="`eval echo '"'\$\{$i\}'"'|sed 's/\//\\\&/g'`"
-    [ ! -z "$esciv" ] && esciv=" $esciv"
-    echo "s/ \?@$i@/$esciv/g" >>config.sed
+    ppath=`eval echo \$\{$pname\}`
+    ppath=`escpath "$ppath"`
+    [ ! -z "$ppath" ] && ppath=" $ppath"
+    sub "s/ @$i@/$ppath/g"
 done
-echo "$CUSTSUBS" >>config.sed
-}
-SubHeadLibsProgs
+sub "$CUSTSUBS"
 
 #### Apply substitutions to all files ################################
 
