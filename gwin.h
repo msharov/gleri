@@ -22,6 +22,7 @@ private:
     enum { MAX_VAO_SLOTS = 16 };
     using matrix4f_t		= float[4][4];
     using WinInfo		= PRGL::WinInfo;
+    using rangevec_t		= PDraw<bstri>::rangevec_t;
 public:
 				CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn);
 				~CGLWindow (void) noexcept;
@@ -129,6 +130,34 @@ public:
 					glDrawRangeElementsBaseVertex (type, minel, maxel, n, itype, BufferOffset(offset), baseVertex);
 				    else
 					glDrawRangeElements (type, minel, maxel, n, itype, BufferOffset(offset));
+				}
+    void			MultiDrawArrays (G::Shape mode, const rangevec_t& r) {
+				    DTRACE ("[%x] MultiDrawArrays %s: %u primitives\n", IId(), G::ShapeName(mode), (unsigned) r.size());
+				    vector<GLint> first; vector<GLsizei> count;
+				    first.resize (r.size()); count.resize (r.size());
+				    for (auto i = 0u; i < r.size(); ++i) {
+					first[i] = r[i].offset;
+					count[i] = r[i].size;
+				    }
+				    glMultiDrawArrays (mode,&first[0],&count[0],r.size());
+				}
+    void			MultiDrawArraysIndirect (G::Shape type, uint32_t n, uint32_t stride = 0, uint32_t offset = 0) noexcept {
+				    DTRACE ("[%x] MultiDrawArraysIndirect %s: %u primitives, offset %u, stride %u\n", IId(), G::ShapeName(type), n, offset, stride);
+				    glMultiDrawArraysIndirect (type, BufferOffset(offset), n, stride);
+				}
+    void			MultiDrawElements (G::Shape type, const rangevec_t& r, G::Type itype = G::UNSIGNED_SHORT) noexcept {
+				    DTRACE ("[%x] MultiDrawElements %s: %u primitives of type %s\n", IId(), G::ShapeName(type), (unsigned) r.size(), G::TypeName(itype));
+				    vector<const GLvoid*> first; vector<GLsizei> count;
+				    first.resize (r.size()); count.resize (r.size());
+				    for (auto i = 0u; i < r.size(); ++i) {
+					first[i] = BufferOffset(r[i].offset);
+					count[i] = r[i].size;
+				    }
+				    glMultiDrawElements (type, &count[0], itype, &first[0], r.size());
+				}
+    void			MultiDrawElementsIndirect (G::Shape type, G::Type itype, uint32_t n, uint16_t stride = 0, uint32_t offset = 0) noexcept {
+				    DTRACE ("[%x] MultiDrawElementsIndirect %s: %u primitives of type %s, offset %u, stride %hu\n", IId(), G::ShapeName(type), n, G::TypeName(itype), offset, stride);
+				    glMultiDrawElementsIndirect (type, itype, BufferOffset(offset), n, stride);
 				}
 				//}}}
 				// Texture

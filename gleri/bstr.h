@@ -36,6 +36,11 @@ struct bstrb::object_streamer<Stm,T,true> {
     static inline void	read (Stm& is, T& v) 		{ is.iread(v); }
     static inline void	write (Stm& os, const T& v) 	{ os.iwrite(v); }
 };
+template <typename Stm, typename T>
+struct bstrb::object_streamer<Stm,vector<T>,false> {
+    static inline void	read (Stm& is, vector<T>& v) 		{ uint32_t sz; is.iread(sz); v.resize(sz); is.read(&v[0], sz*sizeof(T)); }
+    static inline void	write (Stm& os, const vector<T>& v) 	{ os.iwrite(uint32_t(v.size())); os.write (&v[0], v.size()*sizeof(T)); }
+};
 
 //----------------------------------------------------------------------
 
