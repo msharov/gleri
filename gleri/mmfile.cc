@@ -168,6 +168,9 @@ void CFile::SendFd (CFile& f)
     msg.msg_namelen = 0;
 
     // File descriptors must be sent with some data, so send a zero int
+    // HACK: this works because GLERI has only one type of message that
+    // passes an fd, where the message ends with an fd and is not 8-aligned,
+    // requiring 4 bytes of padding. So, writing a uint64_t works here.
     iovec iov;
     uint64_t zerodata = 0;
     iov.iov_base = &zerodata;
