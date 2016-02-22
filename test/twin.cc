@@ -173,6 +173,8 @@ void CTestWindow::OnKey (key_t key)
 
     if (_wsx >= walk_StripLength)
 	_wsx = 0;
+    if (_wy < 100)
+	SetCursor (G::Cursor(_wx/16));
     Draw();
 }
 

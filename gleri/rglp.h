@@ -34,6 +34,7 @@ private:
 	FreeResource,
 	BufferSubData,
 	TexParameter,
+	SetCursor,
 	NCmds,
     };
     //{{{ Serialization helper objects: SShader, SArgv
@@ -150,6 +151,7 @@ public:
     inline void			FreeTexture (goid_t id);
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
     inline void			TexParameter (G::Texture::Parameter p, int v)			{ TexParameter (G::TEXTURE_2D,p,v); }
+    inline void			SetCursor (G::Cursor c)						{ Cmd(ECmd::SetCursor,c); }
     inline goid_t		CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na);
     inline goid_t		CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc);
     inline goid_t		CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer);
@@ -365,6 +367,11 @@ template <typename F>
 	    G::TextureType t; G::Texture::Parameter p; int v;
 	    Args (cmdis, t,p,v);
 	    clir->TexParameter (t,p,v);
+	    } break;
+	case ECmd::SetCursor: {
+	    G::Cursor c;
+	    Args (cmdis, c);
+	    f.SetClientCursor (*clir, c);
 	    } break;
 	default:
 	    XError::emit ("invalid protocol command");

@@ -6,6 +6,7 @@
 #include "gleris.h"
 #include <X11/XF86keysym.h>
 #include <X11/Xauth.h>
+#include <X11/cursorfont.h>
 
 //----------------------------------------------------------------------
 
@@ -29,8 +30,9 @@ CGleris::CGleris (void) noexcept
 ,_atoms()
 ,_dinfo()
 ,_fbconfig()
-,_visinfo()
-,_colormap()
+,_visinfo{nullptr}
+,_colormap{0}
+,_cursor{0}
 ,_xauth()
 {
     DTRACE ("gleris " GLERI_VERSTRING " started\n");
@@ -410,6 +412,26 @@ unsigned CGleris::WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noe
 	if (winfo.flags & (1<<f))
 	    a[ac++] = _atoms[a_NET_WM_STATE+1+f];
     return ac;
+}
+
+Cursor CGleris::LoadCursor (G::Cursor c) noexcept
+{
+    auto uc = unsigned(c);
+    if (uc >= ArraySize(_cursor))
+	return 0;
+    if (_cursor[uc])
+	return _cursor[uc];
+    if (uc < XC_num_glyphs/2u)
+	_cursor[uc] = XCreateFontCursor (_dpy, uc*2);
+    else if (c == G::Cursor::hidden) {
+	auto font = XLoadQueryFont (_dpy, "fixed");	// The fixed font must be available
+	if (font) {
+	    static const XColor color = { 0, 0, 0, 0, 0, 0 };
+	    _cursor[uc] = XCreateGlyphCursor (_dpy, font->fid, font->fid, 'X', ' ', &color, &color);
+	    XFreeFont (_dpy, font);
+	}
+    }
+    return _cursor[uc];
 }
 
 /*static*/ void CGleris::DTRACE_EventType (const XEvent& e) noexcept
@@ -817,13 +839,14 @@ Window CGleris::CreateWindow (const WinInfo& winfo, Window parentWid)
 	ButtonPressMask| ButtonReleaseMask| PointerMotionMask| FocusChangeMask|
 	EnterWindowMask| LeaveWindowMask| VisibilityChangeMask;
     swa.save_under = swa.override_redirect = winfo.IsDecoless();
+    swa.cursor = LoadCursor (winfo.cursor);
     if (winfo.wtype != WinInfo::type_Embedded)
 	parentWid = _rootWindow;
 
     Window win = XCreateWindow (_dpy, parentWid, winfo.x, winfo.y, winfo.w, winfo.h, 0,
 				_visinfo[winfo.aa]->depth, InputOutput, _visinfo[winfo.aa]->visual,
-				CWBackPixmap| CWBackingStore| CWOverrideRedirect|
-				CWSaveUnder| CWBorderPixel| CWColormap| CWEventMask, &swa);
+				CWBackPixmap| CWBackingStore| CWOverrideRedirect| CWEventMask
+				| CWSaveUnder| CWBorderPixel| CWColormap| CWCursor, &swa);
     DTRACE ("Created window %x, %ux%u+%d+%d\n", win, winfo.w,winfo.h, winfo.x,winfo.y);
     if (winfo.wtype == WinInfo::type_Embedded)
 	DTRACE ("\tThe window is embedded in window %x\n", parentWid);

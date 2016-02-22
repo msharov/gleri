@@ -96,6 +96,7 @@ public:
     void		CloseClient (CGLWindow* pcli) noexcept;
     void		ClientDraw (CGLWindow& cli, G::goid_t fbid, bstri cmdis);
     void		ClientEvent (const CGLWindow& cli, const CEvent& e);
+    void		SetClientCursor (const CGLWindow& cli, G::Cursor c)	{ XDefineCursor (_dpy, cli.Drawable(), LoadCursor(c)); }
     void		ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept;
     void		OnExport (const char*, int fd);
     inline void		OnNoClient (const CCmd::SMsgHeader& h) const	{ throw XError ("command %s targets nonexistent window\n", h.Cmdname()); }
@@ -112,6 +113,7 @@ private:
     inline iid_t	GenIId (void)		{ return ++_nextiid; }
     inline void		GetAtoms (void) noexcept;
     unsigned		WinStateAtoms (const WinInfo& winfo, uint32_t a[16]) const noexcept;
+    Cursor		LoadCursor (G::Cursor c) noexcept;
     void		OnXEvent (void);
     static key_t	ModsFromXState (uint32_t state) noexcept;
    static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
@@ -140,6 +142,7 @@ private:
     GLXFBConfig		_fbconfig [G::WinInfo::MSAA_MAX+1];
     XVisualInfo*	_visinfo [G::WinInfo::MSAA_MAX+1];
     Colormap		_colormap [G::WinInfo::MSAA_MAX+1];
+    Cursor		_cursor [unsigned(G::Cursor::hidden)+1];
     char		_xauth [XAUTH_DATA_LEN];
     static char*	_xlib_error;
     static char		s_SocketPath [c_SocketPathLen];

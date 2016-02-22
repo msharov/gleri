@@ -24,6 +24,7 @@ static_assert (unsigned(PRGL::EResource::TEXTURE_SAMPLER)-unsigned(PRGL::EResour
      N(FreeResource,"uq")
      N(BufferSubData,"uuay")
      N(TexParameter,"qqi")
+     N(Cursor,"y")
 ;
 #undef N
 

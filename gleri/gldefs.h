@@ -477,6 +477,28 @@ protected:
 
 } // namespace G::Font
 //}}}-------------------------------------------------------------------
+//{{{ Cursor
+
+enum class Cursor : uint8_t {
+    X_cursor, arrow, based_arrow_down, based_arrow_up, boat,
+    bogosity, bottom_left_corner, bottom_right_corner, bottom_side, bottom_tee,
+    box_spiral, center_ptr, circle, clock, coffee_mug,
+    cross, cross_reverse, crosshair, diamond_cross, dot,
+    dotbox, double_arrow, draft_large, draft_small, draped_box,
+    exchange, fleur, gobbler, gumby, hand1,
+    hand2, heart, icon, iron_cross, left_ptr,
+    left_side, left_tee, leftbutton, ll_angle, lr_angle,
+    man, middlebutton, mouse, pencil, pirate,
+    plus, question_arrow, right_ptr, right_side, right_tee,
+    rightbutton, rtl_logo, sailboat, sb_down_arrow, sb_h_double_arrow,
+    sb_left_arrow, sb_right_arrow, sb_up_arrow, sb_v_double_arrow, shuttle,
+    sizing, spider, spraycan, star, target,
+    tcross, top_left_arrow, top_left_corner, top_right_corner, top_side,
+    top_tee, trek, ul_angle, umbrella, ur_angle,
+    watch, xterm, hidden
+};
+
+//}}}-------------------------------------------------------------------
 //{{{ Framebuffer
 
 class alignas(4) FramebufferComponent {
@@ -565,7 +587,7 @@ public:
     uint8_t	dpyn;
     uint8_t	scrn;
     uint8_t	scrd;
-    uint8_t	reserved;
+    Cursor	cursor;
 public:
     inline constexpr explicit WinInfo (coord_t _x = 0, coord_t _y = 0, dim_t _w = 1, dim_t _h = 1,
 				uint16_t _parent = 0, uint8_t _mingl = 0x33, uint8_t _maxgl = 0,
@@ -573,7 +595,7 @@ public:
 				:x(_x),y(_y),w(_w),h(_h)
 				,parent(_parent),mingl(_mingl),maxgl(_maxgl)
 				,aa(_aa),wtype(_wtype),wstate(_wstate),flags(_flags)
-				,wmwid(0),scrw(0),scrh(0),scrmw(0),scrmh(0),dpyn(0),scrn(0),scrd(0),reserved(0) {}
+				,wmwid(0),scrw(0),scrh(0),scrmw(0),scrmh(0),dpyn(0),scrn(0),scrd(0),cursor(Cursor::left_ptr) {}
     inline void read (bstri& is)	{ is.iread (*this); }
     inline void write (bstro& os) const	{ os.iwrite (*this); }
     inline void write (bstrs& ss) const	{ ss.iwrite (*this); }

@@ -77,6 +77,9 @@ public:
     inline goid_t	LoadShader (goid_t pak, const char* v, const char* g, const char* f)				{ return _prgl->LoadShader(pak,v,g,f); }
     inline goid_t	LoadShader (goid_t pak, const char* v, const char* f)						{ return _prgl->LoadShader(pak,v,f); }
     inline void		FreeShader (goid_t id)										{ _prgl->FreeShader(id); }
+    inline void		TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ _prgl->TexParameter (t,p,v); }
+    inline void		TexParameter (G::Texture::Parameter p, int v)			{ _prgl->TexParameter (p,v); }
+    inline void		SetCursor (G::Cursor c)						{ _prgl->SetCursor (c); }
     template <typename W, typename... Args>
     inline W*		CreateSubWidget (Args... args)	{ return new W (_prgl, args...); }
 protected:
