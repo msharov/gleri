@@ -914,7 +914,7 @@ void CGleris::CloseClient (CGLWindow* pcli) noexcept
 	for (auto c = _win.begin(), p = _win.end(); c < _win.end(); ++c) {
 	    if (*c == pcli)	// To break dependency loops only
 		p = c;		// look for children after parent
-	    else if (p < c && (*c)->Info().parent == pcli->IId())
+	    else if (p < c && *c && (*c)->Info().parent == pcli->IId())
 		CloseClient (*c);
 	}
 	DTRACE ("Destroying client window %x, context %x\n", pcli->Drawable(), pcli->ContextId());

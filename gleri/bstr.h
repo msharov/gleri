@@ -38,8 +38,8 @@ struct bstrb::object_streamer<Stm,T,true> {
 };
 template <typename Stm, typename T>
 struct bstrb::object_streamer<Stm,vector<T>,false> {
-    static inline void	read (Stm& is, vector<T>& v) 		{ uint32_t sz; is.iread(sz); v.resize(sz); is.read(&v[0], sz*sizeof(T)); }
-    static inline void	write (Stm& os, const vector<T>& v) 	{ os.iwrite(uint32_t(v.size())); os.write (&v[0], v.size()*sizeof(T)); }
+    static inline void	read (Stm& is, vector<T>& v) 		{ uint32_t sz; is.iread(sz); v.resize(sz); if (!v.empty()) is.read(&v[0], sz*sizeof(T)); }
+    static inline void	write (Stm& os, const vector<T>& v) 	{ os.iwrite(uint32_t(v.size())); if (!v.empty()) os.write (&v[0], v.size()*sizeof(T)); }
 };
 
 //----------------------------------------------------------------------
