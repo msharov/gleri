@@ -6,14 +6,8 @@
 #pragma once
 #include "cmd.h"
 
-template <typename Stm>
-class PDraw : public CCmd {
+class PDrawBase : public CCmd {
 public:
-    enum {
-	is_sizing = Stm::is_sizing,
-	is_reading = Stm::is_reading,
-	is_writing = Stm::is_writing
-    };
     using goid_t	= G::goid_t;
     using coord_t	= G::coord_t;
     using dim_t		= G::dim_t;
@@ -23,7 +17,7 @@ public:
 	uint32_t	size;
     };
     using rangevec_t	= vector<Range>;
-private:
+protected:
     template <typename T, unsigned N> struct ArrayArg {
 	inline constexpr ArrayArg (const T* v = nullptr) :_v(v) {}
 	template <typename AAStm>
@@ -64,6 +58,16 @@ private:
 	MultiDrawElementsIndirect,
 	SaveFramebuffer,
 	NCmds
+    };
+};
+
+template <typename Stm>
+class PDraw : public PDrawBase {
+public:
+    enum {
+	is_sizing = Stm::is_sizing,
+	is_reading = Stm::is_reading,
+	is_writing = Stm::is_writing
     };
 public:
     inline		PDraw (void)		:_os() {}
