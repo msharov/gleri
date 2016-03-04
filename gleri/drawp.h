@@ -57,6 +57,7 @@ protected:
 	MultiDrawElements,
 	MultiDrawElementsIndirect,
 	SaveFramebuffer,
+	InstancingDivisor,
 	NCmds
     };
 };
@@ -97,6 +98,7 @@ public:
     inline void		Font (goid_t f)					{ Cmd (ECmd::BindFont, f); }
     inline void		Parameter (uint32_t slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0)	{ Cmd (ECmd::Parameter, uint32_t(1), slot, buf, uint8_t(type-G::Type_BASE), sz, stride, offset); }
     inline void		Parameter (const char* slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0)	{ Cmd (ECmd::Parameter, slot, buf, uint8_t(type-G::Type_BASE), sz, stride, offset); }
+    inline void		InstancingDivisor (uint16_t slot, uint16_t divisor)	{ Cmd (ECmd::InstancingDivisor, slot,divisor); }
     inline void		Uniform (const char* name, float x, float y, float z, float w)	{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
     inline void		Uniformi (const char* name, int x, int y, int z, int w)	{ Cmd (ECmd::Uniformi, name, x,y,z,w); }
     inline void		Uniformv (const char* name, const float* v)		{ Cmd (ECmd::Uniformf, name, ArrayArg<float,4>(v)); }
@@ -240,6 +242,8 @@ template <typename F>
 		Args (is,x,y,w,h,filename,fmt,quality,pfmt,pcomp,resv);
 		f.SaveFramebuffer (x,y,w,h,filename,fmt,quality);
 		} break;
+	    case ECmd::InstancingDivisor:
+		{ uint16_t slot,divisor; Args(is,slot,divisor); f.SetInstancingDivisor(slot,divisor); } break;
 	    default: XError::emit ("drawlist parse error");
 	}
 	#ifndef NDEBUG

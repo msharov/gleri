@@ -73,6 +73,10 @@ public:
     inline const CShader&	LookupShader (goid_t id) const	{ return _pconn->LookupShader (id); }
     void			Parameter (const char* name, const CBuffer& buf, G::Type type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
     void			Parameter (GLuint slot, const CBuffer& buf, G::Type type = G::SHORT, GLuint size = 2, GLuint offset = 0, GLuint stride = 0) noexcept;
+    void			SetInstancingDivisor (GLuint slot, GLuint divisor) {
+				    DTRACE ("[%x] InstancingDivisor of slot %u set to %u\n", slot, divisor);
+				    glVertexAttribDivisor (slot, divisor);
+				}
     void			Uniform4f (const char* varname, GLfloat x, GLfloat y, GLfloat z, GLfloat w) const noexcept;
     inline void			Uniform4fv (const char* varname, const GLfloat* v) const noexcept	{ Uniform4f(varname,v[0],v[1],v[2],v[3]); }
     void			Uniform4iv (const char* varname, const GLint* v) const noexcept;
