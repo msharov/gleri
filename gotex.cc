@@ -381,12 +381,14 @@ static int GIFReader (GifFileType* giff, GifByteType* buf, int bufsz)
 }
 
 struct GIFFile {
-    GifFileType*	p;
-    GIFFile (void)	: p(nullptr) {}
-    ~GIFFile (void) {
+    GifFileType* p;
+    inline GIFFile (void) : p(nullptr) {}
+    ~GIFFile (void) noexcept {
 	if (p) {
 	    auto err = 0;
 	    DGifCloseFile (p, &err);
+	    if (err)
+		DTRACE ("DGifCloseFile failed with code %d\n", err);
 	    p = nullptr;
 	}
     }

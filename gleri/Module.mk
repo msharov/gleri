@@ -72,7 +72,8 @@ gleri/clean:
 	fi
 
 $Ogleri/.d:	$O.d
-	@mkdir $Ogleri && touch $Ogleri/.d
+	@[ -d $Ogleri ] || mkdir $Ogleri
+	@touch $Ogleri/.d
 
 ${LIBOBJ}:	${MKDEPS} gleri/Module.mk $Ogleri/.d
 
