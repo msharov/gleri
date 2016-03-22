@@ -271,6 +271,14 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 	if (_vwfont) {
 	    drw.Font (_vwfont);
 	    drw.Text (300, 520, "A quick brown fox jumps over the lazy dog");
+	    static const uint16_t c_WideChars[] = { 0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 0x2555, 0x2563, 0x2551, 0x2557, 0x255D, 0x255C, 0x255B, 0x2510 };
+	    char u8buf [ArraySize(c_WideChars)*4];
+	    memset (u8buf, 0, sizeof(u8buf));
+	    auto u8out = utf8out (u8buf);
+	    for (auto i = 0u; i < ArraySize(c_WideChars); ++i)
+		*u8out++ = c_WideChars[i];
+	    *u8out = 0;
+	    drw.Text (300, 540, u8buf);
 	}
     #endif
 

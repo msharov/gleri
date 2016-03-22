@@ -137,7 +137,7 @@ public:
     inline const Iterator&	base (void) const				{ return _i; }
     inline utf8out_iterator&	operator* (void)				{ return *this; }
     inline utf8out_iterator&	operator++ (void)				{ return *this; }
-    inline utf8out_iterator	operator++ (int)				{ return *this; }
+    inline utf8out_iterator&	operator++ (int)				{ return *this; }
     inline bool			operator== (const utf8out_iterator& i) const	{ return _i == i._i; }
     inline bool			operator< (const utf8out_iterator& i) const	{ return _i < i._i; }
     /// Writes \p v into the stream.
