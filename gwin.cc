@@ -10,10 +10,13 @@
 
 CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ctx, CIConn* pconn)
 : PRGLR(iid)
-,_ctx(ctx,iid,win)
+,_ctx (ctx,iid,win)
 ,_pendingFrame()
 ,_pconn (pconn)
+,_proj {0}
 ,_color (0xffffffff)
+,_query {0}
+,_vao {CGObject::NoObject}
 ,_syncEvent (CEvent::VSync, c_DefaultFrameTimeNS)
 ,_nextVSync (NotWaitingForVSync)
 ,_lastVSync (0)
@@ -24,12 +27,13 @@ CGLWindow::CGLWindow (iid_t iid, const WinInfo& winfo, Window win, GLXContext ct
 ,_curFont (G::GoidNull)
 ,_curFb (G::default_Framebuffer)
 ,_winfo (winfo)
+,_viewport {0,0,1,1}
+,_fbsz {1,1}
+,_texparam()
 {
     DTRACE ("[%x] Create: window %x, context %x\n", iid, win, ctx);
     _winfo.h = 0;	// Make invalid until explicit resize
-    _query[query_FrameEnd] = 0;
-    _vao[0] = CGObject::NoObject;
-    _vao[1] = CGObject::NoObject;
+    _texparam.Set (G::TEXTURE_2D, G::Texture::MIN_FILTER, G::Texture::NEAREST);	// Default texture MIN_FILTER is NEAREST_MIPMAP_LINEAR, which does not work with non-mipmapped textures
 }
 
 void CGLWindow::Activate (void)

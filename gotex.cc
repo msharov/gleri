@@ -9,8 +9,39 @@
 //{{{ Param ------------------------------------------------------------
 
 /*static*/ const int CTexture::CParam::c_Defaults [G::Texture::NPARAMS] = {
-    GL_NEAREST,		// MAG_FILTER
-    GL_NEAREST		// MIN_FILTER
+    GL_LINEAR,		// MAG_FILTER
+    GL_NEAREST_MIPMAP_LINEAR,	// MIN_FILTER
+    1000,		// MAX_LOD
+    -1000,		// MIN_LOD
+    0,			// BASE_LEVEL
+    1000,		// MAX_LEVEL
+    GL_REPEAT,		// WRAP_S
+    GL_REPEAT,		// WRAP_T
+    GL_REPEAT,		// WRAP_R
+    0,			// BORDER_COLOR
+    0,			// PRIORITY
+    G::Texture::COMPARE_MODE_NONE,	// COMPARE_MODE
+    G::Texture::COMPARE_LEQUAL,		// COMPARE_FUNC
+    G::Texture::DEPTH_IS_LUMINANCE,	// DEPTH_TEXTURE_MODE
+    false		// GENERATE_MIPMAP
+};
+
+/*static*/ const uint16_t CTexture::CParam::c_GLCode [G::Texture::NPARAMS] = {
+    GL_TEXTURE_MAG_FILTER,
+    GL_TEXTURE_MIN_FILTER,
+    GL_TEXTURE_MAX_LOD,
+    GL_TEXTURE_MIN_LOD,
+    GL_TEXTURE_BASE_LEVEL,
+    GL_TEXTURE_MAX_LEVEL,
+    GL_TEXTURE_WRAP_S,
+    GL_TEXTURE_WRAP_T,
+    GL_TEXTURE_WRAP_R,
+    GL_TEXTURE_BORDER_COLOR,
+    GL_TEXTURE_PRIORITY,
+    GL_TEXTURE_COMPARE_MODE,
+    GL_TEXTURE_COMPARE_FUNC,
+    GL_DEPTH_TEXTURE_MODE,
+    GL_GENERATE_MIPMAP
 };
 
 //}}}-------------------------------------------------------------------
@@ -120,8 +151,9 @@ void CTexture::Create (const CTexBuf& tbuf, G::Pixel::Fmt storeas, G::TextureTyp
     _info = tbuf.Info();
     _info.type = G::Texture::TypeFromTextureType (ttype);
     glBindTexture (_info.type, Id());
-    glTexParameteri (_info.type, GL_TEXTURE_MAG_FILTER, param.Get (ttype, G::Texture::MAG_FILTER));
-    glTexParameteri (_info.type, GL_TEXTURE_MIN_FILTER, param.Get (ttype, G::Texture::MIN_FILTER));
+    for (auto p = 0u; p < G::Texture::NPARAMS; ++p)
+	if (!param.IsDefault (G::Texture::Parameter(p)))
+	    glTexParameteri (_info.type, param.GLCode(G::Texture::Parameter(p)), param.Get (ttype, G::Texture::Parameter(p)));
     auto pixels = tbuf.Data();
     if (pixels && tbuf.Size() < G::Pixel::TextureSize (_info.fmt, _info.comp, _info.w, _info.h + !_info.h) * (_info.d + !_info.d))
 	XError::emit ("incomplete texture data");

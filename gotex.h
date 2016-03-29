@@ -13,9 +13,12 @@ public:
 	inline		CParam (void)	{ copy_n (c_Defaults, G::Texture::NPARAMS, _p); }
 	inline int	Get (G::TextureType, G::Texture::Parameter p) const	{ assert (p < G::Texture::NPARAMS); return _p[p]; }
 	inline void	Set (G::TextureType, G::Texture::Parameter p, int v)	{ if (p < G::Texture::NPARAMS) _p[p] = v; }
+	inline bool	IsDefault (G::Texture::Parameter p) const		{ assert (p < G::Texture::NPARAMS); return _p[p] == c_Defaults[p]; }
+	inline uint16_t	GLCode (G::Texture::Parameter p) const			{ assert (p < G::Texture::NPARAMS); return c_GLCode[p]; }
     private:
 	int		_p [G::Texture::NPARAMS];
 	static const int c_Defaults [G::Texture::NPARAMS];
+	static const uint16_t c_GLCode [G::Texture::NPARAMS];
     };
     enum {
 	c_MaxWidth = 1u<<14,

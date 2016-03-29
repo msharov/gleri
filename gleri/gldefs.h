@@ -338,6 +338,19 @@ Type TypeFromTextureType (TextureType ttype) noexcept CONST;
 enum Parameter : uint16_t {
     MAG_FILTER,
     MIN_FILTER,
+    MAX_LOD,
+    MIN_LOD,
+    BASE_LEVEL,
+    MAX_LEVEL,
+    WRAP_S,
+    WRAP_T,
+    WRAP_R,
+    BORDER_COLOR,
+    PRIORITY,
+    COMPARE_MODE,
+    COMPARE_FUNC,
+    DEPTH_TEXTURE_MODE,
+    GENERATE_MIPMAP,
     NPARAMS
 };
 enum Filter : uint16_t {
@@ -348,6 +361,33 @@ enum Filter : uint16_t {
     NEAREST_MIPMAP_LINEAR,
     LINEAR_MIPMAP_LINEAR
 };
+enum Clamp : uint16_t {
+    CLAMP = 0x2900,
+    REPEAT,
+    CLAMP_TO_BORDER	= 0x812d,
+    CLAMP_TO_EDGE	= 0x812f,
+    MIRRORED_REPEAT	= 0x8370
+};
+enum CompareMode : uint16_t {
+    COMPARE_MODE_NONE,
+    COMPARE_R_TO_TEXTURE = 0x884e
+};
+enum CompareFunc : uint16_t {
+    COMPARE_NEVER = 0x0200,
+    COMPARE_LESS,
+    COMPARE_EQUAL,
+    COMPARE_LEQUAL,
+    COMPARE_GREATER,
+    COMPARE_NOTEQUAL,
+    COMPARE_GEQUAL,
+    COMPARE_ALWAYS,
+};
+enum DepthMode : uint16_t {
+    DEPTH_IS_LUMINANCE	= 0x1909,
+    DEPTH_IS_ALPHA	= 0x1906,
+    DEPTH_IS_INTENSITY	= 0x8049
+};
+
 struct alignas(8) Info {
     Type	type;
     dim_t	w,h,d;
