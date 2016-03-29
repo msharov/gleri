@@ -18,8 +18,10 @@ CBuffer::CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::B
 : CGObject(ctx, cid, GenId())
 ,_btype(GLenumFromBufferType(btype))
 {
-    glBindBuffer (_btype, Id());
-    glBufferData (_btype, dsz, data, hint);
+    if (dsz) {
+	glBindBuffer (_btype, Id());
+	glBufferData (_btype, dsz, data, hint);
+    }
 }
 
 /*static*/ GLenum CBuffer::GLenumFromBufferType (G::BufferType btype) noexcept

@@ -17,6 +17,10 @@ public:
 	int		_p [G::Texture::NPARAMS];
 	static const int c_Defaults [G::Texture::NPARAMS];
     };
+    enum {
+	c_MaxWidth = 1u<<14,
+	c_MaxHeight = c_MaxWidth
+    };
     using rcti_t	= const G::Texture::Info&;
 public:
 			CTexture (GLXContext ctx, goid_t cid, const GLubyte* p, GLuint psz, G::Pixel::Fmt storeas, G::TextureType ttype, const CParam& param);
@@ -68,7 +72,7 @@ private:
     static void			SavePNG (int fd, const CTexBuf& tbuf);
 #endif
 #if HAVE_JPEGLIB_H
-    static inline CTexBuf	LoadJPG (const GLubyte* p, GLuint psz) noexcept;
+    static inline CTexBuf	LoadJPG (const GLubyte* p, GLuint psz);
     static inline void		SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality);
 #endif
 #if HAVE_GIF_LIB_H

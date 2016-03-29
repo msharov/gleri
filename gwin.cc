@@ -107,8 +107,8 @@ void CGLWindow::Scale (float x, float y) noexcept
     DTRACE ("[%x] Scale %g:%g\n", IId(), x,y);
     _proj[0][0] = 2.f*x/_viewport.w;
     _proj[1][1] = -2.f*y/_viewport.h;				// invert y to 0,0 at top left
-    _proj[2][2] = 1.f;
-    _proj[3][3] = 1.f;
+    _proj[2][2] = 1;
+    _proj[3][3] = 1;
     UniformMatrix ("Transform", Proj());
 }
 
@@ -373,7 +373,10 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
     SetFontShader();
 
     DTRACE ("[%x] Text at %d:%d: '%s'\n", IId(), x,y,s);
-    uint16_t ws [strlen(s)];
+    const auto slen = strlen(s);
+    if (!slen)
+	return;
+    uint16_t ws [slen];
     unsigned nChars = 0;
     for (auto i = utf8in(s); *i; ++i)
 	ws[nChars++] = *i;

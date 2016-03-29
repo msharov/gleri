@@ -207,15 +207,21 @@ void CTexture::Free (void) noexcept
 #include <png.h>
 
 namespace {
+struct PngDataPtr {
+    const GLubyte* p;
+    GLuint sz;
+};
 static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 {
-    auto rbuf = (const GLubyte**) png_get_io_ptr(rs);
-    memcpy (p, *rbuf, n);
-    *rbuf += n;
+    auto rbuf = (PngDataPtr*) png_get_io_ptr(rs);
+    auto btc = min (rbuf->sz, n);
+    memcpy (p, rbuf->p, btc);
+    rbuf->p += btc;
+    rbuf->sz -= btc;
 }
 } // namespace
 
-/*static*/ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint)
+/*static*/ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint sz)
 {
     auto rs = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     png_infop infos = nullptr;
@@ -225,7 +231,8 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 	png_destroy_read_struct (&rs, &infos, nullptr);
 	XError::emit ("invalid png file");
     }
-    png_set_read_fn (rs, &p, png_data_source);
+    PngDataPtr pdp = { p, sz };
+    png_set_read_fn (rs, &pdp, png_data_source);
     png_read_info (rs, infos);
 
     if (png_get_valid (rs, infos, PNG_INFO_tRNS))
@@ -239,13 +246,18 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 	case PNG_COLOR_TYPE_GRAY:	png_set_gray_to_rgb(rs); break;
 	case PNG_COLOR_TYPE_RGB_ALPHA:	png_set_swap_alpha(rs); break;
     }
-    CTexBuf tbuf (G::Pixel::RGBA, G::Pixel::UNSIGNED_BYTE,
-		png_get_image_width (rs, infos),
-		png_get_rowbytes (rs, infos),
-		png_get_image_height (rs, infos));
+    unsigned w = png_get_image_width (rs, infos),
+	    rb = png_get_rowbytes (rs, infos),
+	     h = png_get_image_height (rs, infos);
+    if (!w || !h || w > c_MaxWidth || h > c_MaxHeight || rb > c_MaxWidth) {
+	png_destroy_read_struct (&rs, &infos, nullptr);
+	XError::emit ("invalid png file");
+    }
+    CTexBuf tbuf (G::Pixel::RGBA, G::Pixel::UNSIGNED_BYTE, w, rb, h);
 
     auto idata = tbuf.Data();
-    if (!idata) return tbuf;
+    if (!idata)
+	return tbuf;
     png_byte* rows [tbuf.Info().h];
     for (auto i = 0u; i < tbuf.Info().h; ++i)
 	rows[i] = (png_byte*)(idata+((tbuf.Info().h-1)-i)*tbuf.Info().w);
@@ -258,14 +270,15 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 /*static*/ void CTexture::SavePNG (int fd, const CTexBuf& tbuf)
 {
     auto outfile = fdopen (fd, "wb");
-    if (!outfile) return;
+    if (!outfile)
+	XError::emit ("failed to open output png file");
     auto png_ptr = png_create_write_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     png_infop info_ptr = nullptr;
     if (png_ptr)
 	info_ptr = png_create_info_struct (png_ptr);
     if (setjmp (png_jmpbuf (png_ptr)) || !info_ptr) {
 	png_destroy_write_struct (&png_ptr, &info_ptr);
-	return;
+	XError::emit ("failed to write output png file");
     }
     png_init_io (png_ptr, outfile);
 
@@ -293,7 +306,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 #include <jpeglib.h>
 #include <jerror.h>
 
-/*static*/ CTexture::CTexBuf CTexture::LoadJPG (const GLubyte* p, GLuint psz) noexcept
+/*static*/ CTexture::CTexBuf CTexture::LoadJPG (const GLubyte* p, GLuint psz)
 {
     jpeg_decompress_struct cinfo;
     jpeg_error_mgr jerr;
@@ -303,6 +316,8 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     jpeg_read_header (&cinfo, TRUE);
     jpeg_start_decompress (&cinfo);
     unsigned w = cinfo.output_width, h = cinfo.output_height, s = cinfo.output_components;
+    if (!w || !h || w > c_MaxWidth || h > c_MaxHeight)
+	XError::emit ("invalid jpg file");
     auto linew = Align(w*3,4);	// OpenGL requires line padding to 4 bytes
     CTexBuf imgbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, linew, h);
     auto ppd = (unsigned char*) imgbuf.Data();
@@ -330,7 +345,8 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 /*static*/ void CTexture::SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality)
 {
     auto outfile = fdopen (fd, "wb");
-    if (!outfile) return;
+    if (!outfile)
+	XError::emit ("failed to open output jpg file");
     jpeg_compress_struct cinfo;
     jpeg_error_mgr jerr;
     cinfo.err = jpeg_std_error (&jerr);
@@ -412,7 +428,9 @@ struct GIFFile {
 	    || !gf.p->SColorMap
 	    || gf.p->SColorMap->ColorCount > 256
 	    || !psimg->ImageDesc.Width
-	    || !psimg->ImageDesc.Height)
+	    || !psimg->ImageDesc.Height
+	    || (unsigned) psimg->ImageDesc.Width > (unsigned) c_MaxWidth
+	    || (unsigned) psimg->ImageDesc.Height > (unsigned) c_MaxHeight)
 	XError::emit ("invalid gif file");
 
     // Convert colormap from RGB to RGBA
@@ -427,13 +445,13 @@ struct GIFFile {
 	cmap[uint8_t(gcb.TransparentColor)] = RGBA(0,0,0,0);
 
     // Create the TexBuf
-    auto w = psimg->ImageDesc.Width, h = psimg->ImageDesc.Height;
+    unsigned w = psimg->ImageDesc.Width, h = psimg->ImageDesc.Height;
     CTexBuf imgbuf (G::Pixel::RGBA, G::Pixel::UNSIGNED_BYTE, w, 0, h);
     auto itex = imgbuf.Data();
 
     // Copy pixels, converting from palette index to RGBA
-    for (auto y = 0; y < h; ++y)
-	for (auto x = 0; x < w; ++x)
+    for (auto y = 0u; y < h; ++y)
+	for (auto x = 0u; x < w; ++x)
 	    itex[y*w+x] = cmap[psimg->RasterBits[(h-1-y)*w+x]];	// GIF lines are upside down
 
     return imgbuf;

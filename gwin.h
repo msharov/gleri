@@ -93,6 +93,8 @@ public:
     void			DrawCmdInit (void) noexcept;
     void			DrawArrays (G::Shape mode, GLuint first, GLuint count) noexcept {
 				    DTRACE ("[%x] DrawArrays %s: %u vertices from %u\n", IId(), G::ShapeName(mode), count, first);
+				    if (!count)
+					return;
 				    glDrawArrays (mode,first,count);
 				}
     void			DrawArraysIndirect (G::Shape type, uint32_t offset = 0) noexcept {
@@ -101,6 +103,8 @@ public:
 				}
     void			DrawArraysInstanced (G::Shape type, uint32_t start, uint32_t sz, uint32_t nInstances, uint32_t baseInstance = 0) noexcept {
 				    DTRACE ("[%x] DrawArraysInstanced %s: %u vertices from %u, %u instances, base %u\n", IId(), G::ShapeName(type), sz, start, nInstances, baseInstance);
+				    if (!sz || !nInstances)
+					return;
 				    if (baseInstance)
 					glDrawArraysInstancedBaseInstance (type, start, sz, nInstances, baseInstance);
 				    else
@@ -108,6 +112,8 @@ public:
 				}
     void			DrawElements (G::Shape type, uint16_t n, G::Type itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0) noexcept {
 				    DTRACE ("[%x] DrawElements %s: %u indexes from %u, basevertex %u, type %s\n", IId(), G::ShapeName(type), n, offset, baseVertex, G::TypeName(itype));
+				    if (!n)
+					return;
 				    if (baseVertex)
 					glDrawElementsBaseVertex (type, n, itype, BufferOffset(offset), baseVertex);
 				    else
@@ -119,6 +125,8 @@ public:
 				}
     void			DrawElementsInstanced (G::Shape type, uint16_t n, uint32_t nInstances, G::Type itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0, uint32_t baseInstance = 0) noexcept {
 				    DTRACE ("[%x] DrawElementsInstanced %s: %u indexes from %u, basevertex %u, %u instances, base %u\n", IId(), G::ShapeName(type), n, offset, baseVertex, nInstances, baseInstance);
+				    if (!n || !nInstances)
+					return;
 				    if (baseVertex && baseInstance)
 					glDrawElementsInstancedBaseVertexBaseInstance (type, n, itype, BufferOffset(offset), nInstances, baseVertex, baseInstance);
 				    else if (baseVertex)
@@ -130,6 +138,8 @@ public:
 				}
     void			DrawRangeElements (G::Shape type, uint16_t minel, uint16_t maxel, uint16_t n, G::Type itype = G::UNSIGNED_SHORT, uint32_t offset = 0, uint32_t baseVertex = 0) noexcept {
 				    DTRACE ("[%x] DrawRangeElements %s: %u vertices from %u, basevertex %u, range %hu-%hu, type %s\n", IId(), G::ShapeName(type), n, offset, baseVertex, minel, maxel, G::TypeName(itype));
+				    if (!n)
+					return;
 				    if (baseVertex)
 					glDrawRangeElementsBaseVertex (type, minel, maxel, n, itype, BufferOffset(offset), baseVertex);
 				    else
@@ -137,6 +147,8 @@ public:
 				}
     void			MultiDrawArrays (G::Shape mode, const rangevec_t& r) {
 				    DTRACE ("[%x] MultiDrawArrays %s: %u primitives\n", IId(), G::ShapeName(mode), (unsigned) r.size());
+				    if (r.empty())
+					return;
 				    vector<GLint> first; vector<GLsizei> count;
 				    first.resize (r.size()); count.resize (r.size());
 				    for (auto i = 0u; i < r.size(); ++i) {
@@ -147,10 +159,14 @@ public:
 				}
     void			MultiDrawArraysIndirect (G::Shape type, uint32_t n, uint32_t stride = 0, uint32_t offset = 0) noexcept {
 				    DTRACE ("[%x] MultiDrawArraysIndirect %s: %u primitives, offset %u, stride %u\n", IId(), G::ShapeName(type), n, offset, stride);
+				    if (!n)
+					return;
 				    glMultiDrawArraysIndirect (type, BufferOffset(offset), n, stride);
 				}
     void			MultiDrawElements (G::Shape type, const rangevec_t& r, G::Type itype = G::UNSIGNED_SHORT) noexcept {
 				    DTRACE ("[%x] MultiDrawElements %s: %u primitives of type %s\n", IId(), G::ShapeName(type), (unsigned) r.size(), G::TypeName(itype));
+				    if (r.empty())
+					return;
 				    vector<const GLvoid*> first; vector<GLsizei> count;
 				    first.resize (r.size()); count.resize (r.size());
 				    for (auto i = 0u; i < r.size(); ++i) {
