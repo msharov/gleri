@@ -224,7 +224,7 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
     return br;
 }
 
-/*static*/ void CFile::Error (const char* op)
+void CFile::Error (const char* op) // static
 {
     throw XError ("%s: %s", op, strerror(errno));
 }

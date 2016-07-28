@@ -12,7 +12,7 @@
 static_assert (unsigned(PRGL::EResource::TEXTURE_SAMPLER)-unsigned(PRGL::EResource::_TEXTURE_FIRST) == G::TEXTURE_SAMPLER, "need to sync TextureType and ResourceType");
 
 #define N(n,s)	#n "\0" s "\0"
-/*static*/ const char PRGL::_cmdNames[] =
+const char PRGL::_cmdNames[] =
      N(Auth,"aysuuay")
      N(Open,GLERI_WININFO_SIGNATURE"s")
      N(Close,"")
@@ -28,12 +28,12 @@ static_assert (unsigned(PRGL::EResource::TEXTURE_SAMPLER)-unsigned(PRGL::EResour
 ;
 #undef N
 
-/*static*/ inline const char* PRGL::LookupCmdName (ECmd cmd, size_type& sz) noexcept
+inline const char* PRGL::LookupCmdName (ECmd cmd, size_type& sz) noexcept // static
 {
     return CCmdBuf::LookupCmdName((unsigned)cmd,sz,ArrayBlock(_cmdNames)-1);
 }
 
-/*static*/ PRGL::ECmd PRGL::LookupCmd (const char* name, size_type bleft) noexcept
+PRGL::ECmd PRGL::LookupCmd (const char* name, size_type bleft) noexcept // static
 {
     return ECmd(CCmdBuf::LookupCmd(name,bleft,ArrayBlock(_cmdNames)-1));
 }

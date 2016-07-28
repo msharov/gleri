@@ -168,7 +168,7 @@ inline void CCmdBuf::ProcessMessages (PT& pp)
 //----------------------------------------------------------------------
 
 template <typename... Arg>
-/*static*/ inline void CCmdBuf::Args (bstri& is, Arg&... args)
+inline void CCmdBuf::Args (bstri& is, Arg&... args) // static
 {
     bstrs ss; variadic_arg_size (ss, args...);	// Size of args
     if (is.remaining() < ss.size())		// Have the whole thing?
@@ -177,7 +177,7 @@ template <typename... Arg>
 }
 
 template <typename F>
-/*static*/ inline void CCmdBuf::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
+inline void CCmdBuf::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
 {
     auto cmdis (h.Msgstrm());
     switch (LookupCmd (h.Cmdname(), h.hsz)) {

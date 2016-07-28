@@ -7,7 +7,7 @@
 
 //----------------------------------------------------------------------
 
-/*static*/ const GLushort CShader::Sources::c_ShaderType [shader_NStages] = {
+const GLushort CShader::Sources::c_ShaderType [shader_NStages] = {
     GL_VERTEX_SHADER,
     GL_TESS_CONTROL_SHADER,
     GL_TESS_EVALUATION_SHADER,

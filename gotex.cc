@@ -8,7 +8,7 @@
 
 //{{{ Param ------------------------------------------------------------
 
-/*static*/ const int CTexture::CParam::c_Defaults [G::Texture::NPARAMS] = {
+const int CTexture::CParam::c_Defaults [G::Texture::NPARAMS] = {
     GL_LINEAR,		// MAG_FILTER
     GL_NEAREST_MIPMAP_LINEAR,	// MIN_FILTER
     1000,		// MAX_LOD
@@ -26,7 +26,7 @@
     false		// GENERATE_MIPMAP
 };
 
-/*static*/ const uint16_t CTexture::CParam::c_GLCode [G::Texture::NPARAMS] = {
+const uint16_t CTexture::CParam::c_GLCode [G::Texture::NPARAMS] = {
     GL_TEXTURE_MAG_FILTER,
     GL_TEXTURE_MIN_FILTER,
     GL_TEXTURE_MAX_LOD,
@@ -183,7 +183,7 @@ void CTexture::Free (void) noexcept
     }
 }
 
-/*static*/ inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz)
+inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) // static
 {
     auto& magic = *reinterpret_cast<const uint32_t*>(p);
     if (magic == G::Texture::GLTXHeader::Magic)
@@ -204,7 +204,7 @@ void CTexture::Free (void) noexcept
 	XError::emit ("unrecognized image file format");
 }
 
-/*static*/ void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format fmt, uint8_t quality)
+void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture::Format fmt, uint8_t quality) // static
 {
     CTexBuf tbuf (G::Pixel::RGB, G::Pixel::UNSIGNED_BYTE, w, w*4, h);
     glReadPixels (x, y, w, h, tbuf.Info().fmt, tbuf.Info().comp, tbuf.Data());
@@ -225,7 +225,7 @@ void CTexture::Free (void) noexcept
 //}}}-------------------------------------------------------------------
 //{{{ GLTX format
 
-/*static*/ CTexture::CTexBuf CTexture::LoadGLTX (const GLubyte* p, GLuint psz)
+CTexture::CTexBuf CTexture::LoadGLTX (const GLubyte* p, GLuint psz) // static
 {
     CTexBuf tbuf;
     tbuf.Load (p, psz);
@@ -253,7 +253,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 }
 } // namespace
 
-/*static*/ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint sz)
+CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint sz) // static
 {
     auto rs = png_create_read_struct (PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
     png_infop infos = nullptr;
@@ -299,7 +299,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     return tbuf;
 }
 
-/*static*/ void CTexture::SavePNG (int fd, const CTexBuf& tbuf)
+void CTexture::SavePNG (int fd, const CTexBuf& tbuf) // static
 {
     auto outfile = fdopen (fd, "wb");
     if (!outfile)
@@ -338,7 +338,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 #include <jpeglib.h>
 #include <jerror.h>
 
-/*static*/ CTexture::CTexBuf CTexture::LoadJPG (const GLubyte* p, GLuint psz)
+CTexture::CTexBuf CTexture::LoadJPG (const GLubyte* p, GLuint psz) // static
 {
     jpeg_decompress_struct cinfo;
     jpeg_error_mgr jerr;
@@ -374,7 +374,7 @@ static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
     return imgbuf;
 }
 
-/*static*/ void CTexture::SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality)
+void CTexture::SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality) // static
 {
     auto outfile = fdopen (fd, "wb");
     if (!outfile)
@@ -444,7 +444,7 @@ struct GIFFile {
 
 } // namespace
 
-/*static*/ CTexture::CTexBuf CTexture::LoadGIF (const GLubyte* p, GLuint psz)
+CTexture::CTexBuf CTexture::LoadGIF (const GLubyte* p, GLuint psz) // static
 {
     GIFBuffer gb = { p, int(psz), 0 };
     GIFFile gf;

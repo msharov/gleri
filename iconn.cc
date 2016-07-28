@@ -7,8 +7,8 @@
 #include "gwin.h"
 #include ".o/data/data.h"
 
-/*static*/ const CGLWindow* CIConn::_shwin = nullptr;;
-/*static*/ const CIConn* CIConn::_shconn = nullptr;;
+const CGLWindow* CIConn::_shwin = nullptr;
+const CIConn* CIConn::_shconn = nullptr;
 
 CIConn::CIConn (iid_t iid, int fd, bool fdpass)
 : CCmdBuf(iid,fd,fdpass)
@@ -76,7 +76,7 @@ void CIConn::LoadDefaultResources (CGLWindow* w)
 //----------------------------------------------------------------------
 // Resource loader by enum
 
-/*static*/ void CIConn::ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept
+void CIConn::ShaderUnpack (const GLubyte* s, GLuint ssz, const char* shs[5]) noexcept // static
 {
     bstri shis (s, ssz);
     for (auto i = 0u; i < 5; ++i) {

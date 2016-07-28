@@ -166,7 +166,7 @@ inline bool CFile::Connect (uint32_t addr, uint16_t port)
     return ConnectStream ((const sockaddr*) &sa, sizeof(sa));
 }
 
-/*static*/ unsigned CFile::SystemdFdsAvailable (void) noexcept
+unsigned CFile::SystemdFdsAvailable (void) noexcept // static
 {
     const char* e = getenv("LISTEN_PID");
     if (!e || getpid() != (pid_t) strtoul(e, NULL, 10))

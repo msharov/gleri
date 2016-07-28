@@ -77,7 +77,7 @@ void CGLApp::ConnectToServer (EServerType stype)
     WatchFd (_srvsock.Fd());
 }
 
-/*static*/ int CGLApp::LaunchServer (void)
+int CGLApp::LaunchServer (void) // static
 {
     // Look for the GLERIS executable in PATH
     const char* pathenv = getenv("PATH");

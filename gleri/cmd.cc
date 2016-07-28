@@ -7,7 +7,7 @@
 
 //----------------------------------------------------------------------
 
-/*static*/ inline const char* CCmdBuf::nextname (const char* n, size_type& sz) noexcept
+inline const char* CCmdBuf::nextname (const char* n, size_type& sz) noexcept // static
 {
 #if __x86__
     asm("repnz\tscasb\n\trepnz\tscasb":"+D"(n),"+c"(sz):"a"(0):"memory");
@@ -21,7 +21,7 @@
 #endif
 }
 
-/*static*/ inline bool CCmdBuf::namecmp (const void* s1, const void* s2, size_type n) noexcept
+inline bool CCmdBuf::namecmp (const void* s1, const void* s2, size_type n) noexcept // static
 {
 #if __x86__
     asm("repz\tcmpsb":"+D"(s1),"+S"(s2),"+c"(n));
@@ -31,7 +31,7 @@
 #endif
 }
 
-/*static*/ const char* CCmdBuf::LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept
+const char* CCmdBuf::LookupCmdName (unsigned cmd, size_type& sz, const char* cmdnames, size_type cleft) noexcept // static
 {
     unsigned ci = InvalidCmd+1;
     for (const char *ns, *s = cmdnames; cleft; ++ci, s = ns) {
@@ -46,7 +46,7 @@
     exit (EXIT_FAILURE);
 }
 
-/*static*/ unsigned CCmdBuf::LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept
+unsigned CCmdBuf::LookupCmd (const char* name, size_type bleft, const char* cmdnames, size_type cleft) noexcept // static
 {
     unsigned ci = InvalidCmd+1, namesz = nextname(name,bleft)-name;
     for (const char* s = cmdnames; cleft; ++ci) {
@@ -147,19 +147,19 @@ void CCmdBuf::SendFile (CFile& f, uint32_t fsz)
 // COM object interface
 
 #define N(n,s)	#n "\0" #s "\0"
-/*static*/ const char CCmdBuf::_cmdNames[] =
+const char CCmdBuf::_cmdNames[] =
      N(Error,s)
      N(Export,s)
      N(Delete,)
 ;
 #undef N
 
-/*static*/ inline const char* CCmdBuf::LookupCmdName (ECmd cmd, size_type& sz) noexcept
+inline const char* CCmdBuf::LookupCmdName (ECmd cmd, size_type& sz) noexcept // static
 {
     return CCmdBuf::LookupCmdName((unsigned)cmd,sz,ArrayBlock(_cmdNames)-1);
 }
 
-/*static*/ CCmdBuf::ECmd CCmdBuf::LookupCmd (const char* name, size_type bleft) noexcept
+CCmdBuf::ECmd CCmdBuf::LookupCmd (const char* name, size_type bleft) noexcept // static
 {
     return ECmd(CCmdBuf::LookupCmd(name,bleft,ArrayBlock(_cmdNames)-1));
 }

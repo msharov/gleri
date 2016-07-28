@@ -24,7 +24,7 @@ CBuffer::CBuffer (GLXContext ctx, goid_t cid, const void* data, GLuint dsz, G::B
     }
 }
 
-/*static*/ GLenum CBuffer::GLenumFromBufferType (G::BufferType btype) noexcept
+GLenum CBuffer::GLenumFromBufferType (G::BufferType btype) noexcept // static
 {
     static const GLenum c_BufferTypeEnum[] = {
 	GL_ARRAY_BUFFER,
@@ -112,7 +112,7 @@ const GLubyte* CDatapak::File (const char* filename, GLuint& sz) const noexcept
 
 //----------------------------------------------------------------------
 
-/*static*/ unique_c_ptr<GLubyte> CDatapak::DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz)
+unique_c_ptr<GLubyte> CDatapak::DecompressBlock (const GLubyte* p, unsigned isz, unsigned& osz) // static
 {
     z_stream zs;
     memset (&zs, 0, sizeof(zs));

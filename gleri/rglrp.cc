@@ -6,7 +6,7 @@
 #include "rglrp.h"
 
 #define N(n,s)	#n "\0" s "\0"
-/*static*/ const char PRGLR::_cmdNames[] =
+const char PRGLR::_cmdNames[] =
      "\0"				// Dirty trick: object name is 4 bytes, but must be zero terminated, so there must be a null char here. This dirty trick continues below and is the reason for all the +1 and -1s.
      N(Restate,GLERI_WININFO_SIGNATURE)
      N(Expose,"")
@@ -17,12 +17,12 @@
 ;
 #undef N
 
-/*static*/ inline const char* PRGLR::LookupCmdName (ECmd cmd, size_type& sz) noexcept
+inline const char* PRGLR::LookupCmdName (ECmd cmd, size_type& sz) noexcept // static
 {
     return CCmdBuf::LookupCmdName((unsigned)cmd,sz,_cmdNames+1,sizeof(_cmdNames)-2);
 }
 
-/*static*/ PRGLR::ECmd PRGLR::LookupCmd (const char* name, size_type bleft) noexcept
+PRGLR::ECmd PRGLR::LookupCmd (const char* name, size_type bleft) noexcept // static
 {
     return ECmd(CCmdBuf::LookupCmd(name+1,bleft,_cmdNames+1,sizeof(_cmdNames)-2));
 }

@@ -10,8 +10,8 @@
 
 //----------------------------------------------------------------------
 
-/*static*/ char* CGleris::_xlib_error = nullptr;
-/*static*/ char CGleris::s_SocketPath [c_SocketPathLen];
+char* CGleris::_xlib_error = nullptr;
+char CGleris::s_SocketPath [c_SocketPathLen];
 
 //----------------------------------------------------------------------
 
@@ -178,7 +178,7 @@ void CGleris::OnExport (const char*, int fd)
 //----------------------------------------------------------------------
 // X and OpenGL interface
 
-/*static*/ int CGleris::XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept
+int CGleris::XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept // static
 {
     char errortext [256];
     XGetErrorText (dpy, ee->error_code, ArrayBlock(errortext));
@@ -187,7 +187,7 @@ void CGleris::OnExport (const char*, int fd)
     return 0;
 }
 
-/*static*/ int CGleris::XlibIOErrorHandler (Display*) noexcept
+int CGleris::XlibIOErrorHandler (Display*) noexcept // static
 {
     syslog (LOG_ERR, "X server connection terminated");
     Instance().OnXlibIOError();
@@ -434,7 +434,7 @@ Cursor CGleris::LoadCursor (G::Cursor c) noexcept
     return _cursor[uc];
 }
 
-/*static*/ void CGleris::DTRACE_EventType (const XEvent& e) noexcept
+void CGleris::DTRACE_EventType (const XEvent& e) noexcept // static
 {
 #ifndef NDEBUG
     //{{{ c_EventNames
@@ -582,7 +582,7 @@ void CGleris::OnXEvent (void)
     }
 }
 
-/*static*/ CGleris::key_t CGleris::ModsFromXState (uint32_t state) noexcept
+CGleris::key_t CGleris::ModsFromXState (uint32_t state) noexcept // static
 {
     static const uint8_t c_Modmap[] = {
 	ShiftMapIndex,	KMod::ShiftShift,
@@ -600,7 +600,7 @@ void CGleris::OnXEvent (void)
     return mods;
 }
 
-/*static*/ inline CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept
+inline CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept // static
 {
     // Lookup keysym and char equivalent
     KeySym ksym;
@@ -649,14 +649,14 @@ void CGleris::OnXEvent (void)
     return CEvent (xev.type == KeyRelease ? CEvent::KeyUp : CEvent::KeyDown, ekey, xev.x, xev.y);
 }
 
-/*static*/ inline CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept
+inline CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept // static
 {
     return CEvent (xev.type == ButtonRelease ? CEvent::ButtonUp : CEvent::ButtonDown,
 		    xev.button| (ModsFromXState(xev.state) & (KMod::Shift| KMod::Ctrl| KMod::Alt)),
 		    xev.x, xev.y);
 }
 
-/*static*/ inline CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept
+inline CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept // static
 {
     return CEvent (CEvent::Motion, ModsFromXState(xev.state), xev.x, xev.y);
 }

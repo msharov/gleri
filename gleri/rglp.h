@@ -292,7 +292,7 @@ inline void PRGL::FreeShader (goid_t id)
 //{{{ The read parser
 
 template <typename F>
-/*static*/ inline void PRGL::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
+inline void PRGL::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
 {
     auto cmdis (h.Msgstrm());
     auto clir = f.ClientRecord(cmdbuf.Fd(), h.iid);

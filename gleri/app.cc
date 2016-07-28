@@ -58,17 +58,17 @@ void hexdump (const void* pv, size_t n) noexcept
 
 //}}}-------------------------------------------------------------------
 
-/*static*/ CApp* CApp::gs_pApp = nullptr;
-/*static*/ int CApp::s_LastSignal = 0;
+CApp* CApp::gs_pApp = nullptr;
+int CApp::s_LastSignal = 0;
 
-/*static*/ void CApp::TerminateHandler (void) noexcept
+void CApp::TerminateHandler (void) noexcept // static
 {
     alarm (1);
     syslog (LOG_ERR, "exiting on unexpected fatal error\n");
     exit (EXIT_FAILURE);
 }
 
-/*static*/ void CApp::SignalHandler (int sig) noexcept
+void CApp::SignalHandler (int sig) noexcept // static
 {
     alarm (1);
     s_LastSignal = sig;
@@ -89,7 +89,7 @@ void hexdump (const void* pv, size_t n) noexcept
     _exit (qc_ShellSignalQuitOffset+sig);
 }
 
-/*static*/ int CApp::AckSignal (void) noexcept
+int CApp::AckSignal (void) noexcept // static
 {
     int r = 0;
     #if __x86__
@@ -101,7 +101,7 @@ void hexdump (const void* pv, size_t n) noexcept
     return r;
 }
 
-/*static*/ uint64_t CApp::NowMS (void) noexcept
+uint64_t CApp::NowMS (void) noexcept // static
 {
     timeval tv;
     gettimeofday (&tv, NULL);

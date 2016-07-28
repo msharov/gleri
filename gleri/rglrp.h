@@ -92,7 +92,7 @@ inline void PRGLR::ResourceInfo (goid_t id, uint16_t type, const RInfo& ri)
 //{{{ Read parser
 
 template <typename F>
-/*static*/ inline void PRGLR::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf)
+inline void PRGLR::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
 {
     auto cmdis (h.Msgstrm());
     auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);
