@@ -419,13 +419,13 @@ void CGLWindow::Text (coord_t x, coord_t y, const char* s)
 //}}}-------------------------------------------------------------------
 //{{{ Queries
 
-inline void CGLWindow::PostQuery (GLuint q)
+void CGLWindow::PostQuery (GLuint q)
 {
     glQueryCounter (q, GL_TIMESTAMP);
     QueryResultAvailable (q);
 }
 
-inline bool CGLWindow::QueryResultAvailable (GLuint q) const
+bool CGLWindow::QueryResultAvailable (GLuint q) const
 {
     GLint haveQuery;
     glGetQueryObjectiv (q, GL_QUERY_RESULT_AVAILABLE, &haveQuery);

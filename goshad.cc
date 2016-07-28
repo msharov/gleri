@@ -23,7 +23,7 @@ CShader::~CShader (void) noexcept
 	glDeleteProgram (Id());
 }
 
-inline void CShader::Sources::ShaderSource (GLuint id, GLuint idx) const noexcept
+void CShader::Sources::ShaderSource (GLuint id, GLuint idx) const noexcept
 {
     glShaderSource (id, 1, const_cast<const char**>(&_stage[idx]), &_stageSize[idx]);
 }

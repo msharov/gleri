@@ -126,7 +126,7 @@ private:
 
 //----------------------------------------------------------------------
 
-inline bstrs& bstrs::operator<< (const char* s)
+bstrs& bstrs::operator<< (const char* s)
 {
     auto n = wrstrlen(s);
     if (n) ++n;
@@ -134,7 +134,7 @@ inline bstrs& bstrs::operator<< (const char* s)
     return *this;
 }
 
-inline bstro& bstro::operator<< (const char* s)
+bstro& bstro::operator<< (const char* s)
 {
     size_type n = wrstrlen(s);
     if (n) ++n;
@@ -144,7 +144,7 @@ inline bstro& bstro::operator<< (const char* s)
     return *this;
 }
 
-inline bstri& bstri::operator>> (const char*& s)
+bstri& bstri::operator>> (const char*& s)
 {
     size_type n;
     iread (n);

@@ -103,36 +103,36 @@ private:
 
 //----------------------------------------------------------------------
 
-inline void CFile::Open (const char* filename, int flags, mode_t mode)
+void CFile::Open (const char* filename, int flags, mode_t mode)
 {
     if (0 > (_fd = open (filename, flags, mode)))
 	Error (filename);
 }
 
-inline CFile::CFile (const char* filename, int flags, mode_t mode)
+CFile::CFile (const char* filename, int flags, mode_t mode)
 {
     Open (filename, flags, mode);
 }
 
-inline void CFile::WaitForRead (void) const noexcept
+void CFile::WaitForRead (void) const noexcept
 {
     pollfd pfd = { _fd, POLLIN, 0 };
     poll (&pfd, 1, -1);
 }
 
-inline void CFile::WaitForWrite (void) const noexcept
+void CFile::WaitForWrite (void) const noexcept
 {
     pollfd pfd = { _fd, POLLOUT, 0 };
     poll (&pfd, 1, -1);
 }
 
-inline void CFile::CreateSocket (int domain)
+void CFile::CreateSocket (int domain)
 {
     if (0 > (_fd = socket (domain, SOCK_STREAM| SOCK_NONBLOCK| SOCK_CLOEXEC, IPPROTO_IP)))
 	Error ("socket");
 }
 
-inline void CFile::Bind (const char* sockpath, unsigned backlog)
+void CFile::Bind (const char* sockpath, unsigned backlog)
 {
     sockaddr_un sa;
     sa.sun_family = PF_LOCAL;
@@ -140,7 +140,7 @@ inline void CFile::Bind (const char* sockpath, unsigned backlog)
     BindStream ((const sockaddr*) &sa, sizeof(sa), backlog);
 }
 
-inline void CFile::Bind (uint32_t addr, uint16_t port, unsigned backlog)
+void CFile::Bind (uint32_t addr, uint16_t port, unsigned backlog)
 {
     sockaddr_in sa;
     sa.sin_family = PF_INET;
@@ -149,7 +149,7 @@ inline void CFile::Bind (uint32_t addr, uint16_t port, unsigned backlog)
     BindStream ((const sockaddr*) &sa, sizeof(sa), backlog);
 }
 
-inline bool CFile::Connect (const char* sockpath)
+bool CFile::Connect (const char* sockpath)
 {
     sockaddr_un sa;
     sa.sun_family = PF_LOCAL;
@@ -157,7 +157,7 @@ inline bool CFile::Connect (const char* sockpath)
     return ConnectStream ((const sockaddr*) &sa, sizeof(sa));
 }
 
-inline bool CFile::Connect (uint32_t addr, uint16_t port)
+bool CFile::Connect (uint32_t addr, uint16_t port)
 {
     sockaddr_in sa;
     sa.sin_family = PF_INET;

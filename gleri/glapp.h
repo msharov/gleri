@@ -52,7 +52,7 @@ private:
 
 //----------------------------------------------------------------------
 
-inline CGLApp::CGLApp (void)
+CGLApp::CGLApp (void)
 : CApp()
 ,_wins()
 ,_srvbuf(0)
@@ -62,11 +62,11 @@ inline CGLApp::CGLApp (void)
 }
 
 // Here because CApp is needed
-inline void CWindow::WaitForTime (uint64_t tms) const
+void CWindow::WaitForTime (uint64_t tms) const
 {
     CApp::Instance().WaitForTime (tms);
 }
-inline uint64_t CWindow::NowMS (void) const noexcept
+uint64_t CWindow::NowMS (void) const noexcept
 {
     return CApp::NowMS();
 }

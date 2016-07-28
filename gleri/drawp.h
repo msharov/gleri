@@ -159,7 +159,7 @@ private:
 
 template <typename Stm>
 template <typename... Arg>
-inline void PDraw<Stm>::Cmd (ECmd cmd, const Arg&... args)
+void PDraw<Stm>::Cmd (ECmd cmd, const Arg&... args)
 {
     bstrs ss;
     variadic_arg_size (ss, args...);
@@ -172,7 +172,7 @@ inline void PDraw<Stm>::Cmd (ECmd cmd, const Arg&... args)
 
 template <typename Stm>
 template <typename... Arg>
-inline void PDraw<Stm>::Args (Stm& is, Arg&... args) // static
+void PDraw<Stm>::Args (Stm& is, Arg&... args) // static
 {
     bstrs ss; variadic_arg_size (ss, args...);	// Size of args
     uint16_t sz; is >> sz;			// Written size
@@ -187,7 +187,7 @@ inline void PDraw<Stm>::Args (Stm& is, Arg&... args) // static
 
 template <typename Stm>
 template <typename F>
-inline void PDraw<Stm>::Parse (F& f, Stm& is) // static
+void PDraw<Stm>::Parse (F& f, Stm& is) // static
 {
     while (is.remaining() >= sizeof(ECmd)) {
 	ECmd cmd; is >> cmd;

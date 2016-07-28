@@ -394,7 +394,7 @@ void CImageViewer::OnKey (key_t key)
 }
 
 // OnKey for ImageView
-inline void CImageViewer::OnImageViewKey (key_t key)
+void CImageViewer::OnImageViewKey (key_t key)
 {
     if (key == Key::Left)			// Scrolling
 	_ix += c_ScrollStep;
@@ -441,7 +441,7 @@ inline void CImageViewer::OnImageViewKey (key_t key)
 }
 
 // OnKey for FolderView
-inline void CImageViewer::OnFolderViewKey (key_t key)
+void CImageViewer::OnFolderViewKey (key_t key)
 {
     const unsigned linew = Info().w/c_EntryWidth,	// Compute how many entries can fit
 		lineh = Info().h/c_EntryHeight,		// on a single page in this window

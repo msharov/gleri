@@ -135,7 +135,7 @@ private:
 //----------------------------------------------------------------------
 
 template <typename... Arg>
-inline void CCmdBuf::Cmd (ECmd cmd, const Arg&... args)
+void CCmdBuf::Cmd (ECmd cmd, const Arg&... args)
 {
     bstrs ss;
     variadic_arg_size (ss, args...);
@@ -144,7 +144,7 @@ inline void CCmdBuf::Cmd (ECmd cmd, const Arg&... args)
 }
 
 template <typename OT, typename PT>
-inline void CCmdBuf::ProcessMessages (PT& pp)
+void CCmdBuf::ProcessMessages (PT& pp)
 {
     auto is = BeginRead();
     while (is.remaining() >sizeof(SMsgHeader)) {// While have commands
@@ -168,7 +168,7 @@ inline void CCmdBuf::ProcessMessages (PT& pp)
 //----------------------------------------------------------------------
 
 template <typename... Arg>
-inline void CCmdBuf::Args (bstri& is, Arg&... args) // static
+void CCmdBuf::Args (bstri& is, Arg&... args) // static
 {
     bstrs ss; variadic_arg_size (ss, args...);	// Size of args
     if (is.remaining() < ss.size())		// Have the whole thing?
@@ -177,7 +177,7 @@ inline void CCmdBuf::Args (bstri& is, Arg&... args) // static
 }
 
 template <typename F>
-inline void CCmdBuf::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
+void CCmdBuf::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
 {
     auto cmdis (h.Msgstrm());
     switch (LookupCmd (h.Cmdname(), h.hsz)) {

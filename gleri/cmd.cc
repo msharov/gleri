@@ -7,7 +7,7 @@
 
 //----------------------------------------------------------------------
 
-inline const char* CCmdBuf::nextname (const char* n, size_type& sz) noexcept // static
+const char* CCmdBuf::nextname (const char* n, size_type& sz) noexcept // static
 {
 #if __x86__
     asm("repnz\tscasb\n\trepnz\tscasb":"+D"(n),"+c"(sz):"a"(0):"memory");
@@ -21,7 +21,7 @@ inline const char* CCmdBuf::nextname (const char* n, size_type& sz) noexcept // 
 #endif
 }
 
-inline bool CCmdBuf::namecmp (const void* s1, const void* s2, size_type n) noexcept // static
+bool CCmdBuf::namecmp (const void* s1, const void* s2, size_type n) noexcept // static
 {
 #if __x86__
     asm("repz\tcmpsb":"+D"(s1),"+S"(s2),"+c"(n));
@@ -58,7 +58,7 @@ unsigned CCmdBuf::LookupCmd (const char* name, size_type bleft, const char* cmdn
     return InvalidCmd;
 }
 
-inline CCmdBuf::size_type CCmdBuf::nextcapacity (size_type v) const noexcept
+CCmdBuf::size_type CCmdBuf::nextcapacity (size_type v) const noexcept
 {
 #if __x86__
     asm("bsr\t%0, %0":"+r"(v));
@@ -70,7 +70,7 @@ inline CCmdBuf::size_type CCmdBuf::nextcapacity (size_type v) const noexcept
 #endif
 }
 
-inline CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
+CCmdBuf::pointer CCmdBuf::addspace (size_type need) noexcept
 {
     need += size();
     if (_sz < need) {
@@ -154,7 +154,7 @@ const char CCmdBuf::_cmdNames[] =
 ;
 #undef N
 
-inline const char* CCmdBuf::LookupCmdName (ECmd cmd, size_type& sz) noexcept // static
+const char* CCmdBuf::LookupCmdName (ECmd cmd, size_type& sz) noexcept // static
 {
     return CCmdBuf::LookupCmdName((unsigned)cmd,sz,ArrayBlock(_cmdNames)-1);
 }

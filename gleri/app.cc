@@ -129,7 +129,7 @@ void CApp::WaitForTime (uint64_t tms)
 	_timer.emplace (i, tms);
 }
 
-inline bool CApp::CheckForQuitSignal (void) const
+bool CApp::CheckForQuitSignal (void) const
 {
     auto sig = AckSignal();
     if (sig == SIGCHLD)
@@ -137,7 +137,7 @@ inline bool CApp::CheckForQuitSignal (void) const
     return SigInSet(sig,sigset_Quit);
 }
 
-inline void CApp::WaitForFdsAndTimers (void)
+void CApp::WaitForFdsAndTimers (void)
 {
     auto timeToWait = _timer.back();
     auto now = NowMS();

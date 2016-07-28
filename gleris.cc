@@ -600,7 +600,7 @@ CGleris::key_t CGleris::ModsFromXState (uint32_t state) noexcept // static
     return mods;
 }
 
-inline CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept // static
+CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept // static
 {
     // Lookup keysym and char equivalent
     KeySym ksym;
@@ -649,14 +649,14 @@ inline CEvent CGleris::EventFromXKey (const XKeyEvent& xev) noexcept // static
     return CEvent (xev.type == KeyRelease ? CEvent::KeyUp : CEvent::KeyDown, ekey, xev.x, xev.y);
 }
 
-inline CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept // static
+CEvent CGleris::EventFromButton (const XButtonEvent& xev) noexcept // static
 {
     return CEvent (xev.type == ButtonRelease ? CEvent::ButtonUp : CEvent::ButtonDown,
 		    xev.button| (ModsFromXState(xev.state) & (KMod::Shift| KMod::Ctrl| KMod::Alt)),
 		    xev.x, xev.y);
 }
 
-inline CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept // static
+CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept // static
 {
     return CEvent (CEvent::Motion, ModsFromXState(xev.state), xev.x, xev.y);
 }
@@ -858,7 +858,7 @@ Window CGleris::CreateWindow (const WinInfo& winfo, Window parentWid)
     return win;
 }
 
-inline void CGleris::ActivateClient (CGLWindow& rcli) noexcept
+void CGleris::ActivateClient (CGLWindow& rcli) noexcept
 {
     if (_curCli == &rcli)
 	return;

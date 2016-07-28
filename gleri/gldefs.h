@@ -668,7 +668,7 @@ private:
 };
 
 template <typename... T>
-inline XError::XError (const char* fmt, T... args) noexcept
+XError::XError (const char* fmt, T... args) noexcept
     { asprintf (&_msg, fmt, args...); }
 
 //}}}-------------------------------------------------------------------

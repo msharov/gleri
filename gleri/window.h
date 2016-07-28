@@ -77,7 +77,7 @@ private:
 
 //----------------------------------------------------------------------
 
-inline CWindow::CWindow (iid_t wid) noexcept
+CWindow::CWindow (iid_t wid) noexcept
 : PRGL(wid)
 ,_vsync()
 ,_nextVSync (NotWaitingForVSync)
@@ -90,7 +90,7 @@ inline CWindow::CWindow (iid_t wid) noexcept
 }
 
 template <typename W>
-inline void CWindow::DrawT (const W& w)
+void CWindow::DrawT (const W& w)
 {
     if (WaitingForVSync())
 	return;
@@ -100,14 +100,14 @@ inline void CWindow::DrawT (const W& w)
     w.OnDraw (drww);
 }
 
-inline void CWindow::OnSaveFramebufferData (goid_t id, const char* filename, const SDataBlock& d)
+void CWindow::OnSaveFramebufferData (goid_t id, const char* filename, const SDataBlock& d)
 {
     CFile f (filename, O_WRONLY| O_CREAT| O_TRUNC| O_CLOEXEC, 0600);
     f.Write (d._p, d._sz);
     OnSaveFramebuffer (id, f);
 }
 
-inline void CWindow::OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d)
+void CWindow::OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d)
 {
     bstri is (bstri::const_pointer(d._p), d._sz);
     auto rtype = EResource(type);

@@ -183,7 +183,7 @@ void CTexture::Free (void) noexcept
     }
 }
 
-inline CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) // static
+CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) // static
 {
     auto& magic = *reinterpret_cast<const uint32_t*>(p);
     if (magic == G::Texture::GLTXHeader::Magic)

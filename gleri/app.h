@@ -58,7 +58,7 @@ private:
 
 //{{{ CApp implementation ----------------------------------------------
 
-inline CApp::CApp (void)
+CApp::CApp (void)
 :_watch()
 ,_timer(1,NoTimer)
 ,_quitting(false)

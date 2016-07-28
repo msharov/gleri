@@ -63,7 +63,7 @@ private:
 //{{{ Inline bodies ----------------------------------------------------
 
 template <typename... Arg>
-inline void PRGLR::Cmd (ECmd cmd, const Arg&... args)
+void PRGLR::Cmd (ECmd cmd, const Arg&... args)
 {
     bstrs ss;
     variadic_arg_size (ss, args...);
@@ -72,7 +72,7 @@ inline void PRGLR::Cmd (ECmd cmd, const Arg&... args)
 }
 
 template <typename... Arg>
-inline void PRGLR::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
+void PRGLR::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
 {
     bstrs ss;
     variadic_arg_size (ss, args...);
@@ -81,7 +81,7 @@ inline void PRGLR::CmdU (ECmd cmd, size_type unwritten, const Arg&... args)
 }
 
 template <typename RInfo>
-inline void PRGLR::ResourceInfo (goid_t id, uint16_t type, const RInfo& ri)
+void PRGLR::ResourceInfo (goid_t id, uint16_t type, const RInfo& ri)
 {
     bstrs ss;
     ss << ri;
@@ -92,7 +92,7 @@ inline void PRGLR::ResourceInfo (goid_t id, uint16_t type, const RInfo& ri)
 //{{{ Read parser
 
 template <typename F>
-inline void PRGLR::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
+void PRGLR::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
 {
     auto cmdis (h.Msgstrm());
     auto clir = f.ClientRecord (cmdbuf.Fd(), h.iid);

@@ -17,7 +17,7 @@ const char PRGLR::_cmdNames[] =
 ;
 #undef N
 
-inline const char* PRGLR::LookupCmdName (ECmd cmd, size_type& sz) noexcept // static
+const char* PRGLR::LookupCmdName (ECmd cmd, size_type& sz) noexcept // static
 {
     return CCmdBuf::LookupCmdName((unsigned)cmd,sz,_cmdNames+1,sizeof(_cmdNames)-2);
 }
