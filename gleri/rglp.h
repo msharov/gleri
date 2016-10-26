@@ -35,6 +35,8 @@ private:
 	BufferSubData,
 	TexParameter,
 	SetCursor,
+	GetClipboard,
+	SetClipboard,
 	NCmds,
     };
     //{{{ Serialization helper objects: SShader, SArgv
@@ -152,6 +154,8 @@ public:
     inline void			TexParameter (G::TextureType t, G::Texture::Parameter p, int v)	{ Cmd(ECmd::TexParameter,t,p,v); }
     inline void			TexParameter (G::Texture::Parameter p, int v)			{ TexParameter (G::TEXTURE_2D,p,v); }
     inline void			SetCursor (G::Cursor c)						{ Cmd(ECmd::SetCursor,c); }
+    inline void			GetClipboard (G::Clipboard c = G::Clipboard::PRIMARY, G::ClipboardFmt fmt = G::ClipboardFmt::UTF8_STRING);
+    inline void			SetClipboard (const char* v, G::Clipboard c = G::Clipboard::PRIMARY, G::ClipboardFmt fmt = G::ClipboardFmt::UTF8_STRING) __attribute__((nonnull));
     inline goid_t		CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na);
     inline goid_t		CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc);
     inline goid_t		CreateFramebuffer (goid_t depthbuffer, goid_t colorbuffer);
@@ -249,6 +253,10 @@ PRGL::goid_t PRGL::LoadTexture (goid_t pak, G::TextureType tt, const char* f, G:
 void PRGL::FreeTexture (goid_t id)
     { FreeResource (id, EResource::TEXTURE_2D); }
 
+void PRGL::GetClipboard (G::Clipboard c, G::ClipboardFmt fmt)
+    { Cmd(ECmd::GetClipboard,c,fmt); }
+void PRGL::SetClipboard (const char* v, G::Clipboard c, G::ClipboardFmt fmt)
+    { Cmd(ECmd::SetClipboard,c,1u,fmt,v); }
 PRGL::goid_t PRGL::CreateFramebuffer (const G::FramebufferComponent* pa, unsigned na)
     { return LoadData (EResource::FRAMEBUFFER, pa, na*sizeof(G::FramebufferComponent), 0); }
 PRGL::goid_t PRGL::CreateFramebuffer (std::initializer_list<G::FramebufferComponent> fbc)
@@ -372,6 +380,16 @@ void PRGL::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
 	    G::Cursor c;
 	    Args (cmdis, c);
 	    f.SetClientCursor (*clir, c);
+	    } break;
+	case ECmd::GetClipboard: {
+	    G::Clipboard ci; G::ClipboardFmt fmt;
+	    Args (cmdis, ci, fmt);
+	    f.ClientGetClipboard (*clir, ci, fmt);
+	    } break;
+	case ECmd::SetClipboard: {
+	    G::Clipboard ci; G::ClipboardFmt fmt; const char* d; uint32_t nfmts = 0;
+	    Args (cmdis, ci, nfmts, fmt, d);
+	    f.ClientSetClipboard (*clir, ci, fmt, d);
 	    } break;
 	default:
 	    XError::emit ("invalid protocol command");

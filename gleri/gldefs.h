@@ -559,6 +559,19 @@ public:
 };
 
 //}}}-------------------------------------------------------------------
+//{{{ Clipboard
+
+enum class Clipboard : uint32_t {
+    PRIMARY,
+    SECONDARY,
+    CLIPBOARD
+};
+
+enum class ClipboardFmt : uint32_t {
+    UTF8_STRING
+};
+
+//}}}-------------------------------------------------------------------
 //{{{ WinInfo
 
 class alignas(4) WinInfo {

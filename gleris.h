@@ -31,11 +31,16 @@ private:
     using SDataBlock	= CCmd::SDataBlock;
     using key_t		= CEvent::key_t;
     //{{{ EAtom
+
     enum EAtom : unsigned {
 	a_ATOM,
 	a_STRING,
 	a_CARDINAL,
 	a_UTF8_STRING,
+	a_PRIMARY,
+	a_SECONDARY,
+	a_CLIPBOARD,
+	a_TARGETS,
 	a_WM_CLIENT_MACHINE,
 	a_WM_COMMAND,
 	a_WM_PROTOCOLS,
@@ -86,6 +91,26 @@ private:
 	_NET_WM_STATE_SOURCE_USER
     };
     //}}}
+    //{{{ CClipboard
+
+    class CClipboard {
+    public:
+	enum { MAX_SIZE = 16000000 };
+    public:
+			CClipboard (void)	:_w(None),_fmt(G::ClipboardFmt::UTF8_STRING),_data() {}
+	Window		Owner (void) const	{ return _w; }
+	void		SetOwner (Window w)	{ _w = w; }
+	G::ClipboardFmt	Format (void) const	{ return _fmt; }
+	const string&	Data (void) const	{ return _data; }
+	void		Clear (void)		{ _w = None; _data.deallocate(); }
+	void		Set (Window w, const string& d, G::ClipboardFmt fmt = G::ClipboardFmt::UTF8_STRING)
+			    { _w = w; _fmt = fmt; _data = d; }
+    private:
+	Window		_w;
+	G::ClipboardFmt	_fmt;
+	string		_data;
+    };
+    //}}}
 public:
 			// Client id translation
     CGLWindow*		ClientRecord (int fd, iid_t iid) noexcept;
@@ -97,6 +122,8 @@ public:
     void		ClientDraw (CGLWindow& cli, G::goid_t fbid, bstri cmdis);
     void		ClientEvent (const CGLWindow& cli, const CEvent& e);
     void		SetClientCursor (const CGLWindow& cli, G::Cursor c)	{ XDefineCursor (_dpy, cli.Drawable(), LoadCursor(c)); }
+    void		ClientGetClipboard (CGLWindow& cli, G::Clipboard ci, G::ClipboardFmt fmt);
+    void		ClientSetClipboard (CGLWindow& cli, G::Clipboard ci, G::ClipboardFmt fmt, const char* data);
     void		ForwardError (const CCmd::SMsgHeader& h, const XError& e, int fd) noexcept;
     void		OnExport (const char*, int fd);
     inline void		OnNoClient (const CCmd::SMsgHeader& h) const	{ throw XError ("command %s targets nonexistent window\n", h.Cmdname()); }
@@ -119,6 +146,11 @@ private:
    static inline CEvent	EventFromXKey (const XKeyEvent& xev) noexcept;
    static inline CEvent	EventFromButton (const XButtonEvent& xev) noexcept;
    static inline CEvent	EventFromMotion (const XMotionEvent& xev) noexcept;
+    unsigned		ClipboardIndexFromAtom (Atom cia) const noexcept;
+    G::ClipboardFmt	ClipboardFmtFromAtom (Atom fmta) const noexcept;
+    void		ProcessSelectionRequest (CGLWindow& cli, const XSelectionRequestEvent& e);
+    void		ProcessSelectionClear (CGLWindow& cli, const XSelectionClearEvent& e);
+    void		ProcessSelectionNotify (CGLWindow& cli, const XSelectionEvent& e);
     virtual void	OnFd (int fd) override;
     virtual void	OnFdError (int fd) override;
     virtual void	OnTimer (uint64_t tms) override;
@@ -143,6 +175,7 @@ private:
     XVisualInfo*	_visinfo [G::WinInfo::MSAA_MAX+1];
     Colormap		_colormap [G::WinInfo::MSAA_MAX+1];
     Cursor		_cursor [unsigned(G::Cursor::hidden)+1];
+    CClipboard		_clipboard [unsigned(G::Clipboard::CLIPBOARD)+1];
     char		_xauth [XAUTH_DATA_LEN];
     static char*	_xlib_error;
     static char		s_SocketPath [c_SocketPathLen];

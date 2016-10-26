@@ -25,6 +25,8 @@ const char PRGL::_cmdNames[] =
      N(BufferSubData,"uuay")
      N(TexParameter,"qqi")
      N(Cursor,"y")
+     N(GetClipboard,"uu")
+     N(SetClipboard,"ua(us)")
 ;
 #undef N
 

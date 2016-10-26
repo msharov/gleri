@@ -14,6 +14,7 @@ const char PRGLR::_cmdNames[] =
      N(SaveFB,"uuh")
      N(SaveFBData,"usuuay")
      N(ResInfo,"uqqay")
+     N(ClipboardData,"uus")
 ;
 #undef N
 

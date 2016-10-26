@@ -32,6 +32,7 @@ public:
     virtual void	OnEvent (const CEvent& e);
     inline void		OnSaveFramebufferData (goid_t id, const char* filename, const SDataBlock& d);
     inline virtual void	OnSaveFramebuffer (goid_t, CFile&)	{ }
+    inline virtual void	OnClipboardData (G::Clipboard, G::ClipboardFmt, const char*) {}
     inline virtual void	Draw (void)				{ }
     inline void		OnResourceInfo (goid_t id, uint16_t type, const SDataBlock& d);
     inline virtual void	OnTextureInfo (goid_t, const G::Texture::Info&)	{ }
@@ -55,7 +56,8 @@ protected:
     inline virtual void	OnButton (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnButtonUp (key_t, coord_t, coord_t)	{ }
     inline virtual void	OnMotion (coord_t, coord_t, key_t)	{ }
-    inline virtual void	OnCrossing (bool, coord_t, coord_t, key_t) { }
+    inline virtual void	OnCrossing (bool, coord_t, coord_t, key_t) {}
+    inline virtual void	OnClipboardOp (ClipboardOp, G::Clipboard, G::ClipboardFmt) {}
     inline virtual void	OnCommand (const char*)			{ }
     inline virtual void	OnUIChanged (const char*)		{ }
     inline virtual void	OnUIAccepted (const char*)		{ }

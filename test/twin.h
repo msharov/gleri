@@ -17,7 +17,11 @@ public:
 protected:
     virtual void	OnKey (key_t key) override;
     virtual void	OnButton (key_t b, coord_t x, coord_t y) override;
+    virtual void	OnButtonUp (key_t b, coord_t x, coord_t y) override;
+    virtual void	OnMotion (coord_t x, coord_t y, key_t b) override;
     virtual void	OnCommand (const char* cmd) override;
+    virtual void	OnClipboardData (G::Clipboard ci, G::ClipboardFmt fmt, const char* d) override;
+    virtual void	OnClipboardOp (ClipboardOp op, G::Clipboard ci, G::ClipboardFmt fmt) override;
 private:
     goid_t		_vbuf;
     goid_t		_cbuf;
@@ -31,6 +35,7 @@ private:
     goid_t		_ofscrcol;
     goid_t		_ofscrfb;
     goid_t		_vwfont;
+    goid_t		_selrectbuf;
     coord_t		_wx;
     coord_t		_wy;
     coord_t		_wsx;
@@ -38,4 +43,5 @@ private:
     uint64_t		_wtimer;
     char		_hellomsg [48];
     const char*		_screenshot;
+    coord_t		_selrectpts [4][2];
 };

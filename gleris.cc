@@ -8,6 +8,10 @@
 #include <X11/Xauth.h>
 #include <X11/cursorfont.h>
 
+//{{{ CGleris startup --------------------------------------------------
+
+GLERI_APP (CGleris)
+
 //----------------------------------------------------------------------
 
 char* CGleris::_xlib_error = nullptr;
@@ -33,6 +37,7 @@ CGleris::CGleris (void) noexcept
 ,_visinfo{nullptr}
 ,_colormap{0}
 ,_cursor{0}
+,_clipboard{}
 ,_xauth()
 {
     DTRACE ("gleris " GLERI_VERSTRING " started\n");
@@ -91,6 +96,9 @@ void CGleris::OnArgs (argc_t argc, argv_t argv) noexcept
 	}
     }
 }
+
+//}}}-------------------------------------------------------------------
+//{{{ Connection managment
 
 void CGleris::AddConnection (int fd, bool canPassFd)
 {
@@ -175,8 +183,8 @@ void CGleris::OnExport (const char*, int fd)
     exbuf.WriteCmds();
 }
 
-//----------------------------------------------------------------------
-// X and OpenGL interface
+//}}}-------------------------------------------------------------------
+//{{{ X and OpenGL interface
 
 int CGleris::XlibErrorHandler (Display* dpy, XErrorEvent* ee) noexcept // static
 {
@@ -344,12 +352,16 @@ void CGleris::Init (argc_t argc, argv_t argv)
 
 void CGleris::GetAtoms (void) noexcept
 {
-    //{{{ c_AtomNames
+    //{{{2 c_AtomNames
     static const char c_AtomNames[] =
 	"\0ATOM"
 	"\0STRING"
 	"\0CARDINAL"
 	"\0UTF8_STRING"
+	"\0PRIMARY"
+	"\0SECONDARY"
+	"\0CLIPBOARD"
+	"\0TARGETS"
 	"\0WM_CLIENT_MACHINE"
 	"\0WM_COMMAND"
 	"\0WM_PROTOCOLS"
@@ -387,7 +399,7 @@ void CGleris::GetAtoms (void) noexcept
 	"\0_NET_WM_WINDOW_TYPE_TOOLTIP"
 	"\0_NET_WM_WINDOW_TYPE_SPLASH"
 	"\0_NET_WM_WINDOW_TYPE_DND";
-    //}}}
+    //}}}2
     const char* ana [a_Last], *an = c_AtomNames;
     for (unsigned i = 0, anl = sizeof(c_AtomNames); i < a_Last; ++i)
 	ana[i] = an = strnext(an,anl);
@@ -570,6 +582,15 @@ void CGleris::OnXEvent (void)
 		DTRACE ("[%x] Unknown WM_PROTOCOLS message %s\n", icli->IId(), XGetAtomName(_dpy, xev.xclient.data.l[0]));
 	    #endif
 	    }
+	} else if (xev.type == SelectionRequest) {
+	    DTRACE ("[%x] Receive selection request\n", icli->IId());
+	    ProcessSelectionRequest (*icli, xev.xselectionrequest);
+	} else if (xev.type == SelectionClear) {
+	    DTRACE ("[%x] Receive selection clear request\n", icli->IId());
+	    ProcessSelectionClear (*icli, xev.xselectionclear);
+	} else if (xev.type == SelectionNotify) {
+	    DTRACE ("[%x] Receive selection notification\n", icli->IId());
+	    ProcessSelectionNotify (*icli, xev.xselection);
 	} else
 	    DTRACE ("[%x] Unhandled event %u\n", icli->IId(), xev.type);
     }
@@ -581,6 +602,90 @@ void CGleris::OnXEvent (void)
 	_xlib_error = nullptr;
     }
 }
+
+//{{{2 Clipboard operations
+
+unsigned CGleris::ClipboardIndexFromAtom (Atom cia) const noexcept
+{
+    unsigned ci = UINT_MAX;
+    for (auto i = 0u; i < ArraySize(_clipboard); ++i)
+	if (_atoms[a_PRIMARY+i] == cia)
+	    ci = i;
+    return ci;
+}
+
+G::ClipboardFmt CGleris::ClipboardFmtFromAtom (Atom fmta) const noexcept
+{
+    return fmta == _atoms[a_UTF8_STRING] ? G::ClipboardFmt::UTF8_STRING : G::ClipboardFmt(UINT_MAX);
+}
+
+void CGleris::ProcessSelectionRequest (CGLWindow& cli, const XSelectionRequestEvent& e)
+{
+    // Determine clipboard index
+    auto ci = ClipboardIndexFromAtom (e.selection);
+
+    // Setup response
+    XEvent r;
+    memset (&r, 0, sizeof(r));
+    r.xselection.type = SelectionNotify;
+    r.xselection.display = e.display;
+    r.xselection.requestor = e.requestor;
+    r.xselection.selection = e.selection;
+    r.xselection.target = e.target;
+    r.xselection.time = e.time;
+    r.xselection.property = None;
+
+    // Copy the clipboard data, if available
+    if (ci < ArraySize(_clipboard) && _clipboard[ci].Owner() == cli.Drawable()) {
+	if (_clipboard[ci].Format() == ClipboardFmtFromAtom (e.target)) {
+	    const auto& s = _clipboard[ci].Data();
+	    XChangeProperty (_dpy, e.requestor, e.property,
+		    e.target, 8, PropModeReplace,
+		    (const unsigned char*) s.c_str(), s.size());
+	    r.xselection.property = e.property;
+	    cli.ClipboardEvent (ClipboardOp::Read, G::Clipboard(ci), _clipboard[ci].Format());
+	} else if (e.target == _atoms[a_TARGETS]) {
+	    const Atom supported[1] = { _atoms[a_UTF8_STRING] };
+	    XChangeProperty (_dpy, e.requestor, e.property,
+		    e.target, 8*sizeof(supported[0]), PropModeReplace,
+		    (const unsigned char*) supported, ArraySize(supported));
+	    r.xselection.property = e.property;
+	}
+    }
+
+    // Send the event back
+    XSendEvent (_dpy, e.requestor, 0, 0, &r);
+}
+
+void CGleris::ProcessSelectionClear (CGLWindow& cli, const XSelectionClearEvent& e)
+{
+    auto ci = ClipboardIndexFromAtom (e.selection);
+    if (ci >= ArraySize(_clipboard))
+	return;
+    cli.ClipboardEvent (ClipboardOp::Cleared, G::Clipboard(ci), _clipboard[ci].Format());
+    _clipboard[ci].Clear();
+}
+
+void CGleris::ProcessSelectionNotify (CGLWindow& cli, const XSelectionEvent& e)
+{
+    // Read the data from the reply property
+    Atom actualType = None;
+    int actualFormat = 0;
+    unsigned long nItems = 0, bytesLeft = 0;
+    unsigned char* propdata = nullptr;
+    XGetWindowProperty (_dpy, cli.Drawable(), e.property,
+	    0, CClipboard::MAX_SIZE, true, AnyPropertyType,
+	    &actualType, &actualFormat, &nItems, &bytesLeft, &propdata);
+
+    DTRACE ("[%x] Received clipboard data from server. Sending back %u bytes.\n", cli.IId(), nItems);
+    cli.ClipboardData ((const char*) propdata, G::Clipboard(ClipboardIndexFromAtom (e.selection)), ClipboardFmtFromAtom (e.target));
+
+    if (propdata)
+	XFree (propdata);
+}
+
+//}}}2
+//{{{2 Input events
 
 CGleris::key_t CGleris::ModsFromXState (uint32_t state) noexcept // static
 {
@@ -661,6 +766,9 @@ CEvent CGleris::EventFromMotion (const XMotionEvent& xev) noexcept // static
     return CEvent (CEvent::Motion, ModsFromXState(xev.state), xev.x, xev.y);
 }
 
+//}}}2
+//{{{2 X file descriptor management
+
 void CGleris::OnFd (int fd)
 {
     CApp::OnFd(fd);
@@ -707,9 +815,9 @@ void CGleris::OnTimer (uint64_t tms)
     }
     OnXEvent();
 }
-
-//----------------------------------------------------------------------
-// Client records, selection and forwarding
+//}}}2
+//}}}-------------------------------------------------------------------
+//{{{ Client records, selection and forwarding
 
 CGLWindow* CGleris::CreateClient (iid_t iid, WinInfo winfo, const char* title, CCmdBuf* piconn)
 {
@@ -927,6 +1035,10 @@ void CGleris::DestroyClient (CGLWindow*& pc) noexcept
     if (_dpy) {
 	DTRACE ("Erasing client with window %x, context %x\n", pc->Drawable(), pc->ContextId());
 	_curCli = nullptr;		// Whenever any window dies, ALL GL contexts become detached
+	// Take ownership of clipboard data set by the client
+	for (auto i = 0u; i < ArraySize(_clipboard); ++i)
+	    if (_clipboard[i].Owner() == pc->Drawable())
+		_clipboard[i].SetOwner (_rootWindow);
 	// Activate root context to delete resources
 	// The client window is dead at this point, so can't activate the client context directly.
 	ActivateClient (*_win[0]);
@@ -982,4 +1094,48 @@ void CGleris::ClientEvent (const CGLWindow& cli, const CEvent& e)
     }
 }
 
-GLERI_APP (CGleris)
+void CGleris::ClientGetClipboard (CGLWindow& cli, G::Clipboard eci, G::ClipboardFmt fmt)
+{
+    const char* d = nullptr;
+    auto ci = unsigned(eci);
+    if (ci < ArraySize(_clipboard)) {
+	if (_clipboard[ci].Owner() != None) {	// Clipboard owned by gleris
+	    if (fmt == _clipboard[ci].Format()) {
+		d = _clipboard[ci].Data().c_str();
+		auto owner = ClientRecordForWindow (_clipboard[ci].Owner());
+		if (owner)
+		    owner->ClipboardEvent (ClipboardOp::Read, eci, fmt);
+	    }
+	} else {			// Clipboard owned by an X application
+	    auto ownerw = XGetSelectionOwner (_dpy, _atoms[a_PRIMARY+ci]);
+	    if (ownerw != None && fmt == G::ClipboardFmt::UTF8_STRING) {
+		XConvertSelection (_dpy, _atoms[a_PRIMARY+ci], _atoms[a_UTF8_STRING], _atoms[a_PRIMARY+ci], cli.Drawable(), CurrentTime);
+		DTRACE ("[%x] Clipboard %u request fmt %u. Waiting for reply from window %x.\n", cli.IId(), ci, unsigned(fmt), ownerw);
+		return;			// Wait for SelectionNotify reply
+	    }
+	}
+    }
+    DTRACE ("[%x] Clipboard %u request fmt %u. Sending back %u bytes.\n", cli.IId(), ci, unsigned(fmt), d ? strlen(d) : 0);
+    cli.ClipboardData (d, eci, fmt);
+}
+
+void CGleris::ClientSetClipboard (CGLWindow& cli, G::Clipboard eci, G::ClipboardFmt fmt, const char* data)
+{
+    string dstr (data);
+    auto ci = unsigned(eci);
+    if (ci >= ArraySize(_clipboard) || dstr.empty() || dstr.size() > CClipboard::MAX_SIZE)
+	return cli.ClipboardEvent (ClipboardOp::Rejected, eci, fmt);
+    XSetSelectionOwner (_dpy, _atoms[a_PRIMARY+ci], cli.Drawable(), CurrentTime);
+    if (cli.Drawable() != XGetSelectionOwner (_dpy, _atoms[a_PRIMARY+ci]))
+	return cli.ClipboardEvent (ClipboardOp::Rejected, eci, fmt);
+    DTRACE ("[%x] Clipboard %u set fmt %u, %u bytes.\n", cli.IId(), ci, unsigned(fmt), data ? strlen(data) : 0);
+    if (_clipboard[ci].Owner() != None) {
+	auto ocli = ClientRecordForWindow (_clipboard[ci].Owner());
+	if (ocli)
+	    ocli->ClipboardEvent (ClipboardOp::Cleared, eci, _clipboard[ci].Format());
+    }
+    _clipboard[ci].Set (cli.Drawable(), dstr, fmt);
+    cli.ClipboardEvent (ClipboardOp::Accepted, eci, fmt);
+}
+
+//}}}-------------------------------------------------------------------

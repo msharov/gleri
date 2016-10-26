@@ -85,12 +85,14 @@ CTestWindow::CTestWindow (iid_t wid)
 ,_ofscrcol(0)
 ,_ofscrfb(0)
 ,_vwfont(0)
+,_selrectbuf(0)
 ,_wx(0)
 ,_wy(0)
 ,_wsx(0)
 ,_wsy(0)
 ,_wtimer(NotWaitingForVSync)
 ,_screenshot(nullptr)
+,_selrectpts{{0}}
 {
     strcpy (_hellomsg, "Hello world from OpenGL!");
 }
@@ -102,6 +104,7 @@ void CTestWindow::OnInit (void)
     printf ("Initializing test window\n");
     _vbuf = BufferData (G::ARRAY_BUFFER, _vdata1, sizeof(_vdata1));
     _cbuf = BufferData (G::ARRAY_BUFFER, _cdata1, sizeof(_cdata1));
+    _selrectbuf = BufferData (G::ARRAY_BUFFER, _selrectpts, sizeof(_selrectpts));
 #if HAVE_PNG_H
     TexParameter (G::Texture::MAG_FILTER, G::Texture::LINEAR);
     _walk = LoadTexture (G::TEXTURE_2D, "test/princess.png", G::Pixel::COMPRESSED_RGBA);
@@ -178,9 +181,17 @@ void CTestWindow::OnKey (key_t key)
     Draw();
 }
 
+static constexpr const char c_SelText[] = "A quick brown fox jumps over the lazy dog";
+enum {
+    sel_X = 300,
+    sel_Y = 420
+};
+
 void CTestWindow::OnButton (key_t b, coord_t x, coord_t y)
 {
     CWindow::OnButton (b,x,y);
+    auto pfi = Font();
+    const coord_t xselright = sel_X+strlen(c_SelText)*pfi->Width();
     if (b == Button::Right) {
 	BEGIN_MENU (c_TestMenu)
 	    MENUITEM ("Entry 1", "1", "entry1")
@@ -190,6 +201,54 @@ void CTestWindow::OnButton (key_t b, coord_t x, coord_t y)
 	    MENUITEM ("Offscreen draw", "o", "offscreen")
 	END_MENU
 	CPopupMenu::Create (IId(), x, y, c_TestMenu);
+    } else if (b == Button::Left
+	    && !_selrectpts[0][0]
+	    && x >= sel_X && x < xselright && y >= sel_Y && y < sel_Y+pfi->Height()) {
+	auto x1 = sel_X + AlignDown (x-sel_X, pfi->Width());
+	_selrectpts[0][0] = x1;
+	_selrectpts[1][0] = x1;
+	_selrectpts[0][1] = sel_Y;
+	_selrectpts[1][1] = sel_Y+pfi->Height();
+	_selrectpts[2][0] = x1+pfi->Width();
+	_selrectpts[3][0] = x1+pfi->Width();
+	_selrectpts[2][1] = sel_Y;
+	_selrectpts[3][1] = sel_Y+pfi->Height();
+	BufferSubData (_selrectbuf, _selrectpts, sizeof(_selrectpts));
+	Draw();
+    } else if (b == Button::Middle)
+	GetClipboard();
+}
+
+void CTestWindow::OnMotion (coord_t x, coord_t y, key_t b)
+{
+    CWindow::OnMotion (x,y,b);
+    auto pfi = Font();
+    const coord_t xselright = sel_X+strlen(c_SelText)*pfi->Width();
+    if ((b & KMod::Left) && x > _selrectpts[0][0] && x <= xselright) {
+	auto x2 = sel_X + Align (x-sel_X, pfi->Width());
+	if (x2 != _selrectpts[2][0]) {
+	    _selrectpts[2][0] = x2;
+	    _selrectpts[3][0] = x2;
+	    BufferSubData (_selrectbuf, _selrectpts, sizeof(_selrectpts));
+	    Draw();
+	}
+    }
+}
+
+void CTestWindow::OnButtonUp (key_t b, coord_t x, coord_t y)
+{
+    CWindow::OnButtonUp (b,x,y);
+    if (b == Button::Left) {
+	auto pfi = Font();
+	unsigned tx1 = (_selrectpts[0][0]-sel_X)/pfi->Width(), tx2 = (_selrectpts[3][0]-sel_X)/pfi->Width();
+	memset (_selrectpts, 0, sizeof(_selrectpts));
+	if (tx2 < strlen(c_SelText) && tx1 < tx2) {
+	    char selbuf [ArraySize(c_SelText)];
+	    auto selsz = tx2-tx1;
+	    memcpy (selbuf, &c_SelText[tx1], selsz);
+	    selbuf[selsz] = 0;
+	    SetClipboard (selbuf);
+	}
     }
 }
 
@@ -203,6 +262,31 @@ void CTestWindow::OnCommand (const char* cmd)
 	_screenshot = nullptr;
     } else if (!strcmp (cmd, "offscreen"))
 	DrawOffscreen (_ofscrfb);
+}
+
+void CTestWindow::OnClipboardData (G::Clipboard ci, G::ClipboardFmt fmt, const char* d)
+{
+    CWindow::OnClipboardData (ci, fmt, d);
+    printf ("Received clipboard data '%s'\n", d);
+    auto dlen = min (ArraySize(_hellomsg)-1u, strlen(d));
+    memcpy (_hellomsg, d, dlen);
+    _hellomsg[dlen] = 0;
+    Draw();
+}
+
+void CTestWindow::OnClipboardOp (ClipboardOp op, G::Clipboard ci, G::ClipboardFmt fmt)
+{
+    CWindow::OnClipboardOp (op, ci, fmt);
+    if (op == ClipboardOp::Accepted) {
+	printf ("Clipboard data accepted\n");
+	BufferSubData (_selrectbuf, _selrectpts, sizeof(_selrectpts));
+	Draw();
+    } else if (op == ClipboardOp::Rejected)
+	printf ("Clipboard data rejected\n");
+    else if (op == ClipboardOp::Read)
+	printf ("Clipboard data read\n");
+    else if (op == ClipboardOp::Cleared)
+	printf ("Clipboard data cleared\n");
 }
 
 void CTestWindow::OnTimer (uint64_t tms)
@@ -263,9 +347,9 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Textf (300, 350, "Display %hu.%hu: %hux%hu (%hux%hu mm), depth %hu, wid %x", Info().dpyn, Info().scrn, Info().scrw, Info().scrh, Info().scrmw, Info().scrmh, Info().scrd, Info().wmwid);
 
     drw.Color (255,255,255);
-    drw.Text (300, 420, "A quick brown fox jumps over the lazy dog");
+    drw.Text (sel_X, sel_Y, c_SelText);
     auto lrt = LastRenderTimeNS(), lft = RefreshTimeNS();
-    drw.Textf (10,10, "FPS %6u, VSync %3u", 1000000000/(lrt?lrt:1), 1000000000/(lft?lft:1));
+    drw.Textf (10,10, "FPS %6u, VSync %3u", 1000000000/(lrt+!lrt), 1000000000/(lft+!lft));
 
     #if HAVE_FREETYPE
 	if (_vwfont) {
@@ -289,6 +373,12 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Color (0,128,128);
     drw.TriangleStrip (v_FanOverlayOffset, v_FanOverlaySize);
     drw.DefaultShader();
+
+    if (_selrectbuf) {
+	drw.VertexPointer (_selrectbuf);
+	drw.Color (128,128,128,128);
+	drw.TriangleStrip (0, 4);
+    }
 
     drw.Framebuffer (_smallfb);
     drw.Clear (RGBA(0,0,48,128));

@@ -25,6 +25,7 @@ private:
 	SaveFB,
 	SaveFBData,
 	ResInfo,
+	ClipboardData,
 	NCmds
     };
 public:
@@ -35,6 +36,8 @@ public:
     void			SaveFB (goid_t id, const char* filename, CFile& f);
     template <typename RInfo>
     inline void			ResourceInfo (goid_t id, uint16_t type, const RInfo& ri);
+    inline void			ClipboardData (const char* v, G::Clipboard c = G::Clipboard::PRIMARY, G::ClipboardFmt fmt = G::ClipboardFmt::UTF8_STRING);
+    inline void			ClipboardEvent (ClipboardOp op, G::Clipboard ci = G::Clipboard::PRIMARY, G::ClipboardFmt fmt = G::ClipboardFmt::UTF8_STRING);
     inline void			ForwardError (const char* m)	{ CCmdBuf::ForwardError(m); }
     inline void			Export (const char* ol)		{ CCmdBuf::Export (ol); }
     inline void			WriteCmds (void)		{ CCmdBuf::WriteCmds(); }
@@ -88,6 +91,11 @@ void PRGLR::ResourceInfo (goid_t id, uint16_t type, const RInfo& ri)
     Cmd (ECmd::ResInfo, id, type, uint16_t(0), ss.size(), ri);
 }
 
+void PRGLR::ClipboardData (const char* v, G::Clipboard c, G::ClipboardFmt fmt)
+    { Cmd (ECmd::ClipboardData, c, fmt, v); }
+void PRGLR::ClipboardEvent (ClipboardOp op, G::Clipboard ci, G::ClipboardFmt fmt)
+    { Event (CEvent (CEvent::Clipboard, unsigned(op), unsigned(ci), unsigned(fmt))); }
+
 //}}}-------------------------------------------------------------------
 //{{{ Read parser
 
@@ -114,6 +122,10 @@ void PRGLR::Parse (F& f, const SMsgHeader& h, CCmdBuf& cmdbuf) // static
 	case ECmd::ResInfo:	{ goid_t id; uint16_t type, r1; SDataBlock d;
 				    Args(cmdis,id,type,r1,d);
 				    clir->OnResourceInfo (id,type,d);
+				} break;
+	case ECmd::ClipboardData: { G::Clipboard ci; G::ClipboardFmt fmt; const char* v = nullptr;
+				    Args(cmdis,ci,fmt,v);
+				    clir->OnClipboardData (ci,fmt,v);
 				} break;
 	default:		XError::emit ("invalid protocol command");
     }

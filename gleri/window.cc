@@ -28,6 +28,7 @@ void CWindow::OnEvent (const CEvent& e)
 	case CEvent::ButtonUp:		OnButtonUp (e.key, e.x, e.y);	break;
 	case CEvent::Motion:		OnMotion (e.x, e.y, e.key);	break;
 	case CEvent::Crossing:		OnCrossing (e.time, e.x, e.y, e.key); break;
+	case CEvent::Clipboard:		OnClipboardOp (ClipboardOp(e.key), G::Clipboard(e.x), G::ClipboardFmt(e.y)); break;
 	case CEvent::Command:		OnCommand (e.CommandName());	break;
 	case CEvent::UIChanged:		OnUIChanged (e.CommandName());	break;
 	case CEvent::UIAccepted:	OnUIAccepted (e.CommandName());	break;
