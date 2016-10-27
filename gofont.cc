@@ -292,7 +292,6 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
     if (!FT_IS_FIXED_WIDTH (face))
 	_info.InitVarWidthMap();
 
-    auto& kerns = _info.KerningPairs();
     if (FT_HAS_KERNING (face)) {
 	//{{{2 Freetype kerning pair characters
 	// Freetype has no API to iterate over kerning pairs, hence brute
@@ -327,6 +326,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	    0xfb00, 0xfd3e, 0xfd3f
 	};
 	//}}}2
+	auto& kerns = _info.KerningPairs();
 	for (uint16_t i1 = 0u; i1 < ArraySize(ckern); ++i1) {
 	    auto c1 = ckern[i1];
 	    auto g1 = cm[c1];
@@ -346,16 +346,32 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	}
     }
 
-    auto mw = fontSize, mh = fontSize;
+    auto mw = fontSize, mh = fontSize, bl = fontSize;
     if (cm['M']) {
 	if (FT_Load_Char (face, 'M', FT_LOAD_RENDER))
 	    XError::emit ("Freetype error FT_Load_Char");
 	mw = face->glyph->advance.x / 64;
 	mh = face->glyph->bitmap.rows;
+	bl = face->glyph->bitmap_top;
+	if (!FT_IS_SCALABLE (face))
+	    fontSize = mh;
     }
-    if (!FT_IS_SCALABLE (face))
-	fontSize = mh;
-    _info.SetSize (mw, fontSize, mh);
+    if (FT_IS_SCALABLE (face)) {
+	enum { VLINE_CHAR = 0x2502 };
+	if (cm[VLINE_CHAR]) {
+	    if (FT_Load_Char (face, VLINE_CHAR, FT_LOAD_RENDER))
+		XError::emit ("Freetype error FT_Load_Char");
+	    bl = face->glyph->bitmap_top;
+	    fontSize = face->glyph->bitmap.rows;
+	} else {
+	    // Available fonts do not appear to have any way to get line height
+	    // Using face->ascender as equal to mh does not lead to correct results
+	    // So, this hack has been empirically adjusted to look right at least sometimes
+	    bl = (face->height + face->descender) * mh / (face->ascender + face->descender);
+	    fontSize = (face->height) * mh / (face->ascender + face->descender);
+	}
+    }
+    _info.SetSize (mw, fontSize, bl);
     _info.SetName (face->family_name);
 
     // Try to make the texture close to a square with a power of 2 width
