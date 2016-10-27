@@ -378,6 +378,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 	drw.VertexPointer (_selrectbuf);
 	drw.Color (128,128,128,128);
 	drw.TriangleStrip (0, 4);
+	drw.VertexPointer (_vbuf);
     }
 
     drw.Framebuffer (_smallfb);

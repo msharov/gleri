@@ -215,7 +215,7 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
     }
 
     auto cmptr = CMSG_FIRSTHDR(&msg);
-    if (cmptr && cmptr->cmsg_len == CMSG_LEN(sizeof(int))) {
+    if (cmptr && cmptr->cmsg_type == SCM_RIGHTS && cmptr->cmsg_len >= CMSG_LEN(sizeof(int))) {
 	int fd = *((int*) CMSG_DATA (cmptr));
 	if (fd < 0)
 	    Error ("fdpass");
