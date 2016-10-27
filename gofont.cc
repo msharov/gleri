@@ -361,14 +361,13 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	if (cm[VLINE_CHAR]) {
 	    if (FT_Load_Char (face, VLINE_CHAR, FT_LOAD_RENDER))
 		XError::emit ("Freetype error FT_Load_Char");
-	    bl = face->glyph->bitmap_top;
 	    fontSize = face->glyph->bitmap.rows;
+	    bl = face->glyph->bitmap_top;
 	} else {
 	    // Available fonts do not appear to have any way to get line height
-	    // Using face->ascender as equal to mh does not lead to correct results
-	    // So, this hack has been empirically adjusted to look right at least sometimes
-	    bl = (face->height + face->descender) * mh / (face->ascender + face->descender);
-	    fontSize = (face->height) * mh / (face->ascender + face->descender);
+	    // These metrics are close, but usually off by a few pixels
+	    fontSize = face->size->metrics.height/64;
+	    bl = fontSize + face->size->metrics.descender/64;
 	}
     }
     _info.SetSize (mw, fontSize, bl);
