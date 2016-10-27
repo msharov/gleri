@@ -282,17 +282,18 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
     OFT_Library library;
     OFT_Face face (library, p, psz);
 
-    FT_Set_Pixel_Sizes (face, 0, fontSize);
+    if (FT_IS_SCALABLE (face))
+	FT_Set_Pixel_Sizes (face, 0, fontSize);
 
     charmap_t cm (1<<16);
     for (auto i = 0u; i < cm.size(); ++i)
 	cm[i] = FT_Get_Char_Index (face, i);
     _info.CreateCharmap (cm);
-    if (!FT_IS_FIXED_WIDTH(face))
+    if (!FT_IS_FIXED_WIDTH (face))
 	_info.InitVarWidthMap();
 
     auto& kerns = _info.KerningPairs();
-    if (FT_HAS_KERNING(face)) {
+    if (FT_HAS_KERNING (face)) {
 	//{{{2 Freetype kerning pair characters
 	// Freetype has no API to iterate over kerning pairs, hence brute
 	// force search is necessary. This array limits character range.
@@ -352,6 +353,8 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	mw = face->glyph->advance.x / 64;
 	mh = face->glyph->bitmap.rows;
     }
+    if (!FT_IS_SCALABLE (face))
+	fontSize = mh;
     _info.SetSize (mw, fontSize, mh);
     _info.SetName (face->family_name);
 
