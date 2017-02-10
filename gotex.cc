@@ -457,19 +457,21 @@ CTexture::CTexBuf CTexture::LoadGIF (const GLubyte* p, GLuint psz) // static
     auto psimg = gf.p->SavedImages;
     if (gf.p->ImageCount < 1
 	    || !psimg
-	    || !gf.p->SColorMap
-	    || gf.p->SColorMap->ColorCount > 256
 	    || !psimg->ImageDesc.Width
 	    || !psimg->ImageDesc.Height
 	    || (unsigned) psimg->ImageDesc.Width > (unsigned) c_MaxWidth
 	    || (unsigned) psimg->ImageDesc.Height > (unsigned) c_MaxHeight)
 	XError::emit ("invalid gif file");
+    auto imgcmap = psimg->ImageDesc.ColorMap;
+    if (!imgcmap)
+	imgcmap = gf.p->SColorMap;
+    if (!imgcmap || imgcmap->ColorCount > 256)
+	XError::emit ("invalid gif file");
 
     // Convert colormap from RGB to RGBA
     G::color_t cmap [256];
-    const auto& gifcmap = gf.p->SColorMap->Colors;
-    for (auto i = 0; i < gf.p->SColorMap->ColorCount; ++i)
-	cmap[i] = RGB(gifcmap[i].Red, gifcmap[i].Green, gifcmap[i].Blue);
+    for (auto i = 0; i < imgcmap->ColorCount; ++i)
+	cmap[i] = RGB(imgcmap->Colors[i].Red, imgcmap->Colors[i].Green, imgcmap->Colors[i].Blue);
 
     // Check if transparent color is set
     GraphicsControlBlock gcb;
