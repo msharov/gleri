@@ -222,8 +222,8 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
 	    y += rh;
 	    rh = 0;
 	}
-	gi.x = x;
-	gi.y = y-1;			// -1 to adjust for filled primitive non-inclusive top edge
+	gi.x = x-1;
+	gi.y = y-1;			// -1 to adjust for filled primitive non-inclusive top and right edge
 	rh = max<uint16_t> (rh, gi.h);
 	while (y + rh > texh)		// Overflow bottom, expand texture
 	    ftexbmp.resize (texw * (texh *= 2));
@@ -412,8 +412,8 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	    y += rh;
 	    rh = 0;
 	}
-	gi.x = x;
-	gi.y = y-1;			// -1 to adjust for filled primitive non-inclusive top edge
+	gi.x = x-1;
+	gi.y = y-1;			// -1 to adjust for filled primitive non-inclusive top and right edge
 	gi.bx = glyph.bitmap_left;
 	gi.by = _info.Baseline() - glyph.bitmap_top;
 	if (!FT_IS_FIXED_WIDTH(face))
