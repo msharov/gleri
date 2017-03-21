@@ -50,7 +50,6 @@ void CGLWindow::Init (void)
     glEnable (GL_CULL_FACE);
     glEnable (GL_SCISSOR_TEST);
     glDisable (GL_DEPTH_TEST);
-    glDepthMask (GL_FALSE);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glXSwapIntervalSGI (1);
     glGenQueries (ArraySize(_query), _query);
@@ -277,7 +276,7 @@ void CGLWindow::Clear (GLuint c) noexcept
     UnpackColorToFloats (c,r,g,b,a);
     DTRACE ("[%x] Clear 0x%08x\n", IId(), c);
     glClearColor (r,g,b,a);
-    glClear (GL_COLOR_BUFFER_BIT);
+    glClear (GL_COLOR_BUFFER_BIT| GL_DEPTH_BUFFER_BIT);
 }
 
 void CGLWindow::DrawCmdInit (void) noexcept
