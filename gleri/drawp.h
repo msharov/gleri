@@ -58,6 +58,8 @@ protected:
 	MultiDrawElementsIndirect,
 	SaveFramebuffer,
 	InstancingDivisor,
+	PatchVertices,
+	PointSize,
 	NCmds
     };
 };
@@ -99,6 +101,8 @@ public:
     inline void		Parameter (uint32_t slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0)	{ Cmd (ECmd::Parameter, uint32_t(1), slot, buf, uint8_t(type-G::Type_BASE), sz, stride, offset); }
     inline void		Parameter (const char* slot, goid_t buf, G::Type type = G::SHORT, uint8_t sz = 2, uint32_t offset = 0, uint16_t stride = 0)	{ Cmd (ECmd::Parameter, slot, buf, uint8_t(type-G::Type_BASE), sz, stride, offset); }
     inline void		InstancingDivisor (uint16_t slot, uint16_t divisor)	{ Cmd (ECmd::InstancingDivisor, slot,divisor); }
+    inline void		PatchVertices (uint32_t nv)				{ Cmd (ECmd::PatchVertices, nv); }
+    inline void		PointSize (float ps)					{ Cmd (ECmd::PointSize, ps); }
     inline void		Uniform (const char* name, float x, float y, float z, float w)	{ Cmd (ECmd::Uniformf, name, x,y,z,w); }
     inline void		Uniformi (const char* name, int x, int y, int z, int w)	{ Cmd (ECmd::Uniformi, name, x,y,z,w); }
     inline void		Uniformv (const char* name, const float* v)		{ Cmd (ECmd::Uniformf, name, ArrayArg<float,4>(v)); }
@@ -244,6 +248,10 @@ void PDraw<Stm>::Parse (F& f, Stm& is) // static
 		} break;
 	    case ECmd::InstancingDivisor:
 		{ uint16_t slot,divisor; Args(is,slot,divisor); f.SetInstancingDivisor(slot,divisor); } break;
+	    case ECmd::PatchVertices:
+		{ uint32_t nv; Args(is,nv); f.SetPatchVertices(nv); } break;
+	    case ECmd::PointSize:
+		{ float ps; Args(is,ps); f.SetPointSize(ps); } break;
 	    default: XError::emit ("drawlist parse error");
 	}
 	#ifndef NDEBUG

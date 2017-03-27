@@ -49,7 +49,6 @@ void CGLWindow::Init (void)
     glEnable (GL_BLEND);
     glEnable (GL_CULL_FACE);
     glEnable (GL_SCISSOR_TEST);
-    glDisable (GL_DEPTH_TEST);
     glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glXSwapIntervalSGI (1);
     glGenQueries (ArraySize(_query), _query);

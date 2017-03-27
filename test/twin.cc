@@ -320,6 +320,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.Color (0,255,255);
     drw.LineLoop (v_WindowBorderOffset, v_WindowBorderSize);
     drw.Color (255,255,255);
+    drw.PointSize (3);
     drw.LineStrip (v_BrokenLineOffset, v_BrokenLineSize);
 
     #if HAVE_JPEGLIB_H
