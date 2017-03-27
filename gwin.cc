@@ -287,8 +287,36 @@ void CGLWindow::DrawCmdInit (void) noexcept
 
 void CGLWindow::Enable (G::Feature f, uint16_t o) noexcept
 {
-    static const GLenum c_Features[G::CAP_N] =	// Parallel to G::Feature
-	{ GL_BLEND, GL_CULL_FACE, GL_DEPTH_CLAMP, GL_DEPTH_TEST, GL_MULTISAMPLE };
+    //{{{2 c_Features, parallel to G::Feature
+    static const GLenum c_Features[] = {
+	GL_BLEND,
+	GL_CULL_FACE,
+	GL_DEPTH_CLAMP,
+	GL_DEPTH_TEST,
+	GL_MULTISAMPLE,
+	GL_DITHER,
+	GL_COLOR_LOGIC_OP,
+	GL_FRAMEBUFFER_SRGB,
+	GL_LINE_SMOOTH,
+	GL_POLYGON_OFFSET_FILL,
+	GL_POLYGON_OFFSET_LINE,
+	GL_POLYGON_OFFSET_POINT,
+	GL_POLYGON_SMOOTH,
+	GL_PRIMITIVE_RESTART,
+	GL_PRIMITIVE_RESTART_FIXED_INDEX,
+	GL_RASTERIZER_DISCARD,
+	GL_SAMPLE_ALPHA_TO_COVERAGE,
+	GL_SAMPLE_ALPHA_TO_ONE,
+	GL_SAMPLE_COVERAGE,
+	GL_SAMPLE_SHADING,
+	GL_SAMPLE_MASK,
+	GL_SCISSOR_TEST,
+	GL_STENCIL_TEST,
+	GL_TEXTURE_CUBE_MAP_SEAMLESS,
+	GL_PROGRAM_POINT_SIZE
+    };
+    static_assert (ArraySize(c_Features) == G::CAP_N, "c_Features array is parallel to G::Feature");
+    //}}}2
     if (f >= G::CAP_N)
 	return;
     if (o)
