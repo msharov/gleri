@@ -148,6 +148,9 @@ void CFile::SendfileTo (CFile& outf, size_t n)
 }
 #endif
 
+// Ignore aliasing warnings on CMSG_DATA casts.
+#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+
 void CFile::SendFd (CFile& f)
 {
     msghdr msg;
