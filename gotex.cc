@@ -105,12 +105,12 @@ void CTexture::CTexBuf::Load (const GLubyte* p, GLuint psz)
     auto wsize = Info().size;
     for (auto sz : _imgsz)
 	wsize += sz;
-    if (wsize) {
-	if (wsize + h->dataOffset > psz)
-	    XError::emit ("invalid gltx file");
-	_imgd.resize (wsize);
-	copy_n (p + h->dataOffset, wsize, _imgd.begin());
-    }
+    if (!wsize)
+	wsize = psz - h->dataOffset;
+    else if (wsize + h->dataOffset > psz)
+	XError::emit ("invalid gltx file");
+    _imgd.resize (wsize);
+    copy_n (p + h->dataOffset, wsize, _imgd.begin());
 }
 
 void CTexture::CTexBuf::Save (int fd) const

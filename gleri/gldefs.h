@@ -438,7 +438,10 @@ struct alignas(8) GLTXHeader {
     Info	info;
     // List of sizes for images after the first follow
 public:
-    inline constexpr	GLTXHeader (void) : magic(Magic),version(Version),dataOffset(sizeof(GLTXHeader)),info() {}
+    inline constexpr	GLTXHeader (void)
+	: magic(Magic),version(Version),dataOffset(sizeof(GLTXHeader)),info() {}
+    inline constexpr	GLTXHeader (Type nt, dim_t nw, dim_t nh = 0, dim_t nd = 0, Pixel::Fmt nfmt = Pixel::RGBA, Pixel::Comp ncomp = Pixel::UNSIGNED_BYTE)
+	: magic(Magic),version(Version),dataOffset(sizeof(GLTXHeader)),info(nt,nw,nh,nd,nfmt,ncomp) {}
 };
 enum class Format : uint8_t {
     GLTX,
