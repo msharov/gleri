@@ -160,7 +160,8 @@ uint64_t CGLWindow::DrawFrame (bstri cmdis, Display* dpy)
 	PostQuery (_query[query_RenderEnd]);
 	glXSwapBuffers (dpy, Drawable());
 	PostQuery (_query[query_FrameEnd]);
-    }
+    } else
+	Event (_syncEvent);	// empty drawlist, must acknowledge with a sync event, but no need to wait
     return _nextVSync;
 }
 
