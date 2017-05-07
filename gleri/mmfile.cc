@@ -148,8 +148,8 @@ void CFile::SendfileTo (CFile& outf, size_t n)
 }
 #endif
 
-// Ignore aliasing warnings on CMSG_DATA casts.
-#pragma GCC diagnostic ignored "-Wstrict-aliasing"
+template <typename T, typename U>
+static inline T* aliasing_cast (U* p) { return reinterpret_cast<T*>(p); }
 
 void CFile::SendFd (CFile& f)
 {
@@ -166,7 +166,7 @@ void CFile::SendFd (CFile& f)
     cmptr->cmsg_len = CMSG_LEN(sizeof(int));
     cmptr->cmsg_level = SOL_SOCKET;
     cmptr->cmsg_type = SCM_RIGHTS;
-    *((int*) CMSG_DATA (cmptr)) = f.Fd();
+    *aliasing_cast<int>(CMSG_DATA (cmptr)) = f.Fd();
     msg.msg_name = nullptr;
     msg.msg_namelen = 0;
 
@@ -219,10 +219,10 @@ size_t CFile::ReadWithFdPass (void* p, size_t psz)
 
     auto cmptr = CMSG_FIRSTHDR(&msg);
     if (cmptr && cmptr->cmsg_type == SCM_RIGHTS && cmptr->cmsg_len >= CMSG_LEN(sizeof(int))) {
-	int fd = *((int*) CMSG_DATA (cmptr));
+	int fd = *aliasing_cast<int>(CMSG_DATA (cmptr));
 	if (fd < 0)
 	    Error ("fdpass");
-	*(int*)((char*)p+br-8) = fd;
+	*aliasing_cast<int>((char*)p+br-8) = fd;
     }
     return br;
 }
