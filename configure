@@ -70,10 +70,10 @@ fi
 [ -z "$CC" ] && "No C compiler found" && die
 
 # Determine gcc private directory
-PSTDDEF=`echo "#include <stddef.h>"|$CC -E -|grep stddef.h|head -n1|cut -d' ' -f3|cut -d'"' -f2`
-PINCDIR=`dirname $PSTDDEF`
-PLIBDIR=`dirname $PINCDIR`
-if [ -d $PLIBDIR/lib ]; then PLIBDIR=$PLIBDIR/lib; fi
+LIBGCC=`$CC -print-libgcc-file-name`
+PLIBDIR=`dirname $LIBGCC`
+PINCDIR=$PLIBDIR/include
+[ -d $PINCDIR ] || PINCDIR=$PLIBDIR/../include
 
 #### Set host-dependent options ######################################
 

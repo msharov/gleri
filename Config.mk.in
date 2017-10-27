@@ -28,7 +28,7 @@ INCDIR		:= @includedir@
 
 CXXFLAGS	:= -Wall -Wextra -Woverloaded-virtual -Wpointer-arith\
 		    -Wshadow -Wredundant-decls -Wcast-qual\
-		    -std=c++14 -march=native @CUSTOMINCDIR@ @freetypeflags@
+		    -std=c++14 @CUSTOMINCDIR@ @freetypeflags@
 LDFLAGS		:= @CUSTOMLIBDIR@
 LIBS		:= @libGL@ @libX11@ @freetypelibs@ @libpng@ @libjpeg@ @libgif@ @libz@
 ifdef USE_USTL
