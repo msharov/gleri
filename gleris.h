@@ -102,7 +102,7 @@ private:
 	void		SetOwner (Window w)	{ _w = w; }
 	G::ClipboardFmt	Format (void) const	{ return _fmt; }
 	const string&	Data (void) const	{ return _data; }
-	void		Clear (void)		{ _w = None; _data.deallocate(); }
+	void		Clear (void)		{ _w = None; _data.clear(); _data.shrink_to_fit(); }
 	void		Set (Window w, const string& d, G::ClipboardFmt fmt = G::ClipboardFmt::UTF8_STRING)
 			    { _w = w; _fmt = fmt; _data = d; }
     private:

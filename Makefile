@@ -7,9 +7,6 @@ CXXFLAGS+= -I.
 CONFS	:= Config.mk config.h gleri/config.h config.status
 MKDEPS	:= Makefile ${CONFS} $O.d
 
-include data/Module.mk
-include gleri/Module.mk
-
 INC	:= $(wildcard *.h)
 SRC	:= $(wildcard *.cc)
 OBJ	:= $(addprefix $O,$(SRC:.cc=.o))
@@ -21,6 +18,9 @@ ONAME	:= $(notdir $(abspath $O))
 .PHONY:	all run clean distclean maintainer-clean install uninstall
 
 all:	${EXE}
+
+include data/Module.mk
+include gleri/Module.mk
 
 ${EXE}:	${OBJ} ${DCO} ${LIBA}
 	@echo "Linking $@ ..."

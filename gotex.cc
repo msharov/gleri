@@ -246,7 +246,7 @@ struct PngDataPtr {
 static void png_data_source (png_structp rs, png_bytep p, png_size_t n)
 {
     auto rbuf = (PngDataPtr*) png_get_io_ptr(rs);
-    auto btc = min (rbuf->sz, n);
+    auto btc = min<GLuint> (rbuf->sz, n);
     memcpy (p, rbuf->p, btc);
     rbuf->p += btc;
     rbuf->sz -= btc;
