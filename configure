@@ -21,6 +21,10 @@ name=[with-debug]
 desc=[	Compile for debugging]
 seds=[s/^#\(DEBUG\)/\1/]
 }{
+name=[with-native]
+desc=[	Use -march=native]
+seds=[s/c++14/c++14 -march=native/]
+}{
 name=[with-ustl]
 desc=[	Use the uSTL library]
 seds=[s/^#\(USE_USTL\)/\1/;s/#undef \(USE_USTL\)/#define \1 1/]
