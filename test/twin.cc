@@ -50,8 +50,7 @@ static const char c_gradShader_v[] =
 "\n"
 "uniform vec4 Color;\n"
 "layout(location=0) in vec2 Vertex;\n"
-"invariant out vec4 gl_Position;\n"
-"invariant out vec4 f_color;\n"
+"out vec4 f_color;\n"
 "\n"
 "void main() {\n"
 "    gl_Position = vec4(Vertex,1,1);\n"
@@ -61,11 +60,11 @@ static const char c_gradShader_v[] =
 static const char c_gradShader_f[] =
 "#version 330 core\n"
 "\n"
-"invariant in vec4 f_color;\n"
-"invariant out vec4 gl_FragColor;\n"
+"in vec4 f_color;\n"
+"out vec4 FragColor;\n"
 "\n"
 "void main() {\n"
-"    gl_FragColor = f_color;\n"
+"    FragColor = f_color;\n"
 "}";
 
 } // namespace
