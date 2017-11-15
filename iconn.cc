@@ -68,9 +68,7 @@ void CIConn::LoadDefaultResources (CGLWindow* w)
     LoadPakResource (w, G::default_Font, PRGL::EResource::FONT, 0, pak, "ter-d18b.psf", strlen("ter-d18b.psf"));
     FreeResource (G::default_ResourcePak, PRGL::EResource::DATAPAK);
     _shwin = w;
-    #ifndef NDEBUG
-	w->CheckForErrors();
-    #endif
+    w->CheckForErrors();
 }
 
 //----------------------------------------------------------------------

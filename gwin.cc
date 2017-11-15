@@ -480,7 +480,11 @@ void CGLWindow::CheckForErrors (void)
     auto etxt = c_ErrorText;
     for (auto i = 0u; i < e; ++i)
 	etxt = strnext(etxt, etxtsz);
+#ifndef NDEBUG
     DTRACE ("GLError: %s\n", etxt);
+#else
+    syslog (LOG_ERR, "GLError: %s\n", etxt);
+#endif
     XError::emit (etxt);
 }
 
