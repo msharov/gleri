@@ -239,8 +239,8 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
     glBindTexture (GL_TEXTURE_2D, Id());
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D (GL_TEXTURE_2D, 0, GL_COMPRESSED_RED, texw, texh, 0, GL_RED, GL_UNSIGNED_BYTE, &ftexbmp[0]);
 }
 
@@ -434,8 +434,8 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
     glBindTexture (GL_TEXTURE_2D, Id());
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexImage2D (GL_TEXTURE_2D, 0, GL_COMPRESSED_RED, texw, texh, 0, GL_RED, GL_UNSIGNED_BYTE, &ftexbmp[0]);
 }
 #endif
