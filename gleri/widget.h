@@ -41,8 +41,8 @@ public:
     inline bool		Encloses (coord_t x, coord_t y) const	{ return dim_t(x-_x) < _w && dim_t(y-_y) < _h; };
 			// PRGL forwards
     inline iid_t	IId (void) const		{ return _prgl->IId(); }
-    inline pfontinfo_t	Font (void) const		{ return _prgl->Font(); }
-    inline pfontinfo_t	Font (goid_t id) const		{ return _prgl->Font(id); }
+    inline auto		Font (void) const		{ return _prgl->Font(); }
+    inline auto		Font (goid_t id) const		{ return _prgl->Font(id); }
     inline void		Close (void)			{ ((CWindow*)_prgl)->Close(); }	// Hacky, but don't want to give direct PRGL access in window
     inline void		Event (const CEvent& e)		{ _prgl->Event(e); }
     inline goid_t	BufferData (G::BufferType bt, const void* data, uint32_t dsz, G::BufferHint hint = G::STATIC_DRAW)	{ return _prgl->BufferData(bt,data,dsz,hint); }

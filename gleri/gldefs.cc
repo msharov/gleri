@@ -224,10 +224,7 @@ uint16_t CPMap::operator[] (uint16_t i) const noexcept
 //----------------------------------------------------------------------
 
 Info::Info (void)
-:_w (0)
-,_h (0)
-,_b (0)
-,_style (Style::Regular)
+: FixedInfo()
 ,_cpmap()
 ,_name()
 ,_varw()
@@ -236,10 +233,7 @@ Info::Info (void)
 }
 
 Info::Info (dim_t w, dim_t h)
-:_w (w)
-,_h (h)
-,_b (0)
-,_style (Style::Regular)
+: FixedInfo (w,h)
 ,_cpmap()
 ,_name()
 ,_varw()
@@ -277,7 +271,8 @@ void Info::read (bstri& is)
 {
     uint16_t nvarw, nkp;
     const char* name = nullptr;
-    is >> _w >> _h >> _b >> _style >> nvarw >> nkp >> name;
+    FixedInfo::read (is);
+    is >> nvarw >> nkp >> name;
     _varw.resize (nvarw);
     _kp.resize (nkp);
     _name.clear();
@@ -296,7 +291,8 @@ void Info::read (bstri& is)
 void Info::write (bstro& os) const
 {
     const uint16_t nvarw = _varw.size(), nkp = _kp.size();
-    os << _w << _h << _b << _style << nvarw << nkp << _name.c_str();
+    FixedInfo::write (os);
+    os << nvarw << nkp << _name.c_str();
     if (nvarw) {
 	os << _cpmap;
 	os.write (&_varw[0], _varw.size() * sizeof(decltype(_varw)::value_type));
@@ -308,7 +304,8 @@ void Info::write (bstro& os) const
 void Info::write (bstrs& ss) const
 {
     const uint16_t nvarw = _varw.size(), nkp = _kp.size();
-    ss << _w << _h << _b << _style << nvarw << nkp << _name.c_str();
+    FixedInfo::write (ss);
+    ss << nvarw << nkp << _name.c_str();
     if (nvarw) {
 	ss << _cpmap;
 	ss.write (&_varw[0], _varw.size() * sizeof(decltype(_varw)::value_type));

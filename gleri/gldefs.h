@@ -504,7 +504,7 @@ union KerningPair {
     inline bool		operator< (const KerningPair& k) const	{ return v < k.v; }
 };
 
-class Info {
+class FixedInfo {	// for fixed-width fonts
 public:
     enum class Style : uint16_t {
 	Regular,
@@ -513,15 +513,35 @@ public:
 	BoldItalic
     };
 public:
+    constexpr		FixedInfo (dim_t w, dim_t h)	:_w(w),_h(h),_b(0),_style(Style::Regular) {}
+    constexpr		FixedInfo (void)		: FixedInfo(0,0) {}
+    constexpr Style	FontStyle (void) const		{ return _style; }
+    constexpr dim_t	Height (void) const		{ return _h; }
+    constexpr dim_t	Width (void) const		{ return _w; }
+    constexpr uint8_t	Baseline (void) const		{ return _b; }
+    constexpr bool	IsFixed (void) const		{ return true; }
+    constexpr bool	HasKerning (void) const		{ return false; }
+    constexpr dim_t	Width (uint16_t) const noexcept	{ return Width(); }
+    inline dim_t	Width (const char* s) const noexcept	{ return Width()*strlen(s); }
+    inline dim_t	Width (const string& s) const noexcept	{ return Width()*s.length(); }
+    inline void		read (bstri& is)		{ is >> _w >> _h >> _b >> _style; }
+    inline void		write (bstro& os) const		{ os << _w << _h << _b << _style; }
+    inline void		write (bstrs& ss) const		{ ss << _w << _h << _b << _style; }
+protected:
+    dim_t		_w,_h;
+    dim_t		_b;
+    Style		_style;
+};
+
+class Info : public FixedInfo {
+public:
 			Info (void);
 			Info (dim_t w, dim_t h);
     const string&	Name (void) const		{ return _name; }
-    inline Style	FontStyle (void) const		{ return _style; }
-    inline dim_t	Height (void) const		{ return _h; }
-    inline dim_t	Width (void) const		{ return _w; }
-    inline uint8_t	Baseline (void) const		{ return _b; }
+    constexpr dim_t	Width (void) const		{ return FixedInfo::Width(); }
     dim_t		Width (uint16_t c) const noexcept PURE;
     dim_t		Width (const char* s) const noexcept;
+    inline dim_t	Width (const string& s) const noexcept	{ return Width (s.c_str()); }
     int16_t		Kerning (uint16_t c1, uint16_t c2) const noexcept PURE;
     inline bool		IsFixed (void) const		{ return _varw.empty(); }
     inline bool		HasKerning (void) const		{ return !_kp.empty(); }
@@ -529,9 +549,6 @@ public:
     void		write (bstro& os) const;
     void		write (bstrs& ss) const;
 protected:
-    dim_t		_w,_h;
-    dim_t		_b;
-    Style		_style;
     CPMap		_cpmap;
     string		_name;
     vector<uint8_t>	_varw;
