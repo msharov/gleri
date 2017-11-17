@@ -7,9 +7,13 @@ LIBDEPS	:= ${LIBOBJ:.o=.d}
 LIBA_R	:= $Olib${NAME}.a
 LIBA_D	:= $Olib${NAME}_d.a
 ifdef DEBUG
-LIBA	:= ${LIBA_D}
+    LIBA := ${LIBA_D}
 else
-LIBA	:= ${LIBA_R}
+    LIBA := ${LIBA_R}
+endif
+RGLLIBS	:= ${LIBA}
+ifdef USE_USTL
+    RGLLIBS += ${USTLLIBS}
 endif
 
 ################ Compilation ###########################################
@@ -72,8 +76,8 @@ gleri/clean:
 	fi
 
 $Ogleri/.d:	$O.d
-	@[ -d $Ogleri ] || mkdir $Ogleri
-	@touch $Ogleri/.d
+	@[ -d $(dir $@) ] || mkdir $(dir $@)
+	@touch $@
 
 ${LIBOBJ}:	${MKDEPS} gleri/Module.mk $Ogleri/.d
 

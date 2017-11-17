@@ -5,10 +5,6 @@ test/EXE	:= $Otest/${test/NAME}
 test/SRCS	:= $(wildcard test/*.cc)
 test/OBJS	:= $(addprefix $O,$(test/SRCS:.cc=.o))
 test/DEPS	:= $(test/OBJS:.o=.d)
-test/LIBS	:= ${LIBA}
-ifdef USE_USTL
-test/LIBS	+= -lustl -lsupc++
-endif
 
 ################ Compilation ###########################################
 
@@ -27,7 +23,7 @@ test/check:	${test/EXE} ${EXE}
 
 ${test/EXE}:	${test/OBJS} ${EXE} ${LIBA}
 	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ ${test/OBJS} ${test/LIBS}
+	@${LD} ${LDFLAGS} -o $@ ${test/OBJS} ${RGLLIBS}
 
 ################ Maintenance ###########################################
 
@@ -39,7 +35,8 @@ test/clean:
 	fi
 
 $Otest/.d:	$O.d
-	@mkdir $Otest && touch $Otest/.d
+	@[ -d $(dir $@) ] || mkdir $(dir $@)
+	@touch $@
 
 ${test/OBJS}: ${MKDEPS} test/Module.mk $Otest/.d
 

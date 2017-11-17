@@ -1,50 +1,64 @@
 ################ Source files ##########################################
 
 DSRC	:= data/ter-d18b.psf $(wildcard data/sh/*)
-DSRCB	:= $(subst data/,,${DSRC})
-MKDCC	:= $Odata/mkdata
-PAK	:= $Odata/resource.pak
+GLPAK	:= $Odata/gleripak
 DCC	:= $Odata/data.cc
 DCO	:= $Odata/data.o
 DHH	:= $Odata/data.h
-DCCDEPS	:= ${DCC:.cc=.d} ${MKDCC}.d
+DCCDEPS	:= ${DCC:.cc=.d} ${GLPAK}.d
 
 ################ Compilation ###########################################
 
-${MKDCC}:	${MKDCC}.o
+all:	data/all
+data/all:	${GLPAK}
+
+${GLPAK}:	${GLPAK}.o ${LIBA}
 	@echo "Linking $@ ..."
-ifdef USE_USTL
-	@${LD} ${LDFLAGS} -o $@ $< -lustl
-else
-	@${LD} ${LDFLAGS} -o $@ $<
-endif
+	@${LD} ${LDFLAGS} -o $@ $< -lz ${RGLLIBS}
 
-${PAK}:	${DSRC} ${MKDCC}.o
-	@echo "    Collecting data files ..."
-	@echo ${DSRCB}|xargs -n1 echo|(cd data; cpio -o 2>/dev/null)|gzip -9 > $@
+${DCC}:	${DSRC} ${GLPAK}
+	@echo "    Creating $@ ..."
+	@${GLPAK} -c -b data/ -v File_resource $@ ${DSRC}
 
-${DHH}:	${PAK} ${MKDCC}
-	@echo "    Compiling $< ..."
-	@${MKDCC} $<
-
-${DCC} iconn.cc:	${DHH}
+${DHH}:		${DCC}
+iconn.cc:	${DHH}
 
 ${DCO}:	${DCC}
 	@echo "    Compiling $< ..."
-	@${CXX} ${CXXFLAGS} -MMD -MT "$(<:.cc=.s) $@" -o $@ -c $<
+	@${CXX} ${CXXFLAGS} -MMD -MT "$(<:.cc=.s) $@" -O0 -o $@ -c $<
+
+################ Installation ##########################################
+
+ifdef BINDIR
+GLPAKI	:= ${BINDIR}/$(notdir ${GLPAK})
+
+install:	data/install
+data/install:	${GLPAKI}
+${GLPAKI}:	${GLPAK}
+	@echo "Installing $< as $@ ..."
+	@${INSTALLEXE} $< $@
+
+uninstall:	data/uninstall
+data/uninstall:
+	@if [ -f ${GLPAKI} ]; then\
+	    echo "Removing ${GLPAKI} ...";\
+	    rm -f ${GLPAKI};\
+	fi
+endif
 
 ################ Maintenance ###########################################
 
 clean:	data/clean
 data/clean:
 	@if [ -d $Odata ]; then\
-	    rm -f ${MKDCC} ${MKDCC}.o ${PAK} ${DCC} ${DHH} ${DCO} ${DCCDEPS} $Odata/.d;\
+	    rm -f ${GLPAK} ${GLPAK}.o ${DCC} ${DHH} ${DCO} ${DCCDEPS} $Odata/.d;\
 	    rmdir $Odata;\
 	fi
 
 $Odata/.d:	$O.d
-	@mkdir $Odata && touch $Odata/.d
+	@[ -d $(dir $@) ] || mkdir $(dir $@)
+	@touch $@
 
-${PAK} ${DCC} ${DHH} ${MKDCC} ${MKDCC}.o ${DCO}: ${MKDEPS} data/Module.mk $Odata/.d
+${DCC} ${DHH} ${GLPAK} ${GLPAK}.o ${DCO}: ${MKDEPS} data/Module.mk $Odata/.d
 
 -include ${DCCDEPS}

@@ -13,7 +13,7 @@ namespace {
 static inline bool AtomicSet (bool* p)
 {
 #if __x86__
-    bool o (true);
+    bool o = true;
     asm ("xchg\t%0, %1":"+m"(*p),"+r"(o));
     return !o;
 #elif __GNUC__ >= 4
@@ -40,7 +40,7 @@ static inline bool _printable (char c)
 
 void hexdump (const void* pv, size_t n) noexcept
 {
-    const uint8_t* p = (const uint8_t*) pv;
+    auto p = reinterpret_cast<const uint8_t*>(pv);
     uint8_t line[65]; line[64] = '\n';
     for (size_t i = 0; i < n; i += 16) {
 	memset (line, ' ', sizeof(line)-1);

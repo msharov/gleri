@@ -17,7 +17,7 @@ public:
     enum : uint64_t { NoTimer = UINT64_MAX };
 public:
     inline		CApp (void);
-    static inline CApp&	Instance (void)		{ assert (gs_pApp); return *gs_pApp; }
+    static auto&	Instance (void)		{ assert (gs_pApp); return *gs_pApp; }
     static uint64_t	NowMS (void) noexcept;
     void		WaitForTime (uint64_t tms);
     inline void		Init (argc_t, argv_t argv, int logfac = LOG_USER, int logopt = LOG_CONS| LOG_PERROR)	{ openlog (argv[0], logopt, logfac); }
@@ -79,7 +79,7 @@ inline int Tmain (typename App::argc_t argc, typename App::argv_t argv)
 {
     int ec = EXIT_FAILURE;
     try {
-	App& app (App::Instance());
+	auto& app (App::Instance());
 	app.Init (argc, argv);
 	ec = app.Run();
     } catch (XError& e) {

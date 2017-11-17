@@ -70,6 +70,7 @@ if [ -z "$CC" ]; then
     for i in gcc clang cc g++ clang++ c++; do
 	CC=`which $i 2>/dev/null` && break
     done
+    CC=`basename $CC`
 fi
 [ -z "$CC" ] && "No C compiler found" && die
 

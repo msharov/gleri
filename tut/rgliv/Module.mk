@@ -4,10 +4,6 @@ tut/rgliv/EXE	:= $Otut/rgliv/rgliv
 tut/rgliv/SRCS	:= $(wildcard tut/rgliv/*.cc)
 tut/rgliv/OBJS	:= $(addprefix $O,$(tut/rgliv/SRCS:.cc=.o))
 tut/rgliv/DEPS	:= $(tut/rgliv/OBJS:.o=.d)
-tut/rgliv/LIBS	:= ${LIBA}
-ifdef USE_USTL
-tut/rgliv/LIBS	+= -lustl -lsupc++
-endif
 
 ################ Compilation ###########################################
 
@@ -20,9 +16,9 @@ tut/rgliv/all:	${tut/rgliv/EXE}
 tut/rgliv/run:	${tut/rgliv/EXE} ${EXE}
 	@PATH="." ./${tut/rgliv/EXE}
 
-${tut/rgliv/EXE}:	${tut/rgliv/OBJS} ${EXE} ${LIBA}
+${tut/rgliv/EXE}:	${tut/rgliv/OBJS} ${LIBA}
 	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ ${tut/rgliv/OBJS} ${tut/rgliv/LIBS}
+	@${LD} ${LDFLAGS} -o $@ ${tut/rgliv/OBJS} ${RGLLIBS}
 
 ################ Installation ##########################################
 
@@ -53,7 +49,8 @@ tut/rgliv/clean:
 	fi
 
 $Otut/rgliv/.d:	$Otut/.d
-	@mkdir $Otut/rgliv && touch $Otut/rgliv/.d
+	@[ -d $(dir $@) ] || mkdir $(dir $@)
+	@touch $@
 
 ${tut/rgliv/OBJS}: ${MKDEPS} tut/rgliv/Module.mk $Otut/rgliv/.d
 

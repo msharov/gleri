@@ -4,10 +4,6 @@ tut/hello/EXE	:= $Otut/hello/hello
 tut/hello/SRCS	:= $(wildcard tut/hello/*.cc)
 tut/hello/OBJS	:= $(addprefix $O,$(tut/hello/SRCS:.cc=.o))
 tut/hello/DEPS	:= $(tut/hello/OBJS:.o=.d)
-tut/hello/LIBS	:= ${LIBA}
-ifdef USE_USTL
-tut/hello/LIBS	+= -lustl -lsupc++
-endif
 
 ################ Compilation ###########################################
 
@@ -20,9 +16,9 @@ tut/hello/all:	${tut/hello/EXE}
 tut/hello/run:	${tut/hello/EXE} ${EXE}
 	@PATH="$O" ${tut/hello/EXE}
 
-${tut/hello/EXE}:	${tut/hello/OBJS} ${EXE} ${LIBA}
+${tut/hello/EXE}:	${tut/hello/OBJS} ${LIBA}
 	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ ${tut/hello/OBJS} ${tut/hello/LIBS}
+	@${LD} ${LDFLAGS} -o $@ ${tut/hello/OBJS} ${RGLLIBS}
 
 ################ Maintenance ###########################################
 
@@ -34,7 +30,8 @@ tut/hello/clean:
 	fi
 
 $Otut/hello/.d:	$Otut/.d
-	@mkdir $Otut/hello && touch $Otut/hello/.d
+	@[ -d $(dir $@) ] || mkdir $(dir $@)
+	@touch $@
 
 ${tut/hello/OBJS}: ${MKDEPS} tut/hello/Module.mk $Otut/hello/.d
 

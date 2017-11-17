@@ -19,12 +19,12 @@ ONAME	:= $(notdir $(abspath $O))
 
 all:	${EXE}
 
-include data/Module.mk
 include gleri/Module.mk
+include data/Module.mk
 
 ${EXE}:	${OBJ} ${DCO} ${LIBA}
 	@echo "Linking $@ ..."
-	@${LD} ${LDFLAGS} -o $@ ${OBJ} ${DCO} ${LIBA} ${LIBS}
+	@${LD} ${LDFLAGS} -o $@ ${OBJ} ${DCO} ${LIBS} ${RGLLIBS}
 
 $O%.o:	%.cc
 	@echo "    Compiling $< ..."
@@ -74,9 +74,11 @@ maintainer-clean: distclean
 $O.d:	${BUILDDIR}/.d
 	@[ -h ${ONAME} ] || ln -sf ${BUILDDIR} ${ONAME}
 ${BUILDDIR}/.d:	Makefile
-	@mkdir -p ${BUILDDIR} && touch ${BUILDDIR}/.d
+	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
+	@touch $@
 $Otut/.d:	$O.d
-	@mkdir $Otut && touch $Otut/.d
+	@[ -d $(dir $@) ] || mkdir $(dir $@)
+	@touch $@
 
 ${CONFS}:	configure Config.mk.in config.h.in gleri/config.h.in
 	@if [ -x config.status ]; then\

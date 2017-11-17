@@ -93,7 +93,7 @@ size_t CFile::Read (void* d, size_t dsz)
 
 void CFile::Write (const void* d, size_t dsz)
 {
-    auto p = (const char*) d;
+    auto p = reinterpret_cast<const char*>(d);
     while (dsz) {
 	auto bw = write (_fd, p, dsz);
 	if (bw <= 0) {
