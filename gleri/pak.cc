@@ -1,4 +1,6 @@
 #include "pak.h"
+#include "mmfile.h"
+#include "gldefs.h"
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <zlib.h>
@@ -7,48 +9,28 @@
 
 pakbuf_t ReadFileToPakbuf (const char* filename)
 {
-    pakbuf_t v;
-    int fd = open (filename, O_RDONLY);
-    if (fd >= 0) {
-	struct stat st;
-	if (0 == fstat (fd, &st) && S_ISREG(st.st_mode) && st.st_size < (1u<<23)) {
-	    v.resize (st.st_size);
-	    ssize_t vsz = 0;
-	    while (vsz < st.st_size) {
-		ssize_t br = read (fd, &v[vsz], st.st_size-vsz);
-		if (br <= 0 && errno != EINTR) {
-		    v.clear();
-		    break;
-		}
-		vsz += br;
-	    }
-	}
-    }
-    close (fd);
+    CFile f (filename, O_RDONLY);
+    auto st = f.Stat();
+    if (!S_ISREG(st.st_mode) || st.st_size >= (1u<<23))
+	throw XError ("invalid file '%s'", filename);
+    pakbuf_t v (st.st_size);
+    f.Read (&v[0], st.st_size);
     return v;
 }
 
-int WritePakbufToFd (const pakbuf_t& v, int fd) noexcept
+void WritePakbufToFd (const pakbuf_t& v, int fd)
 {
-    size_t tbw = 0;
-    while (tbw < v.size()) {
-	ssize_t bw = write (fd, &v[tbw], v.size()-tbw);
-	if (bw <= 0 && errno != EINTR)
-	    return -1;
-	tbw += bw;
-    }
-    return 0;
+    CFile f (fd);
+    f.Write (&v[0], v.size());
+    f.Detach();
 }
 
-int WritePakbufToFile (const pakbuf_t& v, const char* filename) noexcept
+void WritePakbufToFile (const pakbuf_t& v, const char* filename)
 {
-    int fd = open (filename, O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
-    if (fd < 0)
-	return -1;
-    int rv = WritePakbufToFd (v, fd);
-    if (0 > close (fd))
-	rv = -1;
-    return rv;
+    CFile::CreateParentPath (filename);
+    CFile f (filename, O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
+    f.Write (&v[0], v.size());
+    f.Close();
 }
 
 //}}}-------------------------------------------------------------------

@@ -1,5 +1,6 @@
 #include "../gleri/app.h"
 #include "../gleri/pak.h"
+#include "../gleri/mmfile.h"
 #include <sys/stat.h>
 
 class CGleriPakApp : public CApp {
@@ -151,40 +152,6 @@ void CGleriPakApp::ReadAllInputFiles (pakbuf_t& outbuf) const
     }
 }
 
-static void writefd (int fd, const char* buf, size_t bufsz)
-{
-    while (bufsz) {
-	auto bw = write (fd, buf, bufsz);
-	if (bw <= 0 && errno != EINTR)
-	    throw XError ("write error: %s", strerror(errno));
-	buf += bw;
-	bufsz -= bw;
-    }
-}
-
-static void writefile (const char* filename, const char* buf, size_t bufsz)
-{
-    // Create parent directories, if needed
-    char fnpath [PATH_MAX];
-    fnpath[1] = 0;
-    snprintf (ArrayBlock(fnpath), "%s", filename);
-    for (char* pdir = fnpath+1; *pdir; ++pdir) {
-	if (*pdir == '/') {
-	    *pdir = 0;
-	    if (0 > mkdir (fnpath, S_IRWXU) && errno != EEXIST)
-		throw XError ("failed to create directory '%s': %s", fnpath, strerror(errno));
-	    *pdir = '/';
-	}
-    }
-
-    int fd = open (filename, O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
-    if (fd < 0)
-	throw XError ("failed to create '%s': %s", filename, strerror(errno));
-    writefd (fd, buf, bufsz);
-    if (0 > close (fd))
-	throw XError ("failed to close '%s': %s", filename, strerror(errno));
-}
-
 void CGleriPakApp::ExtractPakbufContents (const pakbuf_t& outbuf) const
 {
     auto ife = PakbufBegin (outbuf);
@@ -201,9 +168,12 @@ void CGleriPakApp::ExtractPakbufContents (const pakbuf_t& outbuf) const
 	    XError::emit ("file data corrupted");
 	if (0 == strcmp (fn, CPIO_TRAILER_FILENAME))
 	    continue;
-	if (_bExtract)
-	    writefile (fn, reinterpret_cast<const char*>(fdp), fsz);
-	else
+	if (_bExtract) {
+	    CFile::CreateParentPath (fn);
+	    CFile f (fn, O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
+	    f.Write (fdp, fsz);
+	    f.Close();
+	} else
 	    printf ("%u\t%s\n", fsz, fn);
     }
     if (ife != ifeend)
@@ -212,12 +182,11 @@ void CGleriPakApp::ExtractPakbufContents (const pakbuf_t& outbuf) const
 
 void CGleriPakApp::WriteAsSourceCode (const pakbuf_t& outbuf) const
 {
-    int ofd = STDOUT_FILENO;
-    if (_outfilename != "-") {	// "-" specifies writing to stdout
-	ofd = open (_outfilename.c_str(), O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
-	if (ofd < 0)
-	    throw XError ("error creating archive '%s': %s", _outfilename.c_str(), strerror(errno));
-    }
+    CFile sf;
+    if (_outfilename == "-")	// "-" specifies writing to stdout
+	sf.Attach (STDOUT_FILENO);
+    else
+	sf.Open (_outfilename.c_str(), O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
 
     // Write the data
     char line [256];
@@ -228,7 +197,7 @@ void CGleriPakApp::WriteAsSourceCode (const pakbuf_t& outbuf) const
 			_varname.c_str(),
 			_varname.c_str(), outbuf.size(),
 			_varname.c_str(), outbuf.size());
-    writefd (ofd, line, linesz);
+    sf.Write (line, linesz);
     for (size_t i = 0; i < outbuf.size();) {
 	linesz = 0;
 	line[linesz++] = '\t';
@@ -236,43 +205,37 @@ void CGleriPakApp::WriteAsSourceCode (const pakbuf_t& outbuf) const
 	    linesz += snprintf (&line[linesz], ArraySize(line)-linesz, "%hhu,", outbuf[i]);
 	linesz -= (i == outbuf.size());	// remove last comma
 	line[linesz++] = '\n';
-	writefd (ofd, line, linesz);
+	sf.Write (line, linesz);
     }
     linesz = snprintf (ArrayBlock(line), "};\n//""}}}-------------------------------------------------------------------\n");
-    writefd (ofd, line, linesz);
+    sf.Write (line, linesz);
 
     // Close, if not stdout
-    if (ofd != STDOUT_FILENO && 0 > close (ofd))
-	throw XError ("error closing archive '%s': %s", _outfilename.c_str(), strerror(errno));
+    if (sf.Fd() != STDOUT_FILENO)
+	sf.Close();
 
     // Write a header if have a .cc file
     if (_outfilename.size() > strlen(CPP_EXTENSION)
 	    && _outfilename.size()-strlen(CPP_EXTENSION) == _outfilename.rfind (CPP_EXTENSION)) {
 	auto headername = _outfilename;
 	headername.replace (headername.size()-strlen(CPP_EXTENSION), strlen(CPP_EXTENSION), ".h");
-	int hfd = open (headername.c_str(), O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
-	if (hfd < 0)
-	    throw XError ("error creating header '%s': %s", headername.c_str(), strerror(errno));
+	CFile hf (headername.c_str(), O_WRONLY| O_CREAT| O_TRUNC, DEFFILEMODE);
 	linesz = snprintf (ArrayBlock(line),
 			"extern \"C\" const unsigned int %s_size;\n"
 			"extern \"C\" const unsigned char %s [%zu];\n",
 			_varname.c_str(),
 			_varname.c_str(), outbuf.size());
-	writefd (ofd, line, linesz);
-	if (0 > close (hfd))
-	    throw XError ("error closing header '%s': %s", headername.c_str(), strerror(errno));
+	hf.Write (line, linesz);
+	hf.Close();
     }
 }
 
 void CGleriPakApp::WriteBinaryArchive (const pakbuf_t& outbuf) const
 {
-    int wok;
     if (_outfilename == "-")
-	wok = WritePakbufToFd (outbuf, STDOUT_FILENO);
+	WritePakbufToFd (outbuf, STDOUT_FILENO);
     else
-	wok = WritePakbufToFile (outbuf, _outfilename.c_str());
-    if (wok != 0)
-	throw XError ("error writing archive '%s': %s", _outfilename.c_str(), strerror(errno));
+	WritePakbufToFile (outbuf, _outfilename);
 }
 
 GLERI_APP (CGleriPakApp)

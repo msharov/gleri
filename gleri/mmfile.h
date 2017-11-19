@@ -7,6 +7,7 @@
 #include "util.h"
 #include <sys/mman.h>
 #include <sys/poll.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <sys/un.h>
@@ -33,13 +34,15 @@ public:
     inline void		Bind (uint32_t addr, uint16_t port, unsigned backlog = c_DefaultBacklog);
     inline bool		Connect (const char* sockpath);
     inline bool		Connect (uint32_t addr, uint16_t port);
+    static void		CreateParentPath (const char* filename);
     void		Close (void);
-    inline void		ForceClose (void) noexcept	{ auto fd = Detach(); if (fd >= 0) close(fd); }
-    size_t		Size (void) const;
+    inline void		ForceClose (void) noexcept	{ auto fd = Detach(); if (fd > STDERR_FILENO) close(fd); }
     size_t		Read (void* d, size_t dsz);
     void		Write (const void* d, size_t dsz);
     void*		Map (size_t dsz);
     void		Unmap (void* d, size_t dsz) noexcept	{ munmap (d, dsz); }
+    struct stat		Stat (void) const;
+    auto		Size (void) const		{ return Stat().st_size; }
     void		CopyTo (CFile& outf, size_t n);
 #if HAVE_SYS_SENDFILE_H
     void		SendfileTo (CFile& outf, size_t n);

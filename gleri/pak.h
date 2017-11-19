@@ -43,8 +43,8 @@ private:
 //{{{ Prototypes
 
 pakbuf_t ReadFileToPakbuf (const char* filename);
-int WritePakbufToFd (const pakbuf_t& v, int fd) noexcept;
-int WritePakbufToFile (const pakbuf_t& v, const char* filename) noexcept;
+void WritePakbufToFd (const pakbuf_t& v, int fd);
+void WritePakbufToFile (const pakbuf_t& v, const char* filename);
 pakbuf_t DecompressPakbuf (pakbuf_t::const_pointer buf, size_t bufsz);
 pakbuf_t CompressPakbuf (const pakbuf_t& v);
 void AddFileToPakbuf (pakbuf_t& pk, const char* filename);

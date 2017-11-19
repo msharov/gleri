@@ -68,6 +68,21 @@ bool CFile::BindSystemdFd (int fd, sa_family_t family)
     return true;
 }
 
+void CFile::CreateParentPath (const char* filename) // static
+{
+    char fnpath [PATH_MAX];
+    fnpath[1] = 0;
+    snprintf (ArrayBlock(fnpath), "%s", filename);
+    for (char* pdir = fnpath+1; *pdir; ++pdir) {
+	if (*pdir == '/') {
+	    *pdir = 0;
+	    if (0 > mkdir (fnpath, S_IRWXU) && errno != EEXIST)
+		throw XError ("failed to create directory '%s': %s", fnpath, strerror(errno));
+	    *pdir = '/';
+	}
+    }
+}
+
 void CFile::Close (void)
 {
     if (_fd >= 0 && 0 != close (_fd))
@@ -109,20 +124,20 @@ void CFile::Write (const void* d, size_t dsz)
     }
 }
 
-size_t CFile::Size (void) const
-{
-    struct stat st;
-    if (0 > fstat (_fd, &st) || !S_ISREG(st.st_mode))
-	Error ("stat");
-    return st.st_size;
-}
-
 void* CFile::Map (size_t dsz)
 {
     auto p = mmap (nullptr, dsz, PROT_READ, MAP_PRIVATE, _fd, 0);
     if (p == MAP_FAILED)
 	Error ("mmap");
     return p;
+}
+
+struct stat CFile::Stat (void) const
+{
+    struct stat st;
+    if (0 > fstat (_fd, &st))
+	Error ("stat");
+    return st;
 }
 
 void CFile::CopyTo (CFile& outf, size_t n)
