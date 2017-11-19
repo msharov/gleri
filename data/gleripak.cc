@@ -21,7 +21,7 @@ private:
     vector<string>	_infiles;
     bool		_bCOutput:1;
     bool		_bUncompressed:1;
-    bool		_bTestOnly:1;
+    bool		_bExtract:1;
 };
 
 CGleriPakApp::CGleriPakApp (void)
@@ -32,7 +32,7 @@ CGleriPakApp::CGleriPakApp (void)
 ,_infiles()
 ,_bCOutput (false)
 ,_bUncompressed (false)
-,_bTestOnly (false)
+,_bExtract (false)
 {
 }
 
@@ -41,13 +41,13 @@ void CGleriPakApp::PrintUsageAndExit (void) // static
     fputs (
 	"gleripak " GLERI_VERSTRING "\n\n"
 	"Manipulates gleri .pak archives, used by the RGL::LoadDatapak API.\n\n"
-	"Usage: gleripak [-bcntx] archive.pak [FILE...]\n\n"
+	"Usage: gleripak [-bcnvx] archive.pak [FILE...]\n\n"
 	"Options:\n"
 	"  -b <base>  Remove given prefix from archived filenames.\n"
 	"  -c   Output the archive as a C++ source file with array.\n"
 	"  -n   Do not compress added files.\n"
-	"  -t   Test the archive and list its contents.\n"
 	"  -v   Set the name of the C++ array variable. Implies -c.\n"
+	"  -x   Extract the archive.\n"
 	, stderr);
     exit (EXIT_FAILURE);
 }
@@ -59,13 +59,13 @@ void CGleriPakApp::Init (argc_t argc, argv_t argv)
 	if (o == 'b')		_prefix = optarg;
 	else if (o == 'c')	_bCOutput = true;
 	else if (o == 'n')	_bUncompressed = true;
-	else if (o == 't')	_bTestOnly = true;
 	else if (o == 'v')	{ _varname = optarg; _bCOutput = true; }
+	else if (o == 'x')	_bExtract = true;
 	else			PrintUsageAndExit();
     }
     if (optind >= argc
 	    || !argv[optind][0]	// no output name given
-	    || (_bTestOnly && optind+1 != argc))
+	    || (_bExtract && optind+1 != argc))
 	PrintUsageAndExit();
 
     // Save filenames
@@ -74,7 +74,7 @@ void CGleriPakApp::Init (argc_t argc, argv_t argv)
 	_infiles.emplace_back (argv[i]);
 
     // Validity checks on filenames
-    if (_bTestOnly || _infiles.empty()) {	// extraction and testing
+    if (_bExtract || _infiles.empty()) {	// extraction and testing
 	if (0 != access (_outfilename.c_str(), R_OK))
 	    throw XError ("archive '%s' is not readable", _outfilename.c_str());
     } else {
@@ -201,10 +201,10 @@ void CGleriPakApp::ExtractPakbufContents (const pakbuf_t& outbuf) const
 	    XError::emit ("file data corrupted");
 	if (0 == strcmp (fn, CPIO_TRAILER_FILENAME))
 	    continue;
-	if (_bTestOnly)
-	    printf ("%u\t%s\n", fsz, fn);
-	else
+	if (_bExtract)
 	    writefile (fn, reinterpret_cast<const char*>(fdp), fsz);
+	else
+	    printf ("%u\t%s\n", fsz, fn);
     }
     if (ife != ifeend)
 	XError::emit ("file data corrupted");
