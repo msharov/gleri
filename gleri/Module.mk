@@ -75,10 +75,6 @@ gleri/clean:
 	    rmdir $O/gleri;\
 	fi
 
-$Ogleri/.d:	$O.d
-	@[ -d $(dir $@) ] || mkdir $(dir $@)
-	@touch $@
-
 ${LIBOBJ}:	${MKDEPS} gleri/Module.mk $Ogleri/.d
 
 -include ${LIBDEPS}

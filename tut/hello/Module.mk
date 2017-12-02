@@ -30,9 +30,6 @@ tut/hello/clean:
 	fi
 
 $Otut/hello/.d:	$Otut/.d
-	@[ -d $(dir $@) ] || mkdir $(dir $@)
-	@touch $@
-
 ${tut/hello/OBJS}: ${MKDEPS} tut/hello/Module.mk $Otut/hello/.d
 
 -include ${tut/hello/DEPS}

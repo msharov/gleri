@@ -34,10 +34,6 @@ test/clean:
 	    rmdir $O/test;\
 	fi
 
-$Otest/.d:	$O.d
-	@[ -d $(dir $@) ] || mkdir $(dir $@)
-	@touch $@
-
 ${test/OBJS}: ${MKDEPS} test/Module.mk $Otest/.d
 
 -include ${test/DEPS}

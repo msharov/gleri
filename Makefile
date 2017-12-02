@@ -71,12 +71,12 @@ distclean:	clean
 
 maintainer-clean: distclean
 
-$O.d:	${BUILDDIR}/.d
-	@[ -h ${ONAME} ] || ln -sf ${BUILDDIR} ${ONAME}
 ${BUILDDIR}/.d:	Makefile
 	@[ -d $(dir $@) ] || mkdir -p $(dir $@)
 	@touch $@
-$Otut/.d:	$O.d
+$O.d:	${BUILDDIR}/.d
+	@[ -h ${ONAME} ] || ln -sf ${BUILDDIR} ${ONAME}
+$O%/.d:	$O.d
 	@[ -d $(dir $@) ] || mkdir $(dir $@)
 	@touch $@
 

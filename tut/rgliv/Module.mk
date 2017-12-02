@@ -49,9 +49,6 @@ tut/rgliv/clean:
 	fi
 
 $Otut/rgliv/.d:	$Otut/.d
-	@[ -d $(dir $@) ] || mkdir $(dir $@)
-	@touch $@
-
 ${tut/rgliv/OBJS}: ${MKDEPS} tut/rgliv/Module.mk $Otut/rgliv/.d
 
 -include ${tut/rgliv/DEPS}

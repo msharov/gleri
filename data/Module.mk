@@ -55,10 +55,6 @@ data/clean:
 	    rmdir $Odata;\
 	fi
 
-$Odata/.d:	$O.d
-	@[ -d $(dir $@) ] || mkdir $(dir $@)
-	@touch $@
-
 ${DCC} ${DHH} ${GLPAK} ${GLPAK}.o ${DCO}: ${MKDEPS} data/Module.mk $Odata/.d
 
 -include ${DCCDEPS}
