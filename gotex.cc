@@ -276,7 +276,6 @@ CTexture::CTexBuf CTexture::LoadPNG (const GLubyte* p, GLuint sz) // static
     switch (png_get_color_type(rs, infos)) {
 	case PNG_COLOR_TYPE_PALETTE:	png_set_palette_to_rgb(rs); break;
 	case PNG_COLOR_TYPE_GRAY:	png_set_gray_to_rgb(rs); break;
-	case PNG_COLOR_TYPE_RGB_ALPHA:	png_set_swap_alpha(rs); break;
     }
     unsigned w = png_get_image_width (rs, infos),
 	    rb = png_get_rowbytes (rs, infos),
