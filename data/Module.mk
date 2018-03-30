@@ -22,6 +22,7 @@ ${DCC}:	${DSRC} ${GLPAK}
 
 ${DHH}:		${DCC}
 iconn.cc:	${DHH}
+$Oiconn.o:	${DHH} ${DCC}
 
 ${DCO}:	${DCC}
 	@echo "    Compiling $< ..."
