@@ -22,6 +22,7 @@ protected:
     virtual void	OnCommand (const char* cmd) override;
     virtual void	OnClipboardData (G::Clipboard ci, G::ClipboardFmt fmt, const char* d) override;
     virtual void	OnClipboardOp (ClipboardOp op, G::Clipboard ci, G::ClipboardFmt fmt) override;
+    virtual void	OnFontInfo (goid_t id, G::Font::Info& info) override;
 private:
     goid_t		_vbuf;
     goid_t		_cbuf;
@@ -44,4 +45,5 @@ private:
     char		_hellomsg [48];
     const char*		_screenshot;
     coord_t		_selrectpts [4][2];
+    G::Font::Info	_vfinfo;
 };

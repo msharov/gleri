@@ -277,6 +277,8 @@ public:
 };
 //}}}2
 
+#define FT_LOAD_METHOD	FT_LOAD_RENDER| FT_LOAD_TARGET_LIGHT
+
 void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 {
     OFT_Library library;
@@ -341,34 +343,24 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 		delta.x = 0;
 		FT_Get_Kerning (face, g1, g2, FT_KERNING_DEFAULT, &delta);
 		if (delta.x)
-		    kerns.push_back ((G::Font::KerningPair){int16_t(delta.x>>6),0,c2,c1});
+		    kerns.push_back ((G::Font::KerningPair){int16_t(DivRU(delta.x,64)),0,c2,c1});
 	    }
 	}
     }
 
     auto mw = fontSize, mh = fontSize, bl = fontSize;
     if (cm['M']) {
-	if (FT_Load_Char (face, 'M', FT_LOAD_RENDER))
+	if (FT_Load_Char (face, 'M', FT_LOAD_METHOD))
 	    XError::emit ("Freetype error FT_Load_Char");
-	mw = face->glyph->advance.x / 64;
+	mw = DivRU (face->glyph->advance.x, 64);
 	mh = face->glyph->bitmap.rows;
 	bl = face->glyph->bitmap_top;
 	if (!FT_IS_SCALABLE (face))
 	    fontSize = mh;
     }
     if (FT_IS_SCALABLE (face)) {
-	enum { VLINE_CHAR = 0x2502 };
-	if (cm[VLINE_CHAR]) {
-	    if (FT_Load_Char (face, VLINE_CHAR, FT_LOAD_RENDER))
-		XError::emit ("Freetype error FT_Load_Char");
-	    fontSize = face->glyph->bitmap.rows;
-	    bl = face->glyph->bitmap_top;
-	} else {
-	    // Available fonts do not appear to have any way to get line height
-	    // These metrics are close, but usually off by a few pixels
-	    fontSize = face->size->metrics.height/64;
-	    bl = fontSize + face->size->metrics.descender/64;
-	}
+	fontSize = DivRU (face->size->metrics.height, 64);
+	bl = DivRU (face->size->metrics.ascender, 64);
     }
     _info.SetSize (mw, fontSize, bl);
     _info.SetName (face->family_name);
@@ -399,7 +391,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	usedglyphs[g] = c;
 
 	// Render the glyph
-	if (FT_Load_Char (face, c, FT_LOAD_RENDER))
+	if (FT_Load_Char (face, c, FT_LOAD_METHOD))
 	    XError::emit ("Freetype error FT_Load_Char");
 	auto& glyph = *face->glyph;
 
@@ -417,7 +409,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 	gi.bx = glyph.bitmap_left;
 	gi.by = _info.Baseline() - glyph.bitmap_top;
 	if (!FT_IS_FIXED_WIDTH(face))
-	    _info.SetWidth (c, glyph.advance.x / 64);
+	    _info.SetWidth (c, DivRU (glyph.advance.x, 64));
 
 	rh = max<uint16_t> (rh, gi.h+1);
 	while (y + rh > texh)		// Overflow bottom, expand texture
@@ -425,7 +417,7 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
 
 	auto o = &ftexbmp[(y << texwe) + x];
 	RenderGlyphOnTexture (glyph.bitmap, o, texw);
-	x += gi.w+1;
+	x += gi.w+1;			// +1 spacing between glyphs
     }
     texh = y + rh;
 
