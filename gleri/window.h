@@ -81,13 +81,13 @@ private:
 
 CWindow::CWindow (iid_t wid) noexcept
 : PRGL(wid)
+,_info()
 ,_vsync()
 ,_nextVSync (NotWaitingForVSync)
 ,_drawPending (false)
 ,_closePending (false)
 ,_destroyPending (false)
 {
-    memset (&_info,0,sizeof(_info));
     _vsync.key = 1000000000/60;
 }
 
