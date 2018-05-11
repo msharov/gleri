@@ -188,15 +188,15 @@ CTexture::CTexBuf CTexture::Load (const GLubyte* p, GLuint psz) // static
     auto& magic = *reinterpret_cast<const uint32_t*>(p);
     if (magic == G::Texture::GLTXHeader::Magic)
 	return LoadGLTX (p, psz);
-    #if HAVE_PNG_H
+    #if __has_include(<png.h>)
     else if (magic == vpack4(0x89,'P','N','G'))
 	return LoadPNG (p, psz);
     #endif
-    #if HAVE_JPEGLIB_H
+    #if __has_include(<jpeglib.h>)
     else if (uint16_t(magic) == vpack2(0xff,0xd8))
 	return LoadJPG (p, psz);
     #endif
-    #if HAVE_GIF_LIB_H
+    #if __has_include(<gif_lib.h>)
     else if (magic == vpack4('G','I','F','8'))
 	return LoadGIF (p, psz);
     #endif
@@ -210,11 +210,11 @@ void CTexture::Save (int fd, GLuint x, GLuint y, GLuint w, GLuint h, G::Texture:
     glReadPixels (x, y, w, h, tbuf.Info().fmt, tbuf.Info().comp, tbuf.Data());
     if (fmt == G::Texture::Format::GLTX)
 	tbuf.Save (fd);
-    #if HAVE_PNG_H
+    #if __has_include(<png.h>)
     else if (fmt == G::Texture::Format::PNG)
 	SavePNG (fd, tbuf);
     #endif
-    #if HAVE_JPEGLIB_H
+    #if __has_include(<jpeglib.h>)
     else if (fmt == G::Texture::Format::JPEG)
 	SaveJPG (fd, tbuf, quality);
     #endif
@@ -235,7 +235,7 @@ CTexture::CTexBuf CTexture::LoadGLTX (const GLubyte* p, GLuint psz) // static
 //}}}-------------------------------------------------------------------
 //{{{ PNG format
 
-#if HAVE_PNG_H
+#if __has_include(<png.h>)
 #include <png.h>
 
 namespace {
@@ -333,7 +333,7 @@ void CTexture::SavePNG (int fd, const CTexBuf& tbuf) // static
 //}}}-------------------------------------------------------------------
 //{{{ JPG format
 
-#if HAVE_JPEGLIB_H
+#if __has_include(<jpeglib.h>)
 #include <jpeglib.h>
 #include <jerror.h>
 
@@ -407,7 +407,7 @@ void CTexture::SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality) // static
 //}}}-------------------------------------------------------------------
 //{{{ GIF format
 
-#if HAVE_GIF_LIB_H
+#if __has_include(<gif_lib.h>)
 #include <gif_lib.h>
 
 namespace {

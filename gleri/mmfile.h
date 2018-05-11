@@ -44,7 +44,7 @@ public:
     struct stat		Stat (void) const;
     auto		Size (void) const		{ return Stat().st_size; }
     void		CopyTo (CFile& outf, size_t n);
-#if HAVE_SYS_SENDFILE_H
+#if __has_include(<sys/sendfile.h>)
     void		SendfileTo (CFile& outf, size_t n);
 #else
     inline void		SendfileTo (CFile& outf, size_t n)	{ CopyTo (outf, n); }

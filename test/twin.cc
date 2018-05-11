@@ -105,11 +105,11 @@ void CTestWindow::OnInit (void)
     _vbuf = BufferData (G::ARRAY_BUFFER, _vdata1, sizeof(_vdata1));
     _cbuf = BufferData (G::ARRAY_BUFFER, _cdata1, sizeof(_cdata1));
     _selrectbuf = BufferData (G::ARRAY_BUFFER, _selrectpts, sizeof(_selrectpts));
-#if HAVE_PNG_H
+#if __has_include(<png.h>)
     TexParameter (G::Texture::MAG_FILTER, G::Texture::LINEAR);
     _walk = LoadTexture (G::TEXTURE_2D, "test/princess.png", G::Pixel::COMPRESSED_RGBA);
 #endif
-#if HAVE_JPEGLIB_H
+#if __has_include(<jpeglib.h>)
     _cat = LoadTexture (G::TEXTURE_2D, "test/pgcat.jpg", G::Pixel::RGB);
 #endif
     _gradShader = LoadShader (c_gradShader_v, c_gradShader_f);
@@ -122,7 +122,7 @@ void CTestWindow::OnInit (void)
     _ofscrcol = CreateTexture (G::TEXTURE_2D, 640, 480);
     _ofscrfb = CreateFramebuffer (_ofscrdepth, _ofscrcol);
 
-#if HAVE_FREETYPE
+#if __has_include(<ft2build.h>)
     #define VWFONT_NAME	"/usr/share/fonts/TTF/times.ttf"
     if (access (VWFONT_NAME, R_OK) == 0)
 	_vwfont = LoadFont (VWFONT_NAME, 21);
@@ -323,10 +323,10 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     drw.PointSize (3);
     drw.LineStrip (v_BrokenLineOffset, v_BrokenLineSize);
 
-    #if HAVE_JPEGLIB_H
+    #if __has_include(<jpeglib.h>)
 	drw.Image (700, 20, _cat);
     #endif
-    #if HAVE_PNG_H
+    #if __has_include(<png.h>)
 	drw.Image (200, 75, _walk);
 	drw.Offset (_wx, _wy);
 	drw.Sprite (0, 0, _walk, _wsx, _wsy, walk_SpriteW, walk_SpriteH);
@@ -352,7 +352,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     auto lrt = LastRenderTimeNS(), lft = RefreshTimeNS();
     drw.Textf (10,10, "FPS %6u, VSync %3u", 1000000000/(lrt+!lrt), 1000000000/(lft+!lft));
 
-    #if HAVE_FREETYPE
+    #if __has_include(<ft2build.h>)
 	if (_vwfont) {
 	    drw.Font (_vwfont);
 	    drw.Text (300, 520, c_SelText);
@@ -384,7 +384,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
 
     drw.Framebuffer (_smallfb);
     drw.Clear (RGBA(0,0,48,128));
-    #if HAVE_JPEGLIB_H
+    #if __has_include(<jpeglib.h>)
 	drw.Image (100, 120, _cat);
     #endif
     drw.Color (128,90,150,220);
@@ -413,7 +413,7 @@ DRAWFBIMPL(CTestWindow,Offscreen)
     drw.Color (255,255,255);
     drw.LineStrip (v_BrokenLineOffset, v_BrokenLineSize);
 
-    #if HAVE_JPEGLIB_H
+    #if __has_include(<jpeglib.h>)
 	drw.Image (320, 240, _cat);
     #endif
 

@@ -4,7 +4,7 @@
 // This file is free software, distributed under the MIT License.
 
 #include "gofont.h"
-#if HAVE_FREETYPE
+#if __has_include(<ft2build.h>)
 #include <ft2build.h>
 #include FT_FREETYPE_H
 #else
@@ -247,7 +247,7 @@ void CFont::ReadPSF (const uint8_t* p, unsigned psz)
 //}}}-------------------------------------------------------------------
 //{{{ Read freetype
 
-#if !HAVE_FREETYPE
+#if !__has_include(<ft2build.h>)
 void CFont::ReadFreetype (const uint8_t* p UNUSED, unsigned psz UNUSED, uint8_t fontSize UNUSED)
     { XError::emit ("TrueType font support unavailable"); }
 #else

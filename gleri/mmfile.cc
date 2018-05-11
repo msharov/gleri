@@ -7,7 +7,7 @@
 #include "gldefs.h"
 #include "bstr.h"
 #include <sys/stat.h>
-#if HAVE_SYS_SENDFILE_H
+#if __has_include(<sys/sendfile.h>)
     #include <sys/sendfile.h>
 #endif
 
@@ -151,7 +151,7 @@ void CFile::CopyTo (CFile& outf, size_t n)
     }
 }
 
-#if HAVE_SYS_SENDFILE_H
+#if __has_include(<sys/sendfile.h>)
 void CFile::SendfileTo (CFile& outf, size_t n)
 {
     while (n) {

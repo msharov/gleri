@@ -30,9 +30,6 @@ desc=[	Use the uSTL library]
 seds=[s/^#\(USE_USTL\)/\1/;s/#undef \(USE_USTL\)/#define \1 1/]
 }';
 
-# Header files
-HEADERS="ustl.h zlib.h png.h jpeglib.h gif_lib.h GL/gl.h sys/sendfile.h"
-
 # Libraries
 LIBS="GL X11 png jpeg gif z ustl supc++"
 
@@ -183,7 +180,6 @@ s/@docdir@/${ac_var_docdir:=$ac_var_datadir\/doc\/$PKG_NAME}/
 s/@libdir@/${ac_var_libdir:=$ac_var_prefix\/lib}/
 s/@mandir@/$ac_var_datarootdir\/man/
 s/@builddir@/\/tmp\/$USER\/make/
-s/@gccincludedir@/${ac_var_gccincludedir:=`escpath $PINCDIR`}/
 s/@gcclibdir@/${ac_var_gcclibdir:=`escpath $PLIBDIR`}/"
 
 [ -z "$ac_var_customincdir" ] || CINCSUB=" -I$ac_var_customincdir"
@@ -195,17 +191,6 @@ fi
 sub "s/ @CUSTOMINCDIR@/$CINCSUB/;s/ @CUSTOMLIBDIR@/$CLIBSUB/"
 
 #### Find headers, libs, programs, and subs ##########################
-
-INCPATH="$ac_var_includedir $ac_var_gccincludedir $ac_var_customincdir $ac_var_oldincludedir /usr/include/x86_64-linux-gnu"
-INCPATH=`echo $INCPATH | sed 's/\\\\//g'`
-for i in $HEADERS; do
-    for p in $INCPATH; do
-	if [ -r "$p/$i" ]; then
-	    sub "s/#undef \(HAVE_`echo $i|tr a-z/.- A-Z___`\)/#define \1 1/"
-	    break
-	fi
-    done
-done
 
 LIBPATH="`echo $LD_LIBRARY_PATH | tr ':' ' '` $ac_var_libdir $ac_var_gcclibdir $ac_var_customlibdir /lib /usr/lib /usr/local/lib /usr/lib/x86_64-linux-gnu"
 LIBPATH=`echo $LIBPATH | sed 's/\\\\//g'`
@@ -241,10 +226,10 @@ for i in $PROGS; do
     sub "s/@$pname@/$pcall/g"
 done
 # Find freetype-config and get freetype compilation flags
-ftconf=`which freetype-config 2>/dev/null`
+ftconf=`which pkg-config 2>/dev/null`
 if [ -x $ftconf ]; then
-    ftinc=`$ftconf --cflags`
-    ftlib=`$ftconf --libs`
+    ftinc=`$ftconf --cflags freetype2`
+    ftlib=`$ftconf --libs freetype2`
     sub "s/@freetypeflags@/`escpath $ftinc`/;s/@freetypelibs@/`escpath $ftlib`/;s/#undef HAVE_FREETYPE/#define HAVE_FREETYPE 1/"
 else
     sub "s/ @freetypeflags@//;s/ @freetypelibs@//"

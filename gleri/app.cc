@@ -77,7 +77,7 @@ void CApp::SignalHandler (int sig) noexcept // static
     static bool doubleSignal = false;
     bool bFirst = AtomicSet (&doubleSignal);
     syslog (LOG_ERR, "signal: %s", strsignal(sig));
-    #if HAVE_USTL_H && !defined(NDEBUG)
+    #if USE_USTL && !defined(NDEBUG)
     if (isatty(STDERR_FILENO)) {
 	CBacktrace bkt;
 	cerr << bkt;

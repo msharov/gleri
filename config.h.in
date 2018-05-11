@@ -10,32 +10,16 @@
 #include <paths.h>
 
 // Queue size when calling listen(3)
-#define GLERIS_LISTEN_QUEUE_SIZE	32
+enum { GLERIS_LISTEN_QUEUE_SIZE	= 32 };
 
 // Temporary file name for saving screenshots before sending them to the client
 #define SAVEFB_TMPFILE	_PATH_TMP GLERIS_NAME "_fbXXXXXX.jpg"
 
 // Define to 1 if you have OpenGL
-#undef HAVE_GL_GL_H
-#if !HAVE_GL_GL_H
+#if !__has_include(<GL/gl.h>)
     #error "OpenGL is required to compile this project"
 #endif
-
-// Define to 1 if you have freetype
-#undef HAVE_FREETYPE
-
-// Define to 1 if you have libpng
-#undef HAVE_PNG_H
-
-// Define to 1 if you have libjpeg
-#undef HAVE_JPEGLIB_H
-
-// Define to 1 if you have libgif
-#undef HAVE_GIF_LIB_H
-
-// Define to 1 if you have zlib
-#undef HAVE_ZLIB_H
-#if !HAVE_ZLIB_H
+#if !__has_include(<zlib.h>)
     #error "zlib is required to compile this project"
 #endif
 

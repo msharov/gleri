@@ -70,15 +70,15 @@ protected:
 private:
     static inline CTexBuf	Load (const GLubyte* p, GLuint psz);
     static CTexBuf		LoadGLTX (const GLubyte* p, GLuint psz);
-#if HAVE_PNG_H
+#if __has_include(<png.h>)
     static CTexBuf		LoadPNG (const GLubyte* p, GLuint psz);
     static void			SavePNG (int fd, const CTexBuf& tbuf);
 #endif
-#if HAVE_JPEGLIB_H
+#if __has_include(<jpeglib.h>)
     static inline CTexBuf	LoadJPG (const GLubyte* p, GLuint psz);
     static inline void		SaveJPG (int fd, const CTexBuf& tbuf, uint8_t quality);
 #endif
-#if HAVE_GIF_LIB_H
+#if __has_include(<gif_lib.h>)
     static inline CTexBuf	LoadGIF (const GLubyte* p, GLuint psz);
 #endif
 protected:
