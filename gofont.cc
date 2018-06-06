@@ -361,6 +361,13 @@ void CFont::ReadFreetype (const uint8_t* p, unsigned psz, uint8_t fontSize)
     if (FT_IS_SCALABLE (face)) {
 	fontSize = DivRU (face->size->metrics.height, 64);
 	bl = DivRU (face->size->metrics.ascender, 64);
+	// xterm also checks ascender+descender, which may be larger for some reason.
+	// the font is still rendered very differently from xterm (larger chars for height),
+	// but this at least nudges it in the right directions. Line drawing characters,
+	// however, are broken when this is done. TTF totally sucks...
+	auto sumheight = DivRU (face->size->metrics.ascender - face->size->metrics.descender, 64);
+	if (sumheight > fontSize)
+	    fontSize = sumheight;
     }
     _info.SetSize (mw, fontSize, bl);
     _info.SetName (face->family_name);
