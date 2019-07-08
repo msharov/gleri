@@ -235,7 +235,7 @@ void CGleriPakApp::WriteBinaryArchive (const pakbuf_t& outbuf) const
     if (_outfilename == "-")
 	WritePakbufToFd (outbuf, STDOUT_FILENO);
     else
-	WritePakbufToFile (outbuf, _outfilename);
+	WritePakbufToFile (outbuf, _outfilename.c_str());
 }
 
 GLERI_APP (CGleriPakApp)

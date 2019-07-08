@@ -73,6 +73,12 @@
     inline constexpr T Align (T n, size_t grain)
 	{ return AlignDown (n + grain - 1, grain); }
 
+    /// \brief Divides \p n1 by \p n2 and rounds the result up.
+    /// This is in contrast to regular division, which rounds down.
+    template <typename T>
+    inline constexpr T DivRU (T n1, remove_reference_t<T> n2)
+	{ return (n1+(n2-1))/n2; }
+
     #define foreach(type,i,ctr)	for (type i = (ctr).begin(); i != (ctr).end(); ++ i)
 
     #define inline	inline __attribute__((always_inline))

@@ -127,7 +127,7 @@ pakbuf_t::const_pointer FilePointerInPakbuf (const pakbuf_t& pk, const char* fil
     for (auto i = PakbufBegin(pk), iend = PakbufEnd(pk); i < iend; i = i->Next()) {
 	// Get the filename
 	auto ifn = i->Filename();
-	if (reinterpret_cast<pakbuf_t::const_pointer>(ifn)+i->Namesize() > pk.end())
+	if (reinterpret_cast<pakbuf_t::const_pointer>(ifn)+i->Namesize() > &*pk.end())
 	    break;	// filename past the end
 	if (ifn[i->Namesize()-1] != 0)
 	    break;	// filename not 0-terminated
@@ -136,7 +136,7 @@ pakbuf_t::const_pointer FilePointerInPakbuf (const pakbuf_t& pk, const char* fil
 	// Copy the file data
 	auto idata = i->Filedata();
 	auto isize = i->Filesize();
-	if (idata+isize > pk.end())
+	if (idata+isize > &*pk.end())
 	    break;
 	if (fsz)
 	    *fsz = isize;
