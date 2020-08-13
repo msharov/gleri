@@ -148,9 +148,9 @@ void CCmdBuf::SendFile (CFile& f, uint32_t fsz)
 
 #define N(n,s)	#n "\0" #s "\0"
 const char CCmdBuf::_cmdNames[] =
-     N(Error,s)
-     N(Export,s)
-     N(Delete,)
+     N(error,s)
+     N(export,s)
+     N(delete,)
 ;
 #undef N
 
