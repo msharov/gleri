@@ -86,6 +86,8 @@ private:
     void		BeginThumbUpdate (void);
     static coord_t	CacheThumbX (unsigned thumbIndex)	{ return (thumbIndex % c_CacheNEntriesX) * c_ThumbWidth; }
     static coord_t	CacheThumbY (unsigned thumbIndex)	{ return (thumbIndex / c_CacheNEntriesY) * c_ThumbHeight; }
+    auto		UIWidth (void) const		{ return Info().w/_uiscale; }
+    auto		UIHeight (void) const		{ return Info().h/_uiscale; }
 private:
     goid_t		_img;		///< Visible image in ImageView
     goid_t		_loadingImg;	///< Image currently being loaded. Not in _img to avoid drawing blank screen until loaded.
@@ -96,6 +98,7 @@ private:
     dim_t		_iw,_ih;	///< In ImageView specifies image dimensions
     float		_ix,_iy;	///< Top left of drawn image in screen pixels
     float		_iscale;	///< Zoom factor in ImageView
+    unsigned		_uiscale;	///< UI scaling for HiDPI screens
     foldervec_t		_files;		///< List of viewable files in current folder
     string		_selectionName;	///< Used to set selection after an up chdir and to load image file given as process arg
     EView		_view;		///< Current view. See EView above
@@ -125,6 +128,7 @@ CImageViewer::CImageViewer (iid_t wid, const char* filename)
 ,_ix(0)
 ,_iy(0)
 ,_iscale(1.f)
+,_uiscale (1)
 ,_files()
 ,_view (ImageView)
 ,_selection (0)
@@ -261,9 +265,10 @@ ONDRAWIMPL(CImageViewer)::OnDraw (Drw& drw) const
 	// Bind the vertex pointer to _vertices to draw the selection rectangle
 	drw.VertexPointer (_vertices);
 	// Iterate over all visible entries
-	for (auto y = 0u, ie = _firstentry; y <= (unsigned) Info().h-c_EntryHeight; y += c_EntryHeight) {
-	    for (auto x = 0u; x <= (unsigned) Info().w-c_EntryWidth; ++ie, x += c_EntryWidth) {
-		drw.Viewport (x,y,c_EntryWidth,c_EntryHeight);	// Set clipping rectangle to entry size. Clips long filenames.
+	for (auto y = 0u, ie = _firstentry; y <= (unsigned) UIHeight()-c_EntryHeight; y += c_EntryHeight) {
+	    for (auto x = 0u; x <= (unsigned) UIWidth()-c_EntryWidth; ++ie, x += c_EntryWidth) {
+		drw.Viewport (x*_uiscale,y*_uiscale,c_EntryWidth*_uiscale,c_EntryHeight*_uiscale);	// Set clipping rectangle to entry size. Clips long filenames.
+		drw.Scale (_uiscale, _uiscale);
 		if (ie >= _files.size())
 		    return;
 		if (ie == _selection) {
@@ -294,7 +299,7 @@ void CImageViewer::BeginThumbUpdate (void)
     // If already loading a caching image, do nothing
     if (_caching.Image != G::GoidNull)
 	return;
-    unsigned pagesz = (Info().w/c_EntryWidth) * (Info().h/c_EntryHeight);
+    unsigned pagesz = (UIWidth()/c_EntryWidth) * (UIHeight()/c_EntryHeight);
     pagesz = min<unsigned> (pagesz, _files.size()-_firstentry);
     // Find the first image without a thumb and initiate update from it
     for (auto i = _firstentry; i < _firstentry+pagesz; ++i) {
@@ -350,6 +355,7 @@ DRAWFBIMPL(CImageViewer,ThumbCache)
 void CImageViewer::OnResize (dim_t w, dim_t h)
 {
     CWindow::OnResize (w, h);
+    _uiscale = DivRU (w, 1920);
     OnKey ('m');	// In ImageView, remaximize the image. In FolderView, reposition selection and top entry.
 }
 
@@ -443,8 +449,8 @@ void CImageViewer::OnImageViewKey (key_t key)
 // OnKey for FolderView
 void CImageViewer::OnFolderViewKey (key_t key)
 {
-    const unsigned linew = Info().w/c_EntryWidth,	// Compute how many entries can fit
-		lineh = Info().h/c_EntryHeight,		// on a single page in this window
+    const unsigned linew = UIWidth()/c_EntryWidth,	// Compute how many entries can fit
+		lineh = UIHeight()/c_EntryHeight,		// on a single page in this window
 		pagesz = linew*lineh;
     if (!linew || !lineh)
 	return;	// Window not mapped yet (happens because OnKey is explicitly called above to refit stuff)

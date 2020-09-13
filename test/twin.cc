@@ -89,6 +89,7 @@ CTestWindow::CTestWindow (iid_t wid)
 ,_wy(0)
 ,_wsx(0)
 ,_wsy(0)
+,_scale(1)
 ,_wtimer(NotWaitingForVSync)
 ,_screenshot(nullptr)
 ,_selrectpts{{0}}
@@ -133,7 +134,8 @@ void CTestWindow::OnResize (dim_t w, dim_t h)
 {
     CWindow::OnResize (w,h);
     printf ("Test window OnResize\n");
-    const coord_t sw = w-1, sh = h-1,
+    _scale = DivRU (Info().scrw, 1920);
+    const coord_t sw = w/_scale-1, sh = h/_scale-1,
 		_vdata1[] = { sh, sw,sh, sw };
     BufferSubData (_vbuf, _vdata1, sizeof(_vdata1), 3*sizeof(int16_t));
     _wx = 0; _wy = (h-walk_SpriteH)/2;
@@ -314,6 +316,7 @@ ONDRAWIMPL(CTestWindow)::OnDraw (Drw& drw) const
     CWindow::OnDraw (drw);
 
     drw.Clear (RGB(0,0,64));
+    drw.Scale (_scale, _scale);
 
     drw.VertexPointer (_vbuf);
 

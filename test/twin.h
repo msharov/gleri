@@ -41,6 +41,7 @@ private:
     coord_t		_wy;
     coord_t		_wsx;
     coord_t		_wsy;
+    unsigned		_scale;
     uint64_t		_wtimer;
     char		_hellomsg [48];
     const char*		_screenshot;
